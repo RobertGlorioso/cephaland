@@ -1,0 +1,9 @@
+resolver: lts-9.2
+packages:
+  - .
+extra-deps:
+  - apecs-0.4.1.0
+  - gloss-juicy-0.2.2
+  - sdl2-mixer-1.1.0
+flags: {}
+extra-package-dbs: []
