@@ -1,0 +1,459 @@
+
+==================== FINAL INTERFACE ====================
+2018-07-10 03:47:47.253107 UTC
+
+interface main@main:Enemy 8002
+  interface hash: 351284b88938a47fb69190e59c10b52f
+  ABI hash: 94e84841d0365f3f9178ce7ee3694cf9
+  export-list hash: 93411b685e67347aeec2ad3e8e7ea222
+  orphan hash: 124ac5b6ed3a6d8b201014234f3cfd39
+  flag hash: 3ddcfe82c06b04ea974f063dc805efe4
+  sig of: Nothing
+  used TH splices: False
+  where
+exports:
+  Enemy.enemy
+  Enemy.killEnemy
+module dependencies: Data Util
+package dependencies: GLURaw-2.0.0.3@GLURaw-2.0.0.3-Dsh0J6RJGCYIX4KzhPpy5R
+                      GLUT-2.7.0.12@GLUT-2.7.0.12-DC8hzFoSREsLOe0a29m1po
+                      JuicyPixels-3.2.8.3@JuicyPixels-3.2.8.3-5IOlo1rE8WxAfqhWPTAe4N
+                      ObjectName-1.1.0.1@ObjectName-1.1.0.1-EiFOWjUQWWuLyOhtrmuIWX
+                      OpenGL-3.0.2.0@OpenGL-3.0.2.0-6fbDRkN7rpfG63nVz30IBa
+                      OpenGLRaw-3.2.5.0@OpenGLRaw-3.2.5.0-8JxKpZbO2kWCx46iLc1G4X
+                      StateVar-1.1.0.4@StateVar-1.1.0.4-5dJbnTVECtEAhfJXPZKdbO
+                      adjunctions-4.3@adjunctions-4.3-A5jfd1yrmaY4DRMJuiquBp
+                      apecs-0.4.1.0@apecs-0.4.1.0-5Dq3f9B8Tv5E9yBPZjGUoi
+                      array-0.5.1.1@array-0.5.1.1 base-4.9.1.0
+                      base-orphans-0.6@base-orphans-0.6-AbJ3lKVXygDCG0eeQEv8Iu
+                      bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw
+                      binary-0.8.3.0@binary-0.8.3.0
+                      bmp-1.2.6.3@bmp-1.2.6.3-43OLkH0uuwm831pBFpx2PZ
+                      bytes-0.15.3@bytes-0.15.3-16oYXSNZBSJFzWzUAkfvFP
+                      bytestring-0.10.8.1@bytestring-0.10.8.1
+                      call-stack-0.1.0@call-stack-0.1.0-FYVrCPXGP9EGAuTW32963O
+                      cereal-0.5.4.0@cereal-0.5.4.0-BsAGxfp8yAs3CiRo2E875e
+                      comonad-5.0.2@comonad-5.0.2-Fq9Xy9jdx6uIyJZn00E6Yc
+                      containers-0.5.7.1@containers-0.5.7.1
+                      contravariant-1.4@contravariant-1.4-29zF0Im431177ovfbHYCGv
+                      data-default-class-0.1.2.0@data-default-class-0.1.2.0-GsXqKN6o1X9jr0fF5qCVD
+                      deepseq-1.4.2.0@deepseq-1.4.2.0
+                      distributive-0.5.3@distributive-0.5.3-IX4kyVcHAyoH4uFYrsjY1R
+                      exceptions-0.8.3@exceptions-0.8.3-ADEDRATtUrMK1JW4zMQ9U
+                      fixed-0.2.1.1@fixed-0.2.1.1-8Jr82l0kss5Gr4nEevmXlZ
+                      free-4.12.4@free-4.12.4-C2gBQV0m8J42HxqSLTFyVx
+                      ghc-boot-th-8.0.2@ghc-boot-th-8.0.2 ghc-prim-0.5.0.0
+                      gloss-1.11.1.1@gloss-1.11.1.1-8GzjbnWS46V6aZCKK1kaHi
+                      gloss-juicy-0.2.2@gloss-juicy-0.2.2-IE8irSKuYpN9p5TRSihwez
+                      gloss-rendering-1.11.1.1@gloss-rendering-1.11.1.1-2H1Z0FJPE28CgZNofHijuT
+                      half-0.2.2.3@half-0.2.2.3-GHJ372Ls7FBA3PAGtGHfOR
+                      hashable-1.2.6.1@hashable-1.2.6.1-2ZLNuHq395GGIHwEHuqZol
+                      integer-gmp-1.0.0.1
+                      integer-logarithms-1.0.2@integer-logarithms-1.0.2-92lMiWV9mmYAwfMEYgfQ0D
+                      kan-extensions-5.0.2@kan-extensions-5.0.2-8LTJJ1zQJWB7SfewWXUuqX
+                      lens-4.15.4@lens-4.15.4-3P7PSyaTsWRLQnkSsAPtwp
+                      lifted-base-0.2.3.11@lifted-base-0.2.3.11-Ei0JSPdt7KOCD2HIA5jFqV
+                      linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H
+                      monad-control-1.0.2.2@monad-control-1.0.2.2-1Ci8dYJ8Tb7E3HTcTqOb8l
+                      mtl-2.2.1@mtl-2.2.1-BLKBelFsPB3BoFeSWSOYj6
+                      prelude-extras-0.4.0.3@prelude-extras-0.4.0.3-BhL9U5k7NtGJn1itwIHt2Y
+                      pretty-1.1.3.3@pretty-1.1.3.3
+                      primitive-0.6.2.0@primitive-0.6.2.0-4578caNkWQ54Gt1mxLF2Yh
+                      profunctors-5.2.1@profunctors-5.2.1-Ga89Nyw0d7LBEIoX4AZ6gT
+                      random-1.1@random-1.1-9tceXaeYIMZ4JrKq20Egog
+                      reflection-2.1.2@reflection-2.1.2-Bem12O1xFGSHr4C2Hyu1c4
+                      scientific-0.3.5.1@scientific-0.3.5.1-JHsAAp34Yyd8e5v3sK3O5Q
+                      sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf
+                      sdl2-mixer-1.1.0@sdl2-mixer-1.1.0-LX59oFy5f5B564Mb5zRJ6y
+                      semigroupoids-5.2.1@semigroupoids-5.2.1-Db8txM8kTsI6Y49CY6g5Jn
+                      stm-2.4.4.1@stm-2.4.4.1-JQn4hNPyYjP5m9AcbI88Ve
+                      tagged-0.8.5@tagged-0.8.5-1mTloBSoUxv8dqUr8XBGBt
+                      template-haskell-2.11.1.0
+                      text-1.2.2.2@text-1.2.2.2-9UQZjEJZQFSGMffj1Z5g00
+                      th-abstraction-0.2.5.0@th-abstraction-0.2.5.0-IQJC3onXzKuCarhyL6pEOQ
+                      time-1.6.0.1@time-1.6.0.1 transformers-0.5.2.0@transformers-0.5.2.0
+                      transformers-base-0.4.4@transformers-base-0.4.4-GKSs0LKukAL8ymq2naFmrH
+                      transformers-compat-0.5.1.4@transformers-compat-0.5.1.4-IuFogs8HAVUJBWVNMhtssu
+                      unordered-containers-0.2.8.0@unordered-containers-0.2.8.0-Bp9XgxjuHxcI4tFehVMDGC
+                      vector-0.12.0.1@vector-0.12.0.1-692PQMDMB6pIQ1uGwefDcQ
+                      zlib-0.6.1.2@zlib-0.6.1.2-7negTfm2ujt1gW4wr40MUp
+orphans: base-4.9.1.0:GHC.Base base-4.9.1.0:GHC.Float
+         base-orphans-0.6@base-orphans-0.6-AbJ3lKVXygDCG0eeQEv8Iu:Data.Orphans
+         binary-0.8.3.0@binary-0.8.3.0:Data.Binary.Generic
+         bytestring-0.10.8.1@bytestring-0.10.8.1:Data.ByteString.Builder
+         gloss-rendering-1.11.1.1@gloss-rendering-1.11.1.1-2H1Z0FJPE28CgZNofHijuT:Graphics.Gloss.Internals.Data.Picture
+         hashable-1.2.6.1@hashable-1.2.6.1-2ZLNuHq395GGIHwEHuqZol:Data.Hashable.Generic
+         linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.Instances
+         reflection-2.1.2@reflection-2.1.2-Bem12O1xFGSHr4C2Hyu1c4:Data.Reflection
+         stm-2.4.4.1@stm-2.4.4.1-JQn4hNPyYjP5m9AcbI88Ve:Control.Monad.STM
+         text-1.2.2.2@text-1.2.2.2-9UQZjEJZQFSGMffj1Z5g00:Data.Text
+         text-1.2.2.2@text-1.2.2.2-9UQZjEJZQFSGMffj1Z5g00:Data.Text.Lazy
+         text-1.2.2.2@text-1.2.2.2-9UQZjEJZQFSGMffj1Z5g00:Data.Text.Show
+         time-1.6.0.1@time-1.6.0.1:Data.Time.Calendar.Gregorian
+         time-1.6.0.1@time-1.6.0.1:Data.Time.Format.Parse
+         time-1.6.0.1@time-1.6.0.1:Data.Time.LocalTime.LocalTime
+         transformers-0.5.2.0@transformers-0.5.2.0:Control.Monad.Trans.Error
+         vector-0.12.0.1@vector-0.12.0.1-692PQMDMB6pIQ1uGwefDcQ:Data.Vector.Fusion.Bundle
+         vector-0.12.0.1@vector-0.12.0.1-692PQMDMB6pIQ1uGwefDcQ:Data.Vector.Unboxed
+family instance modules: JuicyPixels-3.2.8.3@JuicyPixels-3.2.8.3-5IOlo1rE8WxAfqhWPTAe4N:Codec.Picture.Tga
+                         JuicyPixels-3.2.8.3@JuicyPixels-3.2.8.3-5IOlo1rE8WxAfqhWPTAe4N:Codec.Picture.Tiff
+                         JuicyPixels-3.2.8.3@JuicyPixels-3.2.8.3-5IOlo1rE8WxAfqhWPTAe4N:Codec.Picture.Types
+                         adjunctions-4.3@adjunctions-4.3-A5jfd1yrmaY4DRMJuiquBp:Data.Functor.Rep
+                         apecs-0.4.1.0@apecs-0.4.1.0-5Dq3f9B8Tv5E9yBPZjGUoi:Apecs.Core
+                         apecs-0.4.1.0@apecs-0.4.1.0-5Dq3f9B8Tv5E9yBPZjGUoi:Apecs.Stores
+                         apecs-0.4.1.0@apecs-0.4.1.0-5Dq3f9B8Tv5E9yBPZjGUoi:Apecs.Util
+                         base-4.9.1.0:Control.Applicative base-4.9.1.0:Data.Complex
+                         base-4.9.1.0:Data.Either base-4.9.1.0:Data.Functor.Compose
+                         base-4.9.1.0:Data.Functor.Const base-4.9.1.0:Data.Functor.Identity
+                         base-4.9.1.0:Data.Functor.Product base-4.9.1.0:Data.Functor.Sum
+                         base-4.9.1.0:Data.List.NonEmpty base-4.9.1.0:Data.Monoid
+                         base-4.9.1.0:Data.Semigroup base-4.9.1.0:Data.Type.Equality
+                         base-4.9.1.0:Data.Version base-4.9.1.0:Data.Void
+                         base-4.9.1.0:GHC.Exts base-4.9.1.0:GHC.Generics
+                         base-4.9.1.0:GHC.IO.Exception base-4.9.1.0:GHC.TypeLits
+                         bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw:Data.Bifunctor.Biff
+                         bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw:Data.Bifunctor.Clown
+                         bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw:Data.Bifunctor.Fix
+                         bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw:Data.Bifunctor.Flip
+                         bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw:Data.Bifunctor.Join
+                         bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw:Data.Bifunctor.Joker
+                         bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw:Data.Bifunctor.Product
+                         bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw:Data.Bifunctor.Sum
+                         bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw:Data.Bifunctor.Tannen
+                         bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw:Data.Bifunctor.Wrapped
+                         bytes-0.15.3@bytes-0.15.3-16oYXSNZBSJFzWzUAkfvFP:Data.Bytes.Get
+                         bytes-0.15.3@bytes-0.15.3-16oYXSNZBSJFzWzUAkfvFP:Data.Bytes.Signed
+                         bytes-0.15.3@bytes-0.15.3-16oYXSNZBSJFzWzUAkfvFP:Data.Bytes.VarInt
+                         containers-0.5.7.1@containers-0.5.7.1:Data.IntMap.Base
+                         containers-0.5.7.1@containers-0.5.7.1:Data.IntSet.Base
+                         containers-0.5.7.1@containers-0.5.7.1:Data.Map.Base
+                         containers-0.5.7.1@containers-0.5.7.1:Data.Sequence
+                         containers-0.5.7.1@containers-0.5.7.1:Data.Set.Base
+                         ghc-boot-th-8.0.2@ghc-boot-th-8.0.2:GHC.LanguageExtensions.Type
+                         kan-extensions-5.0.2@kan-extensions-5.0.2-8LTJJ1zQJWB7SfewWXUuqX:Data.Functor.Day
+                         kan-extensions-5.0.2@kan-extensions-5.0.2-8LTJJ1zQJWB7SfewWXUuqX:Data.Functor.Yoneda
+                         lens-4.15.4@lens-4.15.4-3P7PSyaTsWRLQnkSsAPtwp:Control.Lens.At
+                         lens-4.15.4@lens-4.15.4-3P7PSyaTsWRLQnkSsAPtwp:Control.Lens.Internal.Indexed
+                         lens-4.15.4@lens-4.15.4-3P7PSyaTsWRLQnkSsAPtwp:Control.Lens.Reified
+                         lens-4.15.4@lens-4.15.4-3P7PSyaTsWRLQnkSsAPtwp:Control.Lens.Tuple
+                         lens-4.15.4@lens-4.15.4-3P7PSyaTsWRLQnkSsAPtwp:Control.Lens.Wrapped
+                         lens-4.15.4@lens-4.15.4-3P7PSyaTsWRLQnkSsAPtwp:Control.Lens.Zoom
+                         linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.Affine
+                         linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.Plucker
+                         linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.Quaternion
+                         linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.V
+                         linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.V0
+                         linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.V1
+                         linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.V2
+                         linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.V3
+                         linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.V4
+                         main@main:Data
+                         monad-control-1.0.2.2@monad-control-1.0.2.2-1Ci8dYJ8Tb7E3HTcTqOb8l:Control.Monad.Trans.Control
+                         pretty-1.1.3.3@pretty-1.1.3.3:Text.PrettyPrint.Annotated.HughesPJ
+                         pretty-1.1.3.3@pretty-1.1.3.3:Text.PrettyPrint.HughesPJ
+                         primitive-0.6.2.0@primitive-0.6.2.0-4578caNkWQ54Gt1mxLF2Yh:Control.Monad.Primitive
+                         primitive-0.6.2.0@primitive-0.6.2.0-4578caNkWQ54Gt1mxLF2Yh:Data.Primitive.Array
+                         profunctors-5.2.1@profunctors-5.2.1-Ga89Nyw0d7LBEIoX4AZ6gT:Data.Profunctor.Rep
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Audio
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Event
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Exception
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Hint
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Init
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Input.Joystick
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Input.Keyboard
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Input.Keyboard.Codes
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Input.Mouse
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Internal.Types
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Power
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Time
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Video
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Video.OpenGL
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Video.Renderer
+                         tagged-0.8.5@tagged-0.8.5-1mTloBSoUxv8dqUr8XBGBt:Data.Tagged
+                         template-haskell-2.11.1.0:Language.Haskell.TH.Syntax
+                         text-1.2.2.2@text-1.2.2.2-9UQZjEJZQFSGMffj1Z5g00:Data.Text
+                         text-1.2.2.2@text-1.2.2.2-9UQZjEJZQFSGMffj1Z5g00:Data.Text.Lazy
+                         th-abstraction-0.2.5.0@th-abstraction-0.2.5.0-IQJC3onXzKuCarhyL6pEOQ:Language.Haskell.TH.Datatype
+                         unordered-containers-0.2.8.0@unordered-containers-0.2.8.0-Bp9XgxjuHxcI4tFehVMDGC:Data.HashMap.Base
+                         unordered-containers-0.2.8.0@unordered-containers-0.2.8.0-Bp9XgxjuHxcI4tFehVMDGC:Data.HashSet
+                         vector-0.12.0.1@vector-0.12.0.1-692PQMDMB6pIQ1uGwefDcQ:Data.Vector
+                         vector-0.12.0.1@vector-0.12.0.1-692PQMDMB6pIQ1uGwefDcQ:Data.Vector.Primitive
+                         vector-0.12.0.1@vector-0.12.0.1-692PQMDMB6pIQ1uGwefDcQ:Data.Vector.Storable
+                         vector-0.12.0.1@vector-0.12.0.1-692PQMDMB6pIQ1uGwefDcQ:Data.Vector.Unboxed
+                         vector-0.12.0.1@vector-0.12.0.1-692PQMDMB6pIQ1uGwefDcQ:Data.Vector.Unboxed.Base
+                         zlib-0.6.1.2@zlib-0.6.1.2-7negTfm2ujt1gW4wr40MUp:Codec.Compression.Zlib.Stream
+import  -/  apecs-0.4.1.0@apecs-0.4.1.0-5Dq3f9B8Tv5E9yBPZjGUoi:Apecs 9e808a2796d475f24d20fdd8ff1363fd
+import  -/  apecs-0.4.1.0@apecs-0.4.1.0-5Dq3f9B8Tv5E9yBPZjGUoi:Apecs.Core b0ec54c44528a3471de8fe8aa48eb8c2
+import  -/  apecs-0.4.1.0@apecs-0.4.1.0-5Dq3f9B8Tv5E9yBPZjGUoi:Apecs.Util f93f44fac40f80d395a6bc087e53a294
+import  -/  base-4.9.1.0:Control.Monad a6784c5dab0d75c63dabec5a37843f98
+import  -/  base-4.9.1.0:Control.Monad.IO.Class 1a4384f66ee999caf5366398edb6ca7b
+import  -/  base-4.9.1.0:GHC.Base c4231c43c07e46080a26bf94094c7aa1
+import  -/  base-4.9.1.0:GHC.Real 82e4e59051a13dba1da63e1e970a69e6
+import  -/  base-4.9.1.0:Prelude 22dd289b8469a8fa8dc81cab7b237771
+import  -/  gloss-1.11.1.1@gloss-1.11.1.1-8GzjbnWS46V6aZCKK1kaHi:Graphics.Gloss bf67b0e05def334587dfecab9a36e1dd
+import  -/  gloss-1.11.1.1@gloss-1.11.1.1-8GzjbnWS46V6aZCKK1kaHi:Graphics.Gloss.Data.Color 45da860083551187378f3db9bd1a5264
+import  -/  gloss-1.11.1.1@gloss-1.11.1.1-8GzjbnWS46V6aZCKK1kaHi:Graphics.Gloss.Data.Picture acb105bdd44e47e26ad5cc5612291d6f
+import  -/  gloss-juicy-0.2.2@gloss-juicy-0.2.2-IE8irSKuYpN9p5TRSihwez:Graphics.Gloss.Juicy c94f21b8e352753c9c5409a31159cee4
+import  -/  gloss-rendering-1.11.1.1@gloss-rendering-1.11.1.1-2H1Z0FJPE28CgZNofHijuT:Graphics.Gloss.Internals.Data.Picture 06b134b12b86b8d47d5ac0ceff5d2f70
+import  -/  linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear afc92d21b81cc135f995c82acab4aa35
+import  -/  linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.V2 057a57f5dec031a14519f43cfad7fe97
+import  -/  Data 5bdd4396c5b108284b631566f8ea56d9
+  exports: 40e9085ca9a663599183c0c76872bc35
+  BodyPicture 67235b5a9ffeaa52189bf04cf2833309
+  Box e4128b39239815f4be16470a1bc0c776
+  DynamicBody 6acaa6c21e67b3118f24f1f7dbad2324
+  Enemy 3946e5817d7faa768d732cf427780be8
+  Position d7eb6c2e922f91f98a363f10abd8e452
+  ProjCount 9faa12d7c727e2894a6c059e8ba2d1a5
+  Velocity d46988d0ab0edd81fe3d85bb8a1e7569
+  World 1ec3475be1ea2b4c711a7bbe834c62dd
+import  -/  Util 50da0cb328d3232718ed28661fd8372a
+  exports: a97dc3cf399b9290775272ef77023ee5
+  aabb 8160faebd893ce4c4856d75b0253af5d
+import  -/  random-1.1@random-1.1-9tceXaeYIMZ4JrKq20Egog:System.Random b21db0c0ea43dc1ad218556cd0b064c7
+import  -/  sdl2-mixer-1.1.0@sdl2-mixer-1.1.0-LX59oFy5f5B564Mb5zRJ6y:SDL.Mixer 7ded9971fd54fcd306f072d71364402c
+cbc76acc5dcf66a2e2b9eee281dd2c7b
+  $s$fHasw(,,,) ::
+    Apecs.Core.Has
+      Data.World
+      (Data.Body, Data.BodyPicture, Data.Velocity, Data.Position)
+  {- Strictness: m, Inline: [ALWAYS] CONLIKE,
+     Unfolding: DFun:.
+                  @ Data.World
+                  @ (Data.Body, Data.BodyPicture, Data.Velocity, Data.Position)
+                  (Apecs.Core.$fHasw(,,,)_$cp1Has
+                     @ Data.World
+                     @ Data.Body
+                     @ Data.BodyPicture
+                     @ Data.Velocity
+                     @ Data.Position
+                     Data.$fHasWorldBody
+                     Data.$fHasWorldBodyPicture
+                     Data.$fHasWorldVelocity
+                     Data.$fHasWorldPosition)
+                  (\ (eta6 :: Data.World)
+                     (eta7 :: GHC.Prim.State# GHC.Prim.RealWorld)[OneShot] ->
+                   ((Apecs.Core.$fApplicativeSystem_$c<*>
+                       @ Data.World
+                       @ (Apecs.Core.Storage Data.Position)
+                       @ (Apecs.Core.Storage Data.Body,
+                          Apecs.Core.Storage Data.BodyPicture,
+                          Apecs.Core.Storage Data.Velocity, Apecs.Core.Storage Data.Position)
+                       (Apecs.Core.$fApplicativeSystem_$c<*>
+                          @ Data.World
+                          @ (Apecs.Core.Storage Data.Velocity)
+                          @ (Apecs.Core.Storage Data.Position
+                             -> (Apecs.Core.Storage Data.Body,
+                                 Apecs.Core.Storage Data.BodyPicture,
+                                 Apecs.Core.Storage Data.Velocity,
+                                 Apecs.Core.Storage Data.Position))
+                          (Apecs.Core.$fApplicativeSystem_$c<*>
+                             @ Data.World
+                             @ (Apecs.Core.Storage Data.BodyPicture)
+                             @ (Apecs.Core.Storage Data.Velocity
+                                -> Apecs.Core.Storage Data.Position
+                                -> (Apecs.Core.Storage Data.Body,
+                                    Apecs.Core.Storage Data.BodyPicture,
+                                    Apecs.Core.Storage Data.Velocity,
+                                    Apecs.Core.Storage Data.Position))
+                             (Apecs.Core.$fApplicativeSystem_$c<*>
+                                @ Data.World
+                                @ (Apecs.Core.Storage Data.Body)
+                                @ (Apecs.Core.Storage Data.BodyPicture
+                                   -> Apecs.Core.Storage Data.Velocity
+                                   -> Apecs.Core.Storage Data.Position
+                                   -> (Apecs.Core.Storage Data.Body,
+                                       Apecs.Core.Storage Data.BodyPicture,
+                                       Apecs.Core.Storage Data.Velocity,
+                                       Apecs.Core.Storage Data.Position))
+                                (Apecs.Core.$fApplicativeSystem_$cpure
+                                   @ Data.World
+                                   @ (Apecs.Core.Storage Data.Body
+                                      -> Apecs.Core.Storage Data.BodyPicture
+                                      -> Apecs.Core.Storage Data.Velocity
+                                      -> Apecs.Core.Storage Data.Position
+                                      -> (Apecs.Core.Storage Data.Body,
+                                          Apecs.Core.Storage Data.BodyPicture,
+                                          Apecs.Core.Storage Data.Velocity,
+                                          Apecs.Core.Storage Data.Position))
+                                   (GHC.Tuple.(,,,)
+                                      @ (Apecs.Core.Storage Data.Body)
+                                      @ (Apecs.Core.Storage Data.BodyPicture)
+                                      @ (Apecs.Core.Storage Data.Velocity)
+                                      @ (Apecs.Core.Storage Data.Position)))
+                                Data.$fHasWorldBody_$cgetStore)
+                             Data.$fHasWorldBodyPicture_$cgetStore)
+                          Data.$fHasWorldVelocity_$cgetStore)
+                       Data.$fHasWorldPosition_$cgetStore)
+                      `cast`
+                    (Trans
+                         (Apecs.Core.N:System[0]
+                              <Data.World>_R (Sym (Apecs.Core.D:R:Storage(,,,)[0]
+                                                       <Data.Position>_N
+                                                       <Data.Velocity>_N
+                                                       <Data.BodyPicture>_N
+                                                       <Data.Body>_N)))
+                         (Control.Monad.Trans.Reader.N:ReaderT[0]
+                              <*>_N
+                              <Data.World>_R
+                              <GHC.Types.IO>_R
+                              <Apecs.Core.Storage
+                                 (Data.Body, Data.BodyPicture, Data.Velocity, Data.Position)>_N))
+                      eta6)
+                     `cast`
+                   (GHC.Types.N:IO[0]
+                        <Apecs.Core.Storage
+                           (Data.Body, Data.BodyPicture, Data.Velocity, Data.Position)>_R)
+                     eta7)
+                    `cast`
+                  (Trans
+                       (<Data.World>_R
+                        ->_R Sym (GHC.Types.N:IO[0]
+                                      <Apecs.Core.Storage
+                                         (Data.Body, Data.BodyPicture, Data.Velocity,
+                                          Data.Position)>_R))
+                       (Trans
+                            (Sym (Control.Monad.Trans.Reader.N:ReaderT[0]
+                                      <*>_N
+                                      <Data.World>_R
+                                      <GHC.Types.IO>_R
+                                      <Apecs.Core.Storage
+                                         (Data.Body, Data.BodyPicture, Data.Velocity,
+                                          Data.Position)>_N))
+                            (Sym (Apecs.Core.N:System[0] <Data.World>_R) <Apecs.Core.Storage
+                                                                            (Data.Body,
+                                                                             Data.BodyPicture,
+                                                                             Data.Velocity,
+                                                                             Data.Position)>_N))) -}
+cfbb80cc8454fa659005248356eb8bb5
+  $trModule :: GHC.Types.Module
+  {- HasNoCafRefs, Strictness: m,
+     Unfolding: (GHC.Types.Module Enemy.$trModule2 Enemy.$trModule1) -}
+a821fce59bd83ebf5112aa6bc2aedda1
+  $trModule1 :: GHC.Types.TrName
+  {- HasNoCafRefs, Strictness: m1,
+     Unfolding: (GHC.Types.TrNameS "Enemy"#) -}
+cc2f113cf93186075e6799000cdc3a6f
+  $trModule2 :: GHC.Types.TrName
+  {- HasNoCafRefs, Strictness: m1,
+     Unfolding: (GHC.Types.TrNameS "main"#) -}
+9c9b8d6f46f54916fb08994ac88b8966
+  enemy :: Apecs.Core.System Data.World ()
+  {- Arity: 2,
+     Strictness: <L,1*U(A,U,U,A,U,U,A,A,A,A,A,A,U,A,U,A,U,A,A,U)><S,U>,
+     Unfolding: InlineRule (0, True, True)
+                Enemy.enemy1
+                  `cast`
+                (Trans
+                     (<Data.World>_R ->_R Sym (GHC.Types.N:IO[0] <()>_R))
+                     (Trans
+                          (Sym (Control.Monad.Trans.Reader.N:ReaderT[0]
+                                    <*>_N <Data.World>_R <GHC.Types.IO>_R <()>_N))
+                          (Sym (Apecs.Core.N:System[0] <Data.World>_R) <()>_N))) -}
+fea3cd6032dc0312f69f68997d730e81
+  enemy1 ::
+    Data.World
+    -> GHC.Prim.State# GHC.Prim.RealWorld
+    -> (# GHC.Prim.State# GHC.Prim.RealWorld, () #)
+  {- Arity: 2,
+     Strictness: <L,1*U(A,U,U,A,U,U,A,A,A,A,A,A,U,A,U,A,U,A,A,U)><S,U> -}
+adf90c9573501d43181854d13d7fadc8
+  killEnemy ::
+    (Linear.V2.V2 GHC.Types.Double, GHC.Types.Double, GHC.Types.Double)
+    -> (Data.Enemy, Data.Position, Data.Box)
+    -> (Data.Enemy, Data.Position)
+  {- Arity: 2, HasNoCafRefs,
+     Strictness: <S(S(S(S)S)S(S)L),1*U(1*U(U(U),U(U)),1*U(U),1*U(U))><S(SLS(S(S(S(S)S)S(S)L))),1*U(1*H,U,1*U(1*U(1*U(U(U),U(U)),1*U(U),1*U(U))))>m,
+     Inline: INLINE[0],
+     Unfolding: InlineRule (2, True, False)
+                (\ (w :: (Linear.V2.V2 GHC.Types.Double, GHC.Types.Double,
+                          GHC.Types.Double))
+                   (w1 :: (Data.Enemy, Data.Position, Data.Box)) ->
+                 case w of ww { (,,) ww1 ww2 ww3 ->
+                 case ww1 of ww4 { Linear.V2.V2 ww5 ww6 ->
+                 case ww5 of ww7 { GHC.Types.D# ww8 ->
+                 case ww6 of ww9 { GHC.Types.D# ww10 ->
+                 case ww2 of ww11 { GHC.Types.D# ww12 ->
+                 case w1 of ww13 { (,,) ww14 ww15 ww16 ->
+                 case ww14 of ww17 { Data.Enemy ->
+                 case ww16 of ww18 { Data.Box ww19 ->
+                 case ww19 of ww20 { (,,) ww21 ww22 ww23 ->
+                 case ww21 of ww24 { Linear.V2.V2 ww25 ww26 ->
+                 case ww25 of ww27 { GHC.Types.D# ww28 ->
+                 case ww26 of ww29 { GHC.Types.D# ww30 ->
+                 case ww22 of ww31 { GHC.Types.D# ww32 ->
+                 case GHC.Prim.tagToEnum#
+                        @ GHC.Types.Bool
+                        (GHC.Prim.<=##
+                           (GHC.Prim.-## ww8 ww12)
+                           (GHC.Prim.+## ww28 ww32)) of wild {
+                   GHC.Types.False -> (Data.Enemy, ww15)
+                   GHC.Types.True
+                   -> case GHC.Prim.tagToEnum#
+                             @ GHC.Types.Bool
+                             (GHC.Prim.>=##
+                                (GHC.Prim.+## ww8 ww12)
+                                (GHC.Prim.-## ww28 ww32)) of wild1 {
+                        GHC.Types.False -> (Data.Enemy, ww15)
+                        GHC.Types.True
+                        -> case ww3 of wild2 { GHC.Types.D# y ->
+                           case ww23 of wild3 { GHC.Types.D# y1 ->
+                           case GHC.Prim.tagToEnum#
+                                  @ GHC.Types.Bool
+                                  (GHC.Prim.<=##
+                                     (GHC.Prim.-## ww10 y)
+                                     (GHC.Prim.+## ww30 y1)) of wild4 {
+                             GHC.Types.False -> (Data.Enemy, ww15)
+                             GHC.Types.True
+                             -> case GHC.Prim.tagToEnum#
+                                       @ GHC.Types.Bool
+                                       (GHC.Prim.>=##
+                                          (GHC.Prim.+## ww10 y)
+                                          (GHC.Prim.-## ww30 y1)) of wild7 {
+                                  GHC.Types.False -> (Data.Enemy, ww15)
+                                  GHC.Types.True
+                                  -> (Data.Enemy,
+                                      Enemy.killEnemy1
+                                        `cast`
+                                      (Sym (Data.N:Position[0]))) } } } } } } } } } } } } } } } } } } }) -}
+2a1562792f5cdb5ea0bfabe03192f725
+  killEnemy1 :: Linear.V2.V2 GHC.Types.Double
+  {- HasNoCafRefs, Strictness: m,
+     Unfolding: (Linear.V2.V2
+                   @ GHC.Types.Double
+                   Enemy.killEnemy2
+                   Enemy.killEnemy2) -}
+ab89d55a746f7724cb25c0dce376a42e
+  killEnemy2 :: GHC.Types.Double
+  {- HasNoCafRefs, Strictness: m,
+     Unfolding: (GHC.Types.D# -100.0##) -}
+"SPEC/Enemy $fHasw(,,,) @ World @ Body @ BodyPicture @ Velocity @ Position" [ALWAYS] forall ($dHas3 :: Apecs.Core.Has
+                                                                                                         Data.World
+                                                                                                         Data.Position)
+                                                                                            ($dHas2 :: Apecs.Core.Has
+                                                                                                         Data.World
+                                                                                                         Data.Velocity)
+                                                                                            ($dHas1 :: Apecs.Core.Has
+                                                                                                         Data.World
+                                                                                                         Data.BodyPicture)
+                                                                                            ($dHas :: Apecs.Core.Has
+                                                                                                        Data.World
+                                                                                                        Data.Body)
+  Apecs.Core.$fHasw(,,,) @ Data.World
+                         @ Data.Body
+                         @ Data.BodyPicture
+                         @ Data.Velocity
+                         @ Data.Position
+                         $dHas
+                         $dHas1
+                         $dHas2
+                         $dHas3
+  = Enemy.$s$fHasw(,,,)
+vectorised variables:
+vectorised tycons:
+vectorised reused tycons:
+parallel variables:
+parallel tycons:
+trusted: none
+require own pkg trusted: False
+

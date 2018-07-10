@@ -1,0 +1,304 @@
+
+==================== FINAL INTERFACE ====================
+2018-07-10 03:47:50.515356 UTC
+
+interface main@main:Projectile 8002
+  interface hash: 5df75dd338bb2b44b87b52fde5822d96
+  ABI hash: bc7ffcd8c929026d8457744672199831
+  export-list hash: 1a2e9b109a8a1d69a6ba772700f00537
+  orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
+  flag hash: 020e823ee00d19c31d77fb86fe74c65d
+  sig of: Nothing
+  used TH splices: False
+  where
+exports:
+  Projectile.removeProjectile
+  Projectile.shootArrow
+module dependencies: Data Util
+package dependencies: GLURaw-2.0.0.3@GLURaw-2.0.0.3-Dsh0J6RJGCYIX4KzhPpy5R
+                      GLUT-2.7.0.12@GLUT-2.7.0.12-DC8hzFoSREsLOe0a29m1po
+                      ObjectName-1.1.0.1@ObjectName-1.1.0.1-EiFOWjUQWWuLyOhtrmuIWX
+                      OpenGL-3.0.2.0@OpenGL-3.0.2.0-6fbDRkN7rpfG63nVz30IBa
+                      OpenGLRaw-3.2.5.0@OpenGLRaw-3.2.5.0-8JxKpZbO2kWCx46iLc1G4X
+                      StateVar-1.1.0.4@StateVar-1.1.0.4-5dJbnTVECtEAhfJXPZKdbO
+                      adjunctions-4.3@adjunctions-4.3-A5jfd1yrmaY4DRMJuiquBp
+                      apecs-0.4.1.0@apecs-0.4.1.0-5Dq3f9B8Tv5E9yBPZjGUoi
+                      array-0.5.1.1@array-0.5.1.1 base-4.9.1.0
+                      base-orphans-0.6@base-orphans-0.6-AbJ3lKVXygDCG0eeQEv8Iu
+                      bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw
+                      binary-0.8.3.0@binary-0.8.3.0
+                      bmp-1.2.6.3@bmp-1.2.6.3-43OLkH0uuwm831pBFpx2PZ
+                      bytes-0.15.3@bytes-0.15.3-16oYXSNZBSJFzWzUAkfvFP
+                      bytestring-0.10.8.1@bytestring-0.10.8.1
+                      call-stack-0.1.0@call-stack-0.1.0-FYVrCPXGP9EGAuTW32963O
+                      cereal-0.5.4.0@cereal-0.5.4.0-BsAGxfp8yAs3CiRo2E875e
+                      comonad-5.0.2@comonad-5.0.2-Fq9Xy9jdx6uIyJZn00E6Yc
+                      containers-0.5.7.1@containers-0.5.7.1
+                      contravariant-1.4@contravariant-1.4-29zF0Im431177ovfbHYCGv
+                      data-default-class-0.1.2.0@data-default-class-0.1.2.0-GsXqKN6o1X9jr0fF5qCVD
+                      deepseq-1.4.2.0@deepseq-1.4.2.0
+                      distributive-0.5.3@distributive-0.5.3-IX4kyVcHAyoH4uFYrsjY1R
+                      exceptions-0.8.3@exceptions-0.8.3-ADEDRATtUrMK1JW4zMQ9U
+                      fixed-0.2.1.1@fixed-0.2.1.1-8Jr82l0kss5Gr4nEevmXlZ
+                      free-4.12.4@free-4.12.4-C2gBQV0m8J42HxqSLTFyVx
+                      ghc-boot-th-8.0.2@ghc-boot-th-8.0.2 ghc-prim-0.5.0.0
+                      gloss-1.11.1.1@gloss-1.11.1.1-8GzjbnWS46V6aZCKK1kaHi
+                      gloss-rendering-1.11.1.1@gloss-rendering-1.11.1.1-2H1Z0FJPE28CgZNofHijuT
+                      half-0.2.2.3@half-0.2.2.3-GHJ372Ls7FBA3PAGtGHfOR
+                      hashable-1.2.6.1@hashable-1.2.6.1-2ZLNuHq395GGIHwEHuqZol
+                      integer-gmp-1.0.0.1
+                      integer-logarithms-1.0.2@integer-logarithms-1.0.2-92lMiWV9mmYAwfMEYgfQ0D
+                      kan-extensions-5.0.2@kan-extensions-5.0.2-8LTJJ1zQJWB7SfewWXUuqX
+                      lens-4.15.4@lens-4.15.4-3P7PSyaTsWRLQnkSsAPtwp
+                      lifted-base-0.2.3.11@lifted-base-0.2.3.11-Ei0JSPdt7KOCD2HIA5jFqV
+                      linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H
+                      monad-control-1.0.2.2@monad-control-1.0.2.2-1Ci8dYJ8Tb7E3HTcTqOb8l
+                      mtl-2.2.1@mtl-2.2.1-BLKBelFsPB3BoFeSWSOYj6
+                      prelude-extras-0.4.0.3@prelude-extras-0.4.0.3-BhL9U5k7NtGJn1itwIHt2Y
+                      pretty-1.1.3.3@pretty-1.1.3.3
+                      primitive-0.6.2.0@primitive-0.6.2.0-4578caNkWQ54Gt1mxLF2Yh
+                      profunctors-5.2.1@profunctors-5.2.1-Ga89Nyw0d7LBEIoX4AZ6gT
+                      reflection-2.1.2@reflection-2.1.2-Bem12O1xFGSHr4C2Hyu1c4
+                      scientific-0.3.5.1@scientific-0.3.5.1-JHsAAp34Yyd8e5v3sK3O5Q
+                      sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf
+                      sdl2-mixer-1.1.0@sdl2-mixer-1.1.0-LX59oFy5f5B564Mb5zRJ6y
+                      semigroupoids-5.2.1@semigroupoids-5.2.1-Db8txM8kTsI6Y49CY6g5Jn
+                      stm-2.4.4.1@stm-2.4.4.1-JQn4hNPyYjP5m9AcbI88Ve
+                      tagged-0.8.5@tagged-0.8.5-1mTloBSoUxv8dqUr8XBGBt
+                      template-haskell-2.11.1.0
+                      text-1.2.2.2@text-1.2.2.2-9UQZjEJZQFSGMffj1Z5g00
+                      th-abstraction-0.2.5.0@th-abstraction-0.2.5.0-IQJC3onXzKuCarhyL6pEOQ
+                      time-1.6.0.1@time-1.6.0.1 transformers-0.5.2.0@transformers-0.5.2.0
+                      transformers-base-0.4.4@transformers-base-0.4.4-GKSs0LKukAL8ymq2naFmrH
+                      transformers-compat-0.5.1.4@transformers-compat-0.5.1.4-IuFogs8HAVUJBWVNMhtssu
+                      unordered-containers-0.2.8.0@unordered-containers-0.2.8.0-Bp9XgxjuHxcI4tFehVMDGC
+                      vector-0.12.0.1@vector-0.12.0.1-692PQMDMB6pIQ1uGwefDcQ
+orphans: base-4.9.1.0:GHC.Base base-4.9.1.0:GHC.Float
+         base-orphans-0.6@base-orphans-0.6-AbJ3lKVXygDCG0eeQEv8Iu:Data.Orphans
+         binary-0.8.3.0@binary-0.8.3.0:Data.Binary.Generic
+         bytestring-0.10.8.1@bytestring-0.10.8.1:Data.ByteString.Builder
+         gloss-rendering-1.11.1.1@gloss-rendering-1.11.1.1-2H1Z0FJPE28CgZNofHijuT:Graphics.Gloss.Internals.Data.Picture
+         hashable-1.2.6.1@hashable-1.2.6.1-2ZLNuHq395GGIHwEHuqZol:Data.Hashable.Generic
+         linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.Instances
+         reflection-2.1.2@reflection-2.1.2-Bem12O1xFGSHr4C2Hyu1c4:Data.Reflection
+         stm-2.4.4.1@stm-2.4.4.1-JQn4hNPyYjP5m9AcbI88Ve:Control.Monad.STM
+         text-1.2.2.2@text-1.2.2.2-9UQZjEJZQFSGMffj1Z5g00:Data.Text
+         text-1.2.2.2@text-1.2.2.2-9UQZjEJZQFSGMffj1Z5g00:Data.Text.Lazy
+         text-1.2.2.2@text-1.2.2.2-9UQZjEJZQFSGMffj1Z5g00:Data.Text.Show
+         time-1.6.0.1@time-1.6.0.1:Data.Time.Calendar.Gregorian
+         time-1.6.0.1@time-1.6.0.1:Data.Time.Format.Parse
+         time-1.6.0.1@time-1.6.0.1:Data.Time.LocalTime.LocalTime
+         transformers-0.5.2.0@transformers-0.5.2.0:Control.Monad.Trans.Error
+         vector-0.12.0.1@vector-0.12.0.1-692PQMDMB6pIQ1uGwefDcQ:Data.Vector.Fusion.Bundle
+         vector-0.12.0.1@vector-0.12.0.1-692PQMDMB6pIQ1uGwefDcQ:Data.Vector.Unboxed
+family instance modules: adjunctions-4.3@adjunctions-4.3-A5jfd1yrmaY4DRMJuiquBp:Data.Functor.Rep
+                         apecs-0.4.1.0@apecs-0.4.1.0-5Dq3f9B8Tv5E9yBPZjGUoi:Apecs.Core
+                         apecs-0.4.1.0@apecs-0.4.1.0-5Dq3f9B8Tv5E9yBPZjGUoi:Apecs.Stores
+                         apecs-0.4.1.0@apecs-0.4.1.0-5Dq3f9B8Tv5E9yBPZjGUoi:Apecs.Util
+                         base-4.9.1.0:Control.Applicative base-4.9.1.0:Data.Complex
+                         base-4.9.1.0:Data.Either base-4.9.1.0:Data.Functor.Compose
+                         base-4.9.1.0:Data.Functor.Const base-4.9.1.0:Data.Functor.Identity
+                         base-4.9.1.0:Data.Functor.Product base-4.9.1.0:Data.Functor.Sum
+                         base-4.9.1.0:Data.List.NonEmpty base-4.9.1.0:Data.Monoid
+                         base-4.9.1.0:Data.Semigroup base-4.9.1.0:Data.Type.Equality
+                         base-4.9.1.0:Data.Version base-4.9.1.0:Data.Void
+                         base-4.9.1.0:GHC.Exts base-4.9.1.0:GHC.Generics
+                         base-4.9.1.0:GHC.IO.Exception base-4.9.1.0:GHC.TypeLits
+                         bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw:Data.Bifunctor.Biff
+                         bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw:Data.Bifunctor.Clown
+                         bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw:Data.Bifunctor.Fix
+                         bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw:Data.Bifunctor.Flip
+                         bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw:Data.Bifunctor.Join
+                         bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw:Data.Bifunctor.Joker
+                         bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw:Data.Bifunctor.Product
+                         bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw:Data.Bifunctor.Sum
+                         bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw:Data.Bifunctor.Tannen
+                         bifunctors-5.4.2@bifunctors-5.4.2-KcF2f75KyQm5BjgJ8WkHCw:Data.Bifunctor.Wrapped
+                         bytes-0.15.3@bytes-0.15.3-16oYXSNZBSJFzWzUAkfvFP:Data.Bytes.Get
+                         bytes-0.15.3@bytes-0.15.3-16oYXSNZBSJFzWzUAkfvFP:Data.Bytes.Signed
+                         bytes-0.15.3@bytes-0.15.3-16oYXSNZBSJFzWzUAkfvFP:Data.Bytes.VarInt
+                         containers-0.5.7.1@containers-0.5.7.1:Data.IntMap.Base
+                         containers-0.5.7.1@containers-0.5.7.1:Data.IntSet.Base
+                         containers-0.5.7.1@containers-0.5.7.1:Data.Map.Base
+                         containers-0.5.7.1@containers-0.5.7.1:Data.Sequence
+                         containers-0.5.7.1@containers-0.5.7.1:Data.Set.Base
+                         ghc-boot-th-8.0.2@ghc-boot-th-8.0.2:GHC.LanguageExtensions.Type
+                         kan-extensions-5.0.2@kan-extensions-5.0.2-8LTJJ1zQJWB7SfewWXUuqX:Data.Functor.Day
+                         kan-extensions-5.0.2@kan-extensions-5.0.2-8LTJJ1zQJWB7SfewWXUuqX:Data.Functor.Yoneda
+                         lens-4.15.4@lens-4.15.4-3P7PSyaTsWRLQnkSsAPtwp:Control.Lens.At
+                         lens-4.15.4@lens-4.15.4-3P7PSyaTsWRLQnkSsAPtwp:Control.Lens.Internal.Indexed
+                         lens-4.15.4@lens-4.15.4-3P7PSyaTsWRLQnkSsAPtwp:Control.Lens.Reified
+                         lens-4.15.4@lens-4.15.4-3P7PSyaTsWRLQnkSsAPtwp:Control.Lens.Tuple
+                         lens-4.15.4@lens-4.15.4-3P7PSyaTsWRLQnkSsAPtwp:Control.Lens.Wrapped
+                         lens-4.15.4@lens-4.15.4-3P7PSyaTsWRLQnkSsAPtwp:Control.Lens.Zoom
+                         linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.Affine
+                         linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.Plucker
+                         linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.Quaternion
+                         linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.V
+                         linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.V0
+                         linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.V1
+                         linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.V2
+                         linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.V3
+                         linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.V4
+                         main@main:Data
+                         monad-control-1.0.2.2@monad-control-1.0.2.2-1Ci8dYJ8Tb7E3HTcTqOb8l:Control.Monad.Trans.Control
+                         pretty-1.1.3.3@pretty-1.1.3.3:Text.PrettyPrint.Annotated.HughesPJ
+                         pretty-1.1.3.3@pretty-1.1.3.3:Text.PrettyPrint.HughesPJ
+                         primitive-0.6.2.0@primitive-0.6.2.0-4578caNkWQ54Gt1mxLF2Yh:Control.Monad.Primitive
+                         primitive-0.6.2.0@primitive-0.6.2.0-4578caNkWQ54Gt1mxLF2Yh:Data.Primitive.Array
+                         profunctors-5.2.1@profunctors-5.2.1-Ga89Nyw0d7LBEIoX4AZ6gT:Data.Profunctor.Rep
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Audio
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Event
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Exception
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Hint
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Init
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Input.Joystick
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Input.Keyboard
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Input.Keyboard.Codes
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Input.Mouse
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Internal.Types
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Power
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Time
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Video
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Video.OpenGL
+                         sdl2-2.2.0@sdl2-2.2.0-3Y0LJW9w0uGBX3EWPEbkgf:SDL.Video.Renderer
+                         tagged-0.8.5@tagged-0.8.5-1mTloBSoUxv8dqUr8XBGBt:Data.Tagged
+                         template-haskell-2.11.1.0:Language.Haskell.TH.Syntax
+                         text-1.2.2.2@text-1.2.2.2-9UQZjEJZQFSGMffj1Z5g00:Data.Text
+                         text-1.2.2.2@text-1.2.2.2-9UQZjEJZQFSGMffj1Z5g00:Data.Text.Lazy
+                         th-abstraction-0.2.5.0@th-abstraction-0.2.5.0-IQJC3onXzKuCarhyL6pEOQ:Language.Haskell.TH.Datatype
+                         unordered-containers-0.2.8.0@unordered-containers-0.2.8.0-Bp9XgxjuHxcI4tFehVMDGC:Data.HashMap.Base
+                         unordered-containers-0.2.8.0@unordered-containers-0.2.8.0-Bp9XgxjuHxcI4tFehVMDGC:Data.HashSet
+                         vector-0.12.0.1@vector-0.12.0.1-692PQMDMB6pIQ1uGwefDcQ:Data.Vector
+                         vector-0.12.0.1@vector-0.12.0.1-692PQMDMB6pIQ1uGwefDcQ:Data.Vector.Primitive
+                         vector-0.12.0.1@vector-0.12.0.1-692PQMDMB6pIQ1uGwefDcQ:Data.Vector.Storable
+                         vector-0.12.0.1@vector-0.12.0.1-692PQMDMB6pIQ1uGwefDcQ:Data.Vector.Unboxed
+                         vector-0.12.0.1@vector-0.12.0.1-692PQMDMB6pIQ1uGwefDcQ:Data.Vector.Unboxed.Base
+import  -/  apecs-0.4.1.0@apecs-0.4.1.0-5Dq3f9B8Tv5E9yBPZjGUoi:Apecs 9e808a2796d475f24d20fdd8ff1363fd
+import  -/  apecs-0.4.1.0@apecs-0.4.1.0-5Dq3f9B8Tv5E9yBPZjGUoi:Apecs.Util f93f44fac40f80d395a6bc087e53a294
+import  -/  base-4.9.1.0:GHC.Base c4231c43c07e46080a26bf94094c7aa1
+import  -/  base-4.9.1.0:GHC.Num 00bfaa7b2f9d6084913c0697a8a49ec8
+import  -/  base-4.9.1.0:Prelude 22dd289b8469a8fa8dc81cab7b237771
+import  -/  gloss-1.11.1.1@gloss-1.11.1.1-8GzjbnWS46V6aZCKK1kaHi:Graphics.Gloss.Data.Color 45da860083551187378f3db9bd1a5264
+import  -/  gloss-1.11.1.1@gloss-1.11.1.1-8GzjbnWS46V6aZCKK1kaHi:Graphics.Gloss.Data.Picture acb105bdd44e47e26ad5cc5612291d6f
+import  -/  gloss-1.11.1.1@gloss-1.11.1.1-8GzjbnWS46V6aZCKK1kaHi:Graphics.Gloss.Interface.IO.Game 8e4034d9985209e5aed4332e7450d2b2
+import  -/  linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear afc92d21b81cc135f995c82acab4aa35
+import  -/  linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.Metric 6eaa7013ae08e3fe0e0979fcd15fe79c
+import  -/  linear-1.20.7@linear-1.20.7-4PKkOlhi7IG9pMVvpI5r6H:Linear.V2 057a57f5dec031a14519f43cfad7fe97
+import  -/  Data 5bdd4396c5b108284b631566f8ea56d9
+  exports: 40e9085ca9a663599183c0c76872bc35
+  Angle c9a02520ead339d7f661a2e85229e8ce
+  BodyPicture 67235b5a9ffeaa52189bf04cf2833309
+  Box e4128b39239815f4be16470a1bc0c776
+  DynamicBody 6acaa6c21e67b3118f24f1f7dbad2324
+  Position d7eb6c2e922f91f98a363f10abd8e452
+  Projectile 2f9c7be31482ff658ebba7701ea70bc8
+  Velocity d46988d0ab0edd81fe3d85bb8a1e7569
+import  -/  Util 50da0cb328d3232718ed28661fd8372a
+  exports: a97dc3cf399b9290775272ef77023ee5
+  aabb 8160faebd893ce4c4856d75b0253af5d
+e1b7e03ea88d1eaa900192a5e8e1b49c
+  $trModule :: GHC.Types.Module
+  {- HasNoCafRefs, Strictness: m,
+     Unfolding: (GHC.Types.Module
+                   Projectile.$trModule2
+                   Projectile.$trModule1) -}
+92a7e7903334ab5c1934639299cf6e02
+  $trModule1 :: GHC.Types.TrName
+  {- HasNoCafRefs, Strictness: m1,
+     Unfolding: (GHC.Types.TrNameS "Projectile"#) -}
+2920974beec8d3a04c248a1ea883a9da
+  $trModule2 :: GHC.Types.TrName
+  {- HasNoCafRefs, Strictness: m1,
+     Unfolding: (GHC.Types.TrNameS "main"#) -}
+113322e8f04aa586300f68de3d56c3d2
+  removeProjectile ::
+    (Linear.V2.V2 GHC.Types.Double, GHC.Types.Double, GHC.Types.Double)
+    -> (Data.Projectile, Data.Position, Data.Box)
+    -> (Data.Projectile, Data.Position)
+  {- Arity: 2, HasNoCafRefs,
+     Strictness: <S(S(S(S)S)S(S)L),1*U(1*U(U(U),U(U)),1*U(U),1*U(U))><S(SLS(S(S(S(S)S)S(S)L))),1*U(1*H,U,1*U(1*U(1*U(U(U),U(U)),1*U(U),1*U(U))))>m,
+     Inline: INLINE[0],
+     Unfolding: InlineRule (2, True, False)
+                (\ (w :: (Linear.V2.V2 GHC.Types.Double, GHC.Types.Double,
+                          GHC.Types.Double))
+                   (w1 :: (Data.Projectile, Data.Position, Data.Box)) ->
+                 case w of ww { (,,) ww1 ww2 ww3 ->
+                 case ww1 of ww4 { Linear.V2.V2 ww5 ww6 ->
+                 case ww5 of ww7 { GHC.Types.D# ww8 ->
+                 case ww6 of ww9 { GHC.Types.D# ww10 ->
+                 case ww2 of ww11 { GHC.Types.D# ww12 ->
+                 case w1 of ww13 { (,,) ww14 ww15 ww16 ->
+                 case ww14 of ww17 { Data.Projectile ->
+                 case ww16 of ww18 { Data.Box ww19 ->
+                 case ww19 of ww20 { (,,) ww21 ww22 ww23 ->
+                 case ww21 of ww24 { Linear.V2.V2 ww25 ww26 ->
+                 case ww25 of ww27 { GHC.Types.D# ww28 ->
+                 case ww26 of ww29 { GHC.Types.D# ww30 ->
+                 case ww22 of ww31 { GHC.Types.D# ww32 ->
+                 case GHC.Prim.tagToEnum#
+                        @ GHC.Types.Bool
+                        (GHC.Prim.<=##
+                           (GHC.Prim.-## ww8 ww12)
+                           (GHC.Prim.+## ww28 ww32)) of wild {
+                   GHC.Types.False -> (Data.Projectile, ww15)
+                   GHC.Types.True
+                   -> case GHC.Prim.tagToEnum#
+                             @ GHC.Types.Bool
+                             (GHC.Prim.>=##
+                                (GHC.Prim.+## ww8 ww12)
+                                (GHC.Prim.-## ww28 ww32)) of wild1 {
+                        GHC.Types.False -> (Data.Projectile, ww15)
+                        GHC.Types.True
+                        -> case ww3 of wild2 { GHC.Types.D# y ->
+                           case ww23 of wild3 { GHC.Types.D# y1 ->
+                           case GHC.Prim.tagToEnum#
+                                  @ GHC.Types.Bool
+                                  (GHC.Prim.<=##
+                                     (GHC.Prim.-## ww10 y)
+                                     (GHC.Prim.+## ww30 y1)) of wild4 {
+                             GHC.Types.False -> (Data.Projectile, ww15)
+                             GHC.Types.True
+                             -> case GHC.Prim.tagToEnum#
+                                       @ GHC.Types.Bool
+                                       (GHC.Prim.>=##
+                                          (GHC.Prim.+## ww10 y)
+                                          (GHC.Prim.-## ww30 y1)) of wild7 {
+                                  GHC.Types.False -> (Data.Projectile, ww15)
+                                  GHC.Types.True
+                                  -> (Data.Projectile,
+                                      Projectile.removeProjectile1
+                                        `cast`
+                                      (Sym (Data.N:Position[0]))) } } } } } } } } } } } } } } } } } } }) -}
+93059a0029c90597ff8701050fed9799
+  removeProjectile1 :: Linear.V2.V2 GHC.Types.Double
+  {- HasNoCafRefs, Strictness: m,
+     Unfolding: (Linear.V2.V2
+                   @ GHC.Types.Double
+                   Projectile.removeProjectile2
+                   Projectile.removeProjectile2) -}
+fba7d7df0945c3ded5ac68379555747b
+  removeProjectile2 :: GHC.Types.Double
+  {- HasNoCafRefs, Strictness: m,
+     Unfolding: (GHC.Types.D# -100.0##) -}
+0251353230e947be75a4d7eb65184a90
+  shootArrow ::
+    (Apecs.Core.Has w Apecs.Util.EntityCounter,
+     Apecs.Core.Has w Data.Box, Apecs.Core.Has w Data.Projectile,
+     Apecs.Core.Has w Data.BodyPicture, Apecs.Core.Has w Data.Angle,
+     Apecs.Core.Has w Data.Velocity, Apecs.Core.Has w Data.Position,
+     Apecs.Core.Has w Data.Body) =>
+    Linear.V2.V2 GHC.Types.Double
+    -> Linear.V2.V2 GHC.Types.Double
+    -> Linear.V2.V2 GHC.Types.Double
+    -> Apecs.Core.System w Apecs.Core.Entity
+  {- Arity: 11,
+     Strictness: <S(S(S)L),U(U(U),C(C1(U(U,1*U(U)))))><S(S(S)L),U(U(U),C(C1(U(U,1*U(U)))))><S(S(S)L),U(U(U),C(C1(U(U,1*U(U)))))><S(S(S)L),U(U(U),C(C1(U(U,1*U(U)))))><S(S(S)L),U(U(U),C(C1(U(U,1*U(U)))))><S(S(S)L),U(U(U),C(C1(U(U,1*U(U)))))><S(S(S)L),U(U(U),C(C1(U(U,1*U(U)))))><S(S(S)L),U(U(U),C(C1(U(U,1*U(U)))))><L,1*U(U(U),U(U))><L,U(U(U),U(U))><L,1*U(U(U),U(U))> -}
+vectorised variables:
+vectorised tycons:
+vectorised reused tycons:
+parallel variables:
+parallel tycons:
+trusted: none
+require own pkg trusted: False
+

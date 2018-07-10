@@ -1,0 +1,59 @@
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts #-}
+module Physics where
+
+import Apecs
+import Apecs.Util
+import Control.Concurrent
+import Graphics.Gloss
+import Linear
+import Data
+import Util
+
+stepPhysics :: Double -> System World ()
+stepPhysics dT = do
+  [g] <- cmapM $ \(Gravity g) -> return g
+  cmap $ \(Position p, Velocity v) -> (Position $ p + v, Velocity $ v + g)
+  --updates all hit boxes to current position
+  cmap $ \(Box (b, w, h), Position p) -> (Box (p, w, h))
+  --boxCheck --cmapM_ $ \(Player, Velocity v) -> liftIO $ print v
+
+
+
+playerBoxBound :: System World ()
+playerBoxBound = do
+  g <- cmapM groundBoxes
+  {--cmapM_ $ \(Player, b@(Box (c, w, h))) -> do
+    inWall <- cmapM $ \(Wall, wb@(Box (c2, w2, h2))) ->
+      if aabb b wb
+      then return $ [(c2-(V2 w2 h2), (0 - V2 w h)),(c2+(V2 w2 h2), (V2 w h))d
+      else return []
+    case filter (/=[]) inWall of
+      [] -> return []
+      i -> traverse ( edgeClosest c ) $ concat i
+    return ()
+  --}
+  cmapM_ $ \(Player, b@(Box (c, w, h))) -> do
+    cmapM $ \(Wall, wb@(Box (c2, w2, h2))) ->
+      if aabb b wb
+      then cmap $ \(Player, Position p@(V2 p1 p2), Velocity v@(V2 v1 v2)) -> (Player, Position $ p + negate v, Velocity 0)
+      else return () 
+  where
+    groundBoxes (Wall, b@(Box _)) = liftIO $ return b
+    edgeClosest (V2 pa pb) ((V2 wa wb),V2 pw ph)
+      | (abs $ wb - pb) < (abs $ wa - pa) = adjustPlayerV
+      | True                              = adjustPlayerH
+      where adjustPlayerV = cmap $ \(Player, Position p) -> (Player, Position $ V2 pa (wb + ph))
+            adjustPlayerH = cmap $ \(Player, Position p) -> (Player, Position $ V2 (wa + pw) pb)                                         
+
+--playerBounds :: System World ()
+--playerBounds = do
+  
+    
+ 
+    --(Wall, wb, BodyPicture $ color green $ rectangleSolid (realToFrac $ 2*w2) (realToFrac $ 2*h2)) else (Wall, wb, BodyPicture $ color red $ rectangleSolid (realToFrac $ 2*w2) (realToFrac $ 2*h2))
+    --cmapM $ \(Wall, wb@(Box b2)) -> liftIO $ if aabb b wb then print [b,wb] else return ()
+    
+  --cmap $ \(Player, b@(Box (c, w, h)) ) -> (Player, (\x -> if (length x == 0) then b else abBox b $ head x) . filter (aabb b) $ g) 
+    --liftIO $ print b
+
