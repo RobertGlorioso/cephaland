@@ -25,8 +25,23 @@ stepPhysics dT = do
 playerBoxBound :: System World ()
 playerBoxBound = do
   cmapM_ $ \(Player, b@(Box (c, w, h))) -> cmapM_ $ wallBouncePlayer b
-  cmapM_ $ \(Projectile, b@(Box (c, w, h))) -> cmapM_ $ wallBounceProj b
+  cmapM_ $ \(Projectile, b@(Box (c, w, h)), e) -> cmapM_ $ wallBounceProjE e Projectile b
   where
+    wallBounceProjE e o b@(Box (c, w, h)) (Wall, wb@(Box (c2, w2, h2))) =
+      if aabb b wb
+      then do
+        (Projectile, Position p@(V2 p1 p2), Velocity v@(V2 v1 v2)) <- get e
+        case (\z1 z2 -> aabb (box (c + V2 (z1*v1) (z2*v2)) w h) wb) <$> [1,-1] <*> [-1,1] of
+          [False,_,_,_] -> e `set` (o, Position $ p + V2 v1 (negate v2), Velocity (V2 v1 (negate v2) / 5))
+          [_,False,_,_] -> e `set` (o, Position $ p + v, Velocity (v / 5))
+          [_,_,False,_] -> e `set` (o, Position $ p + V2 (negate v1) v2, Velocity (V2 (negate v1) (negate v2) / 5))
+          [_,_,_,False] -> e `set` (o, Position $ p + V2 (negate v1) v2, Velocity (V2 (negate v1) v2 / 5))
+         
+          -- [True,True,True,True] -> (o, Position $ p + negate v, Velocity $  negate (v/5))
+          otherwise  -> e `set` (o, Position $ p + negate v, Velocity (negate v / 5))
+         
+      else return () 
+  
     wallBounceProj b@(Box (c, w, h)) (Wall, wb@(Box (c2, w2, h2))) =
       if aabb b wb
       then cmap $ \(Projectile, Position p@(V2 p1 p2), Velocity v@(V2 v1 v2)) ->  case (\z1 z2 -> aabb (box (c + V2 (z1*v1) (z2*v2)) w h) wb) <$> [1,-1] <*> [-1,1] of

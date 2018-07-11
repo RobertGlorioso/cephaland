@@ -1,11 +1,11 @@
 
 ==================== FINAL INTERFACE ====================
-2018-07-10 03:47:46.384763 UTC
+2018-07-10 22:24:50.175599 UTC
 
 interface main@main:Util 8002
-  interface hash: 845e6a9003b08f10b2d6cf72f7e8ddaa
-  ABI hash: 50da0cb328d3232718ed28661fd8372a
-  export-list hash: a97dc3cf399b9290775272ef77023ee5
+  interface hash: eae949b935483ea3052159e136f1365a
+  ABI hash: 5772e6a1ba4a24d8af914c5e060112dd
+  export-list hash: cc4254024dd9a91e8b770558c951605b
   orphan hash: 94bee5aa25a76a3d63d997d2b8a12b59
   flag hash: e330827399adc314f576e6c00a8065e2
   sig of: Nothing
@@ -13,10 +13,8 @@ interface main@main:Util 8002
   where
 exports:
   Util.aabb
-  Util.abBox
   Util.applyView
   Util.box
-  Util.boxInBox
   Util.cycle1
   Util.hLine
   Util.handlePic
@@ -540,134 +538,6 @@ c588eee85af39e845cefd7f38aac8fac
                                   (GHC.Prim.>=##
                                      (GHC.Prim.+## ww1 y)
                                      (GHC.Prim.-## ww5 y1)) } } } } }) -}
-ba575768f296d3c1f458fe529484d612
-  $wabBox ::
-    GHC.Prim.Double#
-    -> GHC.Prim.Double#
-    -> GHC.Prim.Double#
-    -> GHC.Types.Double
-    -> GHC.Prim.Double#
-    -> GHC.Prim.Double#
-    -> GHC.Prim.Double#
-    -> GHC.Types.Double
-    -> (# (Linear.V2.V2 GHC.Types.Double, GHC.Types.Double,
-           GHC.Types.Double) #)
-  {- Arity: 8, HasNoCafRefs,
-     Strictness: <S,U><L,U><S,U><L,U(U)><S,U><L,U><S,U><L,1*U(U)>,
-     Inline: [0],
-     Unfolding: (\ (ww :: GHC.Prim.Double#)
-                   (ww1 :: GHC.Prim.Double#)
-                   (ww2 :: GHC.Prim.Double#)
-                   (ww3 :: GHC.Types.Double)
-                   (ww4 :: GHC.Prim.Double#)
-                   (ww5 :: GHC.Prim.Double#)
-                   (ww6 :: GHC.Prim.Double#)
-                   (ww7 :: GHC.Types.Double) ->
-                 case GHC.Prim.tagToEnum#
-                        @ GHC.Types.Bool
-                        (GHC.Prim.>=##
-                           (GHC.Prim.-## ww ww2)
-                           (GHC.Prim.+## ww4 ww6)) of wild {
-                   GHC.Types.False
-                   -> case GHC.Prim.tagToEnum#
-                             @ GHC.Types.Bool
-                             (GHC.Prim.<=##
-                                (GHC.Prim.+## ww ww2)
-                                (GHC.Prim.-## ww4 ww6)) of wild1 {
-                        GHC.Types.False
-                        -> case ww3 of wild2 { GHC.Types.D# y ->
-                           case ww7 of wild3 { GHC.Types.D# y1 ->
-                           case GHC.Prim.tagToEnum#
-                                  @ GHC.Types.Bool
-                                  (GHC.Prim.>=##
-                                     (GHC.Prim.-## ww1 y)
-                                     (GHC.Prim.+## ww5 y1)) of wild4 {
-                             GHC.Types.False
-                             -> case GHC.Prim.tagToEnum#
-                                       @ GHC.Types.Bool
-                                       (GHC.Prim.<=##
-                                          (GHC.Prim.+## ww1 y)
-                                          (GHC.Prim.-## ww5 y1)) of wild5 {
-                                  GHC.Types.False
-                                  -> (# (Linear.V2.V2
-                                           @ GHC.Types.Double
-                                           (GHC.Types.D# ww)
-                                           (GHC.Types.D# ww1),
-                                         GHC.Types.D# ww2, wild2) #)
-                                  GHC.Types.True
-                                  -> (# (Linear.V2.V2
-                                           @ GHC.Types.Double
-                                           (GHC.Types.D# ww)
-                                           (GHC.Types.D# (GHC.Prim.-## ww5 y1)),
-                                         GHC.Types.D# ww2, wild2) #) }
-                             GHC.Types.True
-                             -> (# (Linear.V2.V2
-                                      @ GHC.Types.Double
-                                      (GHC.Types.D# ww)
-                                      (GHC.Types.D# (GHC.Prim.+## ww5 y1)),
-                                    GHC.Types.D# ww2, wild2) #) } } }
-                        GHC.Types.True
-                        -> (# (Linear.V2.V2
-                                 @ GHC.Types.Double
-                                 (GHC.Types.D# (GHC.Prim.-## ww4 ww6))
-                                 (GHC.Types.D# ww1),
-                               GHC.Types.D# ww2, ww3) #) }
-                   GHC.Types.True
-                   -> (# (Linear.V2.V2
-                            @ GHC.Types.Double
-                            (GHC.Types.D# (GHC.Prim.+## ww4 ww6))
-                            (GHC.Types.D# ww1),
-                          GHC.Types.D# ww2, ww3) #) }) -}
-fea976a164af73c68736ded9d5327a6f
-  $wboxInBox ::
-    GHC.Prim.Double#
-    -> GHC.Prim.Double#
-    -> GHC.Prim.Double#
-    -> GHC.Types.Double
-    -> GHC.Prim.Double#
-    -> GHC.Prim.Double#
-    -> GHC.Prim.Double#
-    -> GHC.Types.Double
-    -> GHC.Types.Bool
-  {- Arity: 8, HasNoCafRefs,
-     Strictness: <S,U><L,U><S,U><L,1*U(U)><S,U><L,U><S,U><L,1*U(U)>,
-     Inline: [0],
-     Unfolding: (\ (ww :: GHC.Prim.Double#)
-                   (ww1 :: GHC.Prim.Double#)
-                   (ww2 :: GHC.Prim.Double#)
-                   (ww3 :: GHC.Types.Double)
-                   (ww4 :: GHC.Prim.Double#)
-                   (ww5 :: GHC.Prim.Double#)
-                   (ww6 :: GHC.Prim.Double#)
-                   (ww7 :: GHC.Types.Double) ->
-                 case GHC.Prim.tagToEnum#
-                        @ GHC.Types.Bool
-                        (GHC.Prim.>##
-                           (GHC.Prim.-## ww ww2)
-                           (GHC.Prim.-## ww4 ww6)) of wild {
-                   GHC.Types.False -> GHC.Types.False
-                   GHC.Types.True
-                   -> case ww3 of wild1 { GHC.Types.D# y ->
-                      case ww7 of wild2 { GHC.Types.D# y1 ->
-                      case GHC.Prim.tagToEnum#
-                             @ GHC.Types.Bool
-                             (GHC.Prim.<##
-                                (GHC.Prim.+## ww1 y)
-                                (GHC.Prim.+## ww5 y1)) of wild3 {
-                        GHC.Types.False -> GHC.Types.False
-                        GHC.Types.True
-                        -> case GHC.Prim.tagToEnum#
-                                  @ GHC.Types.Bool
-                                  (GHC.Prim.>##
-                                     (GHC.Prim.-## ww1 y)
-                                     (GHC.Prim.-## ww5 y1)) of wild4 {
-                             GHC.Types.False -> GHC.Types.False
-                             GHC.Types.True
-                             -> GHC.Prim.tagToEnum#
-                                  @ GHC.Types.Bool
-                                  (GHC.Prim.<##
-                                     (GHC.Prim.+## ww ww2)
-                                     (GHC.Prim.+## ww4 ww6)) } } } } }) -}
 b8a8ca0e8d7f0ad1c2fca14defee939b
   $wtoPicture ::
     [Linear.V2.V2 GHC.Types.Double]
@@ -827,35 +697,6 @@ d1d01c62bd1a14f81bc8444ab35882d1
                    ww27
                    ww29
                    ww20 } } } } } } } } } } } }) -}
-0eb85416eeb42e8b3626b68fc6fcb359
-  abBox :: Data.Box -> Data.Box -> Data.Box
-  {- Arity: 2, HasNoCafRefs,
-     Strictness: <S(S(S(S(S)S)S(S)L)),1*U(U(U(U(U),U(U)),U(U),U(U)))><S(S(S(S(S)S)S(S)L)),1*U(1*U(1*U(U(U),U(U)),1*U(U),1*U(U)))>m,
-     Inline: INLINE[0],
-     Unfolding: InlineRule (2, True, False)
-                (\ (w :: Data.Box) (w1 :: Data.Box) ->
-                 case w of ww { Data.Box ww1 ->
-                 case ww1 of ww2 { (,,) ww3 ww4 ww5 ->
-                 case ww3 of ww6 { Linear.V2.V2 ww7 ww8 ->
-                 case ww7 of ww9 { GHC.Types.D# ww10 ->
-                 case ww8 of ww11 { GHC.Types.D# ww12 ->
-                 case ww4 of ww13 { GHC.Types.D# ww14 ->
-                 case w1 of ww15 { Data.Box ww16 ->
-                 case ww16 of ww17 { (,,) ww18 ww19 ww20 ->
-                 case ww18 of ww21 { Linear.V2.V2 ww22 ww23 ->
-                 case ww22 of ww24 { GHC.Types.D# ww25 ->
-                 case ww23 of ww26 { GHC.Types.D# ww27 ->
-                 case ww19 of ww28 { GHC.Types.D# ww29 ->
-                 case Util.$wabBox
-                        ww10
-                        ww12
-                        ww14
-                        ww5
-                        ww25
-                        ww27
-                        ww29
-                        ww20 of ww30 { Unit# ww31 ->
-                 Data.Box ww31 } } } } } } } } } } } } }) -}
 f515908656d61d8152eb6d1adacd05c8
   applyView ::
     Data.Camera
@@ -893,34 +734,6 @@ f515908656d61d8152eb6d1adacd05c8
                    (h :: GHC.Types.Double) ->
                  case ds of wild { Linear.V2.V2 x y ->
                  Data.Box (Linear.V2.V2 @ GHC.Types.Double x y, w, h) }) -}
-c69ab12884abc4e61375679bcba6f30e
-  boxInBox :: Data.Box -> Data.Box -> GHC.Types.Bool
-  {- Arity: 2, HasNoCafRefs,
-     Strictness: <S(S(S(S(S)S)S(S)L)),1*U(1*U(1*U(U(U),U(U)),1*U(U),1*U(U)))><S(S(S(S(S)S)S(S)L)),1*U(1*U(1*U(U(U),U(U)),1*U(U),1*U(U)))>,
-     Inline: INLINE[0],
-     Unfolding: InlineRule (2, True, False)
-                (\ (w :: Data.Box) (w1 :: Data.Box) ->
-                 case w of ww { Data.Box ww1 ->
-                 case ww1 of ww2 { (,,) ww3 ww4 ww5 ->
-                 case ww3 of ww6 { Linear.V2.V2 ww7 ww8 ->
-                 case ww7 of ww9 { GHC.Types.D# ww10 ->
-                 case ww8 of ww11 { GHC.Types.D# ww12 ->
-                 case ww4 of ww13 { GHC.Types.D# ww14 ->
-                 case w1 of ww15 { Data.Box ww16 ->
-                 case ww16 of ww17 { (,,) ww18 ww19 ww20 ->
-                 case ww18 of ww21 { Linear.V2.V2 ww22 ww23 ->
-                 case ww22 of ww24 { GHC.Types.D# ww25 ->
-                 case ww23 of ww26 { GHC.Types.D# ww27 ->
-                 case ww19 of ww28 { GHC.Types.D# ww29 ->
-                 Util.$wboxInBox
-                   ww10
-                   ww12
-                   ww14
-                   ww5
-                   ww25
-                   ww27
-                   ww29
-                   ww20 } } } } } } } } } } } }) -}
 0fd2ba05e2774c476963d3dc5178cc01
   cycle1 :: [a] -> [a]
   {- Arity: 1, Strictness: <S,1*U>,

@@ -1,9 +1,9 @@
 
 ==================== FINAL INTERFACE ====================
-2018-07-10 03:47:50.515356 UTC
+2018-07-10 22:24:56.020509 UTC
 
 interface main@main:Projectile 8002
-  interface hash: 5df75dd338bb2b44b87b52fde5822d96
+  interface hash: be250c907a24c0fd5f33abd5aae0a95e
   ABI hash: bc7ffcd8c929026d8457744672199831
   export-list hash: 1a2e9b109a8a1d69a6ba772700f00537
   orphan hash: 693e9af84d3dfcc71e640e005bdc5e2e
@@ -194,8 +194,8 @@ import  -/  Data 5bdd4396c5b108284b631566f8ea56d9
   Position d7eb6c2e922f91f98a363f10abd8e452
   Projectile 2f9c7be31482ff658ebba7701ea70bc8
   Velocity d46988d0ab0edd81fe3d85bb8a1e7569
-import  -/  Util 50da0cb328d3232718ed28661fd8372a
-  exports: a97dc3cf399b9290775272ef77023ee5
+import  -/  Util 5772e6a1ba4a24d8af914c5e060112dd
+  exports: cc4254024dd9a91e8b770558c951605b
   aabb 8160faebd893ce4c4856d75b0253af5d
 e1b7e03ea88d1eaa900192a5e8e1b49c
   $trModule :: GHC.Types.Module

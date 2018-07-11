@@ -9,34 +9,6 @@ import Data.Foldable
 import Graphics.Gloss
 import Graphics.Gloss.Geometry.Angle        (radToDeg)
 
-abBox b1@(Box (V2 ax ay,w1,h1)) b2@(Box (V2 bx by,w2,h2)) =
-  let w = [ax - w1 >= bx + w2
-          , ax + w1 <= bx - w2
-          , ay - h1 >= by + h2 
-          , ay + h1 <= by - h2
-          ]
-  in helper
-  where helper 
-          | ax - w1 >= bx + w2 = box (V2 (bx + w2) ay) w1 h1
-          | ax + w1 <= bx - w2 = box (V2 (bx - w2) ay) w1 h1
-          | ay - h1 >= by + h2 = box (V2 ax (by + h2)) w1 h1
-          | ay + h1 <= by - h2 = box (V2 ax (by - h2)) w1 h1
-          | True               = b1
-    
---}
-boxInBox (Box (V2 ax ay,w1,h1)) (Box (V2 bx by,w2,h2))
-  | ea1 > ea2 && ew1 < ew2 && es1 > es2 && ed1 < ed2 = True
-  | True                                             = False
-    -- | ea1 < ea2 && ew1 > ew2 && es1 < es2 && ed1 > ed2
-  where
-   ea1 = ax - w1
-   ea2 = bx - w2
-   ew1 = ay + h1
-   ew2 = by + h2
-   es1 = ay - h1
-   es2 = by - h2
-   ed1 = ax + w1
-   ed2 = bx + w2
 
 aabb (Box (V2 ax ay,w1,h1)) (Box (V2 bx by,w2,h2)) -- edge collision detection between boxes centered at (ax,ay) and (bx,by), with half-widths and half-heights w1,w2,h1,h2
   | ax - w1 <= bx + w2
