@@ -11,7 +11,7 @@ import Graphics.Gloss
 import Linear
 import qualified SDL.Mixer as M
 
-data Player = Player -- A single constructor component for tagging the player
+data Player = Player 
 instance Component Player where
   type Storage Player = Unique Player
   
@@ -35,7 +35,7 @@ data Wall = Wall
 instance Component Wall where
   type Storage Wall = Map Wall
 
-data ProjCount = ProjCount Int
+data ProjCount = ProjCount Int deriving Show
 instance Component ProjCount where
   type Storage ProjCount = Map ProjCount
 
@@ -46,6 +46,10 @@ instance Component Vitality where
 data Behavior = Seek | Fire | Defend | Heal
 instance Component Behavior where
   type Storage Behavior = Map Behavior
+
+data History = History [V2 Double]
+instance Component History where
+  type Storage History = Map History
   
 data Enemy = Enemy
 instance Component Enemy where
@@ -67,10 +71,10 @@ data Body = DynamicBody | KinematicBody | StaticBody deriving (Eq, Ord, Enum)
 instance Component Body where type Storage Body = Map Body
 
 newtype Position = Position (V2 Double) deriving Show
-instance Component Position where type Storage Position = Map Position
+instance Component Position where type Storage Position = Cache 100 (Map Position)
 
 newtype Velocity = Velocity (V2 Double) deriving Show
-instance Component Velocity where type Storage Velocity = Map Velocity
+instance Component Velocity where type Storage Velocity = Cache 100 (Map Velocity)
 
 newtype Gravity = Gravity (V2 Double) deriving Show
 instance Monoid Gravity where mempty = Gravity 0

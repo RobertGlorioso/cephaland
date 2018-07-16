@@ -1,5 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ViewPatterns #-}
+
+
 module Enemy where
 
 import Apecs
@@ -20,13 +22,14 @@ killEnemy painBox (Enemy, Position p, Box enemyBox) =
 
 enemy ::  System World ()
 enemy = do
-  g@(realToFrac -> g') <- liftIO $ randomRIO (0.1, 0.3 :: Float)
-  [n,o,p,q] <- liftIO $ replicateM 4 $ randomRIO (-30, 30 :: Double)
+  g@(realToFrac -> g') <- liftIO $ randomRIO (0.1, 3 :: Float)
+  [n,o,p,q] <- liftIO $ replicateM 4 $ randomRIO (-3, 3 :: Double)
   newEntity ( Enemy
               , ( DynamicBody
                 , BodyPicture . color yellow $ Circle g
                 , Velocity (V2 n o)
                 , Position (V2 p q)
+                , Angle 0
                 )
               , ProjCount 10
               , Box ((V2 p q), g', g')

@@ -70,7 +70,7 @@ handle (EventKey press downup modifiers mscreen) = do
             cmap $ \(ProjCount x, Player) -> (Player, ProjCount $ x - 1)
             if arrowsLeft >= 1
               then do
-              cmapM_ $ \(Player,Resources _ [p]) -> M.play p
+              cmapM_ $ \(Player,Resources _ p) -> if p == [] then return () else M.play $ head p
               shootArrow t x v
               return () 
               else return ()

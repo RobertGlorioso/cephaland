@@ -19,8 +19,7 @@ shootArrow a x v =
               , Velocity $ v + normalize (a - x)
               , Angle 0
               )
-            , ( BodyPicture . color orange $ rectangleSolid 0.4 0.4 
-               -- scale 4 4 $ Pictures [Line [(0,3), ( 0,0 )],  Line [ ( (-0.3), 2.4 ) , ( 0,0.3 ) ], Line [(0.3,2.4),(0,3)]]
+            , ( BodyPicture . color orange $ Pictures [Line [(0,3), ( 0,0 )],  Line [ ( (-0.3), 0.3 ) , ( 0,0) ], Line [(0.3,0.3),(0,0)]]
               , Projectile
               , Box (x, 0.1, 0.07)
               )

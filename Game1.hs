@@ -45,8 +45,12 @@ main = do
 
 render w = do
       
-      movableObjs <- runWith w $ (getAll) :: IO [(Position, Angle, BodyPicture)]
+      movableObjs <- runWith w $ getAll :: IO [(Position, Angle, BodyPicture)]
+
       pics <- mapM (\((Position (V2 x y), Angle theta, BodyPicture pic)) -> return . Translate (realToFrac x) (realToFrac y) . Rotate (negate . radToDeg . realToFrac $ theta) $ pic) movableObjs
+
+      [(Player, ProjCount i)] <- runWith w $ getAll
+      
       runWith w $ do
         --updates cooldown time for dash
         cmapM_ $ \(Dash x) -> if x < 8.0 then cmap $ \(Dash x') -> Dash (x' + 0.1) else return ()
@@ -55,10 +59,12 @@ render w = do
         
         view <- get global :: System World Camera
         newWorld <- return . applyView view . mconcat $ pics
-
+        
         --make the scene by combining the HUD and the current world
-        Dash x <- get global
-        return $ Pictures [newWorld,Line [((-8),10),(x,10)]]
+        Dash x <- get global :: System World Dash
+        return $ Pictures [newWorld,
+                           Translate 200 200 $ Scale 4 4 $ Line [((-8),10),(x,10)],
+                           Translate 160 200 $ Scale 0.1 0.1 $ Text $ show i]
 
 handler event w = runSystem (handle event) w >> return w
 
@@ -72,9 +78,9 @@ stepper dT w = go >> return w
               cmapM_ $ \(Player, Position p2@(V2 x1 y1)) -> do
                 cmap $ \(Target o) -> Target (o + p2 - p1) --this updates the target
                 cmapM_ $ \(Target tp@(V2 x2 y2)) -> do
+          
                   cmapM_ $ \(Player, e) -> do
                     isAttack <- exists e (Proxy :: Proxy Attacking)
-                    --isAttack <- exists e Attacking
                     if isAttack
                       then cmapM_ $ \(Sword, Box sb) -> do
                         cmap $ showSword x1 x2 tp p2
@@ -82,7 +88,7 @@ stepper dT w = go >> return w
                       else cmap hideSword
 
                   cmapM_ $ \(Projectile, Box pb) -> cmap $ killEnemy pb
-                  cmap $ \(Player) -> (Angle (vToRad $ tp - p2))
+                  cmap $ \(Player) -> (Angle (vToRad $ p2 - tp))
             --cmap $ \(Player, Resources p _) -> (BodyPicture $ head p, Angle (vToRad $ targetPos - pp2))
             playerBoxBound)
 

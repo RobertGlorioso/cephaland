@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, DataKinds, ScopedTypeVariables, TypeApplications, TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts, DataKinds, ScopedTypeVariables, TypeApplications, TypeFamilies, ViewPatterns #-}
 module Util where
 
 import Apecs
@@ -9,6 +9,10 @@ import Data.Foldable
 import Graphics.Gloss
 import Graphics.Gloss.Geometry.Angle        (radToDeg)
 
+boxy (V2 c1@(realToFrac -> c1' :: Double) c2@(realToFrac -> c2'))
+      (V2 w@(realToFrac -> w' :: Double) h@(realToFrac -> h'))
+  = newEntity (StaticBody, Wall, Angle 0, Position (V2 c1' c2'), Box (V2 c1' c2', w', h'), BodyPicture $ color red $ rectangleSolid (2*w) (2*h) )
+           
 
 aabb (Box (V2 ax ay,w1,h1)) (Box (V2 bx by,w2,h2)) -- edge collision detection between boxes centered at (ax,ay) and (bx,by), with half-widths and half-heights w1,w2,h1,h2
   | ax - w1 <= bx + w2
@@ -40,25 +44,6 @@ mouseToWorld (x,y) (Camera offset scale) = (/scale) <$> (V2 (realToFrac x) (real
 
 v2ToTuple :: V2 Double -> (Float, Float)
 v2ToTuple (V2 x y) = (realToFrac x, realToFrac y)
-{--
-drawWorld :: (Has w Position, Has w Angle, Has w BodyPicture, Has w Camera) => System w Picture
-drawWorld = do
-  f <- cmapM $ \((Position (V2 x y), Angle theta, BodyPicture pic)) ->
-        return . Translate (realToFrac x) (realToFrac y) . Rotate (negate . radToDeg . realToFrac $ theta) $ pic
-
-  [view] <- cmapM $ \(c@(Camera _ _)) -> return c 
-  return . applyView view . fold $ f
---}
-
-{--
-drawSystem :: System World Picture
-drawSystem = do
-  --f <- flip fmap (get global) $ \((Position (V2 x y), Angle theta, BodyPicture pic)) -> Translate (realToFrac x) (realToFrac y) . Rotate (negate . radToDeg . realToFrac $ theta) $ pic
-  cmapM $ \((Position (V2 x y), Angle theta, BodyPicture pic)) -> do
-    view <- get global :: System World Camera
-    f <- return . Translate (realToFrac x) (realToFrac y) . Rotate (negate . radToDeg . realToFrac $ theta) $ pic
-    return . applyView view . mconcat $ f 
---}
 
 data Convex = Convex { vertices :: [V2 Double], radius :: Double } deriving (Eq, Show)
 
@@ -76,11 +61,9 @@ updateCamera :: Has World Camera => System World ()
 updateCamera = do
   cmapM_ $ \(Player, Position p) -> modify global $ \(Camera o s) -> (Camera p s)
        
-
 -- | Map a function over all vertices
 mapVertices :: (V2 Double -> V2 Double) -> Convex -> Convex
 mapVertices f (Convex s r) = Convex (f <$> s) r
-
 
 hLine, vLine :: Double -> Convex
 hLine l = Convex [V2 (-l/2) 0, V2 (l/2) 0] 0
