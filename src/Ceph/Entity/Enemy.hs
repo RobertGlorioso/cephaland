@@ -1,8 +1,11 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ViewPatterns #-}
 
+module Ceph.Entity.Enemy where
 
-module Enemy where
+import Ceph.Util
+import Ceph.Components
+import Ceph.Physics.Box
 
 import Apecs
 import Apecs.Util
@@ -11,14 +14,16 @@ import System.Random
 import Graphics.Gloss
 import Graphics.Gloss.Juicy
 import Linear
-import qualified SDL.Mixer as M
-import Util
-import Data 
 
-killEnemy painBox (Enemy, Position p, Box enemyBox) =
+killEnemy painBox (Enemy, Box enemyBox, e) =
   if aabb (Box painBox) (Box enemyBox)
-  then (Enemy, Position $ V2 (-100) (-100))
-  else (Enemy, Position p)
+  then destroy e  (Proxy :: Proxy Position) --(Enemy, Position $ V2 (-100) (-100))
+  else return ()
+
+goToPlayer :: (Has World Enemy) => V2 Double -> Entity -> (Enemy, Velocity, Position, Entity) -> System World ()
+goToPlayer m (Entity e') (Enemy, Velocity v@(V2 e1 e2), Position p, Entity e) = do
+  --liftIO $ print (e, e')
+  if (e == e') then (Entity e) `set` (Enemy, Velocity $ (pure $ 0.1 + norm v) * (normalize (m - p))) else return () 
 
 enemy ::  System World ()
 enemy = do
@@ -30,8 +35,8 @@ enemy = do
                 , Velocity (V2 n o)
                 , Position (V2 p q)
                 , Angle 0
-                )
-              , ProjCount 10
+               )
+              , ProjCount 3
               , Box ((V2 p q), g', g')
               )
   return ()

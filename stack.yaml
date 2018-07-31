@@ -1,9 +1,11 @@
-resolver: lts-9.2
+resolver: lts-12.0
 packages:
   - .
 extra-deps:
   - apecs-0.4.1.1
+  - SDL-0.6.7.0
   - gloss-juicy-0.2.2
-  - sdl2-mixer-1.1.0
+  - streamly-0.4.1
+#  - sdl2-mixer-1.1.0
 flags: {}
 extra-package-dbs: []
