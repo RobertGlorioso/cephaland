@@ -17,10 +17,8 @@ showSword x1 x2 tp pl Sword = (Sword
                               )
 hideSword Sword = (Sword, Position $ V2 (-100) (-1000) )
 
-sword c = newEntity (StaticBody
-                    , BodyPicture (scale 0.1 0.1 c)
-                    , (Position (V2 (-1.05) 9.66)
-                      , Velocity 0
-                      , Box ((V2 (-1.05) 9.66), 0.04, 0.21)
-                      )
+sword c = newEntity (BodyPicture (scale 0.1 0.1 c)
+                    , Position (V2 (-1.05) 9.66)
+                    , Velocity 0
+                    , Box ((V2 (-1.05) 9.66), 0.04, 0.21)
                     , Sword) 

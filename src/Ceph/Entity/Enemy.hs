@@ -17,26 +17,34 @@ import Linear
 
 killEnemy painBox (Enemy, Box enemyBox, e) =
   if aabb (Box painBox) (Box enemyBox)
-  then destroy e  (Proxy :: Proxy Position) --(Enemy, Position $ V2 (-100) (-100))
+  then e `set` Position ( pure 2000 )
   else return ()
 
-goToPlayer :: (Has World Enemy) => V2 Double -> Entity -> (Enemy, Velocity, Position, Entity) -> System World ()
-goToPlayer m (Entity e') (Enemy, Velocity v@(V2 e1 e2), Position p, Entity e) = do
-  --liftIO $ print (e, e')
-  if (e == e') then (Entity e) `set` (Enemy, Velocity $ (pure $ 0.1 + norm v) * (normalize (m - p))) else return () 
+hurtPlayer :: Box -> (Enemy, Box, Entity) -> System World ()
+hurtPlayer (Box playerBox) (Enemy, Box enemyBox, e) =
+  if aabb (Box playerBox) (Box enemyBox)
+  then do
+    cmap $ \(Player, Health e) -> (Player, Health $ e - 5)
+  else return ()
 
-enemy ::  System World ()
+goToPlayer :: V2 Float -> (Enemy, Velocity, Position, Behavior) -> (Enemy, Velocity, Behavior)
+goToPlayer m (Enemy, Velocity v, Position p, b) = if (norm (m - p) < 26) then (Enemy, Velocity $ 0.05 * (normalize $ m - p), NoBehavior) else (Enemy, Velocity v, b)
+
+randGoToPlayer ::  V2 Float  -> Entity -> (Enemy, Velocity, Position, Entity) -> System World ()
+randGoToPlayer m (Entity e') (Enemy, Velocity v@(V2 e1 e2), Position p, Entity e) = do
+  if (e == e') then (Entity e) `set` (Enemy, Velocity $ (pure $ 0.1 + norm v) * (normalize $ m - p)) else return () 
+    
+enemy :: System World ()
 enemy = do
-  g@(realToFrac -> g') <- liftIO $ randomRIO (0.1, 3 :: Float)
-  [n,o,p,q] <- liftIO $ replicateM 4 $ randomRIO (-3, 3 :: Double)
+  g <- liftIO $ randomRIO (0.1, 3 :: Float)
+  [n,o,p,q] <- liftIO $ replicateM 4 $ randomRIO (-80, 80 :: Float)
   newEntity ( Enemy
-              , ( DynamicBody
-                , BodyPicture . color yellow $ Circle g
-                , Velocity (V2 n o)
-                , Position (V2 p q)
-                , Angle 0
-               )
+              , BodyPicture . color yellow $ Circle g
+              , Velocity (V2 n o)
+              , Position (V2 p q)
+              , Angle 0
               , ProjCount 3
-              , Box ((V2 p q), g', g')
+              , Box ((V2 p q), g, g)
+              , Seek
               )
   return ()
