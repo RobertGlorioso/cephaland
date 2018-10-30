@@ -1,0 +1,83 @@
+name: ceph
+version: '0.0.0'
+github: grousebert/cephaland
+license: BSD3
+category: Game
+synopsis: some game and some with music
+description: some game and some with music
+maintainer: Robert
+copyright: 2018 Robert
+extra-source-files:
+- package.yaml
+- README.md
+- stack.yaml
+ghc-options: -Wall
+default-extensions:
+- DuplicateRecordFields
+- FlexibleContexts
+- FlexibleInstances
+- GeneralizedNewtypeDeriving
+- LambdaCase
+- NamedFieldPuns
+- ScopedTypeVariables
+- OverloadedStrings
+library:
+  dependencies:
+    - base >=4.7 && <5
+    - aeson
+    - apecs >= 0.5.0.0
+    - bytestring
+    - containers
+    - directory
+    - Euterpea >= 2.0.5
+    - HCodecs
+    - gloss
+    - gloss-juicy
+    - linear
+    - lens
+    - mtl
+    - optparse-applicative
+    - safe
+    - safe-exceptions
+    - sdl2
+    - sdl2-image
+    - sdl2-mixer
+    - sdl2-ttf
+    - StateVar
+    - text
+    - text-conversions
+    - random
+  source-dirs: src
+executables:
+  ceph:
+    dependencies:
+      - base >=4.7 && <5
+      - aeson
+      - apecs >= 0.5.0.0
+      - bytestring
+      - containers
+      - directory
+      - Euterpea >= 2.0.5
+      - HCodecs
+      - gloss
+      - gloss-juicy
+      - linear
+      - lens
+      - mtl
+      - optparse-applicative
+      - safe
+      - safe-exceptions
+      - sdl2
+      - sdl2-image
+      - sdl2-mixer
+      - sdl2-ttf
+      - StateVar
+      - text
+      - text-conversions
+      - random
+    ghc-options:
+    - -rtsopts
+    - -threaded
+    - -with-rtsopts=-N
+    main: Main.hs
+    source-dirs: src

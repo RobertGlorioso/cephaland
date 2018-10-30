@@ -1,0 +1,125 @@
+
+-- This file has been generated from package.yaml by hpack version 0.28.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 5d4385126e2d18faae560b5289e6cc38e5275ed67285554703b4cdf6ec2b77d0
+
+name:           ceph
+version:        0.0.1
+synopsis:       platformer game with music
+description:    platformer game with music
+category:       Game
+homepage:       https://github.com/grousebert/cephaland#readme
+bug-reports:    https://github.com/grousebert/cephaland/issues
+maintainer:     Robert
+copyright:      2018 Robert
+license:        BSD3
+build-type:     Simple
+cabal-version:  >= 1.10
+extra-source-files:
+    package.yaml
+    README.md
+    stack.yaml
+
+source-repository head
+  type: git
+  location: https://github.com/grousebert/cephaland
+
+library
+  exposed-modules:
+      Ceph.Component.Enemy
+      Ceph.Component.Projectile
+      Ceph.Component.Sword
+      Ceph.Components
+      Ceph.Handler
+      Ceph.Jams
+      Ceph.Physics
+      Ceph.Physics.Box
+      Ceph.Scene
+      Ceph.Scene.Camera
+      Ceph.Scene.HUD
+      Ceph.Util
+      Main
+  other-modules:
+      Paths_ceph
+  hs-source-dirs:
+      src
+  default-extensions: DuplicateRecordFields FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving LambdaCase NamedFieldPuns ScopedTypeVariables OverloadedStrings
+  ghc-options: -Wall
+  build-depends: Euterpea >=2.0.5
+               , HCodecs
+               , StateVar
+               , aeson
+               , apecs >=0.5.0.0
+               , base >=4.7 && <5
+               , bytestring
+               , containers
+               , contravariant >= 1.4
+               , directory
+               , gloss
+               , gloss-juicy
+               , groups
+               , lens
+               , linear
+               , mtl
+               , optparse-applicative
+               , random
+               , safe
+               , safe-exceptions
+               , sdl2
+               , sdl2-image
+               , sdl2-mixer
+               , sdl2-ttf
+               , text
+               , text-conversions
+               , time
+  default-language: Haskell2010
+
+executable ceph
+  main-is: Main.hs
+  other-modules:
+      Ceph.Component.Enemy
+      Ceph.Component.Projectile
+      Ceph.Component.Sword
+      Ceph.Components
+      Ceph.Handler
+      Ceph.Jams
+      Ceph.Physics
+      Ceph.Physics.Box
+      Ceph.Scene
+      Ceph.Scene.Camera
+      Ceph.Scene.HUD
+      Ceph.Util
+      Paths_ceph
+  hs-source-dirs:
+      src
+  default-extensions: DuplicateRecordFields FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving LambdaCase NamedFieldPuns ScopedTypeVariables OverloadedStrings
+  ghc-options: -Wall -rtsopts -threaded -with-rtsopts=-N
+  build-depends:
+                Euterpea >=2.0.5
+              , HCodecs
+              , StateVar
+              , aeson
+              , apecs >=0.5.0.0
+              , base >=4.7 && <5
+              , bytestring
+              , containers
+              , directory
+              , gloss
+              , gloss-juicy
+              , lens
+              , linear
+              , mtl
+              , optparse-applicative
+              , random
+              , safe
+              , safe-exceptions
+              , sdl2
+              , sdl2-image
+              , sdl2-mixer
+              , sdl2-ttf
+              , text
+              , text-conversions
+              , time
+  default-language: Haskell2010

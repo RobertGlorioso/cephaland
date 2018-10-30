@@ -1,12 +1,32 @@
 module Ceph.Jams where
+
+import Ceph.Components
+
+import Apecs
+import qualified SDL.Mixer as M
 import Euterpea
 import Data.List hiding (transpose)
 import Codec.Midi
-import System.Random 
+import System.Random
+import Control.Monad
 import Numeric
 import Data.Char
 import GHC.Int
 import qualified Data.ByteString as Byte
+
+playTune :: Entity -> System World ()
+playTune otherEnt = do
+  let chanPlay i mzk
+        | i <= 7 && i >= 0 = do
+            isP <- M.playing i
+            if not isP then (M.playOn i M.Once mzk) else chanPlay (i+1) mzk
+        | True = return i
+
+  (Resources _ s) <- get otherEnt
+  
+  when (s /= []) $ chanPlay 0 (head s) >> return ()
+  --liftIO $ when (h /= Sing) $ playDev 0 s >> return ()
+        
 
 data DetGrammar a = DetGrammar  a           --  start symbol
                                 [(a,[a])]   --  productions
@@ -145,6 +165,9 @@ t1 n i =  instrument i $ interpret (gen replFun g1 42 !! n) ir (c 5 tn)
 
 
 ------------
+
+makeByteMusic = ( makeFile . toMidi . perform) :: Music Pitch -> Byte.ByteString
+
 makeFile :: Midi -> Byte.ByteString
 makeFile (Midi ft td trs) = 
     let ticksPerQn = 

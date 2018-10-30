@@ -22,7 +22,6 @@ zoomIn (Camera c s) = (Camera c $ s+1)
 zoomOut :: Camera -> Camera
 zoomOut (Camera c s) = (Camera c $ s-1)
 
-updateCamera :: System World ()
-updateCamera = do
-  cmapM_ $ \( Player , Position p) -> modify global $ \(Camera o s) -> (Camera p s)
+cameraFollowPlayer :: (Player, Position) -> System World ()
+cameraFollowPlayer (Player, Position p) = modify global $ \(Camera o s) -> (Camera p s)
 

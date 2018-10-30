@@ -3,23 +3,26 @@ module Ceph.Handler where
 
 import Ceph.Components
 import Ceph.Util
-import Ceph.Entity.Projectile
+import Ceph.Component.Projectile
 
 import Apecs
 import Apecs.Util
-import Graphics.Gloss.Interface.IO.Game
+import Control.Monad
+import Graphics.Gloss.Interface.IO.Game hiding ( Play )
+import Euterpea
 import qualified SDL.Mixer as M
 import Linear
 
 mouseToWorld :: (Float,Float) -> Camera -> V2 Float
-mouseToWorld (x,y) (Camera offset scale) = (V2 x y-offset) / pure  scale
+mouseToWorld (x,y) (Camera offset scale) = offset + V2 x y 
 
 handle :: Event -> System World ()
+handle (EventResize (m1, m2)) = do
+  modify global $ \(SB _) -> SB (V2 m1 m2)
 handle (EventMotion mscreen) = do
-  
   mpos <- mouseToWorld mscreen <$> get global
-  offset <- (\(Camera o s) -> o ) <$> get global
-  cmap $ \(Target a) -> Target (offset + mpos)
+  cmap $ \(Target _) -> Target mpos
+  
 handle (EventKey press downup modifiers mscreen) = do
   case (press, downup) of
     (SpecialKey KeyRight, Down) -> do
@@ -64,43 +67,35 @@ handle (EventKey press downup modifiers mscreen) = do
     
     (SpecialKey KeySpace, Up) -> do
       cmap $ \(Player, b :: Behavior) -> (Player, NoBehavior)
-      cmap $ \(g :: Ghost, b :: Behavior) -> (g, NoBehavior)
     (SpecialKey KeySpace, Down) ->
       cmap $ \(Player) -> (Player, Carry)
-    (e, f) -> return () -- liftIO (print e >> print f >> return ())
+                          
+    (e, f) -> return () -- -- liftIO (print e >> print f >> return ())
     
   case (press, downup, modifiers) of
-    (MouseButton LeftButton,Down,Modifiers Down Up Up) ->
-       cmapM_ $ \(Player, Box pb) -> do
-         cmapM_ $ removeProjectile pb
-         cmap $ \(Player) -> (Player, Debug "arrow collected!")
-    (MouseButton LeftButton,Up,Modifiers Down Up Up) ->
-       cmapM_ $ \(Player, Box pb) -> do
-         cmapM_ $ \(Player, Debug _, e) -> destroy e (Proxy :: Proxy Debug)
-    (MouseButton LeftButton,Down,Modifiers _ _ _) -> do
-      cmap $ \(Player) -> (Player, Charging)
+    (MouseButton LeftButton,Down,Modifiers Down Up Up) -> cmapM_ removeProjectile
+    (MouseButton LeftButton,Down,Modifiers _ _ _) -> cmap $ \(Player, Charge c _) -> (Player, Charge c True)
 
     (MouseButton LeftButton,Up,Modifiers _ _ _) -> do
-      cmapM_ $ \(Charging, Position x, Velocity v, ProjCount arrowsLeft, Player) -> do
-        Target t <- get global 
-        Charge c <- get global
-        cmap $ \(Charge c) -> (Charge 0.01)
-        cmap $ \(ProjCount x, Player) -> (Player, ProjCount $ x - 1)
-        if arrowsLeft >= 1
-          then do
-          cmapM_ $ \(Player,Resources _ p) -> if p == [] then return () else M.play $ head p
+      cmapM_ $ \(c, x, v, ProjCount arrowsLeft, Player, e) -> do
+        t <- get global 
+        --cmap $ \(ProjCount n, Player) -> (Player, ProjCount $ arrowsLeft - 1)
+        when (arrowsLeft >= 1) $ do
+          --cmapM_ $ \(Player,Resources _ _ p) -> if p == [] then return () else M.play $ head p
           shootArrow t x v c
-          return () 
-          else return ()
+          e `set` (Charge 0.25 False, x, v, ProjCount $ arrowsLeft - 1,  Player) 
+        
       
     (_,_,_) -> return ()
     
       
   where speedLimit = 7
-        movePlayer v (Velocity p, Player, b :: Behavior) =
-          if b /= Plant then
-            (Player, Velocity $ p + v, b ) else
-            (Player, Velocity $ p + v, NoBehavior)
+        movePlayer v c@(Player, Velocity p, b :: Behavior) 
+          | norm p > speedLimit = c
+          | True = if b /= Plant then
+                      (Player, Velocity $ p + v, b ) else
+                      (Player, Velocity $ p + v, NoBehavior)
              
 handle e = do
   liftIO $ print e
+        

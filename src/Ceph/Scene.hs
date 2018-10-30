@@ -1,21 +1,17 @@
 module Ceph.Scene where
 
-import Ceph.Physics
 import Ceph.Physics.Box
 import Ceph.Components
 import Ceph.Scene.HUD
 import Ceph.Scene.Camera
 
 import Apecs
-import Apecs.Util
 import Graphics.Gloss
---import SDL hiding (Debug,get)
-import Linear
 
-
+render :: GameOpts -> World -> IO Picture
 render (GameOpts g) w = runWith w $ do
 
-        updateCamera
+        cmapM_ cameraFollowPlayer
         
         view@(Camera cam scale) <- get global :: System World Camera
 
@@ -32,6 +28,6 @@ render (GameOpts g) w = runWith w $ do
         --make the scene by combining the HUD and the current world
         hud <- hudPic
         
-        return $ Pictures $ [newWorld] ++ hud
+        return $ Pictures $ [newWorld] ++ hud -- , Translate 150 150 $ Scale 0.1 0.1 newWorld] ++ hud
                            
 
