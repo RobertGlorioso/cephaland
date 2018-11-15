@@ -28,28 +28,8 @@ minni a b = minimumBy (\c d -> compare (fst c) (fst d)) $ zip a b
 box :: V2 Float -> Float -> Float -> Box
 box (V2 x y) w h = Box ((V2 x y), w, h)
 
---whileInBox :: Entity -> Box -> System World ()
-whileInBox :: Entity -> Box -> SystemT World IO ()
-whileInBox e wb = do
-  b <- get e :: System World Box
-  liftIO $ print (b, wb)
-  if aabb b wb
-     then randoBounce e >> whileInBox e wb
-     else return () 
-
-
---dont think i need this one anymore
-randoBounce :: Entity -> System World ()
-randoBounce e = do
-  (p1, p2) <- liftIO $ (,) <$> randomRIO (-1e-3,1e-3 :: Float) <*> randomRIO ((-1e-3),1e-3 :: Float)
-  Position p <- get e
-  Box (_,b1,b2) <- get e
-  Velocity v <- get e
-  let newV = negate v
-  let newP = p + V2 p1 p2 + newV
-  e `set` Position newP
-  e `set` Box (newP, b1, b2)
-  e `set` Velocity newV
+randomDonutBox :: Int -> Float -> Float -> IO [Float]
+randomDonutBox l r s = (fmap.fmap) (\a ->  signum a * r + a) $ replicateM l $ randomRIO (negate s,s)
   
 boxBound :: System World ()
 boxBound = do
@@ -57,36 +37,39 @@ boxBound = do
 
   --we can use the current camera's position (or the player's pos)
   --to limit moving things to the current view point
-
-  (inScopeMoving, out) <- partition (\(b, _, _) ->  (aabb b (Box (cam, 100, 100)))) <$> (getAll :: System World [(Box, Entity, Not Wall)])
-  when (length out > 50) $ mapM_ (\(_,e,_) -> e `destroy` ( Proxy :: Proxy Box) ) $ out
-  (inScopeWalls, outWalls) <- partition (\(b, _, _) -> aabb b (Box (cam, 500, 500))) <$> (getAll :: System World [(Box, Entity, Wall)])
-  when ( length inScopeWalls > 250 ) $ do
-    (inScopeWalls, outWalls) <- partition (\(b, _, _) -> aabb b (Box (cam, 100, 100))) <$> (getAll :: System World [(Box, Entity, Wall)])
-    mapM_ (\(_,e,_) -> e `destroy` ( Proxy :: Proxy Box) ) $ outWalls
+  --(inScopeMoving, outMoving) <- partition (\(b, _, w) ->  (aabb b (Box (cam, 500, 500)))) <$> (getAll :: System World [(Box, Entity, Actor)])
+  --when (length outMoving > 50) $ mapM_ (\(_,e,_) -> e `destroy` ( Proxy :: Proxy Box) ) outMoving
+  (inScopeWalls, outWalls) <- partition (\(b, _, _) -> aabb b (Box (cam, 1000, 1000))) <$> (getAll :: System World [(Box, Entity, Actor)])
+  
     
-
-  mapM_ (wallBounceO inScopeWalls) inScopeMoving
-
+  cmapM_ $ \case
+    --(b, e, Wall) -> return ()
+    (b, e, Player1) -> wallBounceA e b inScopeWalls
+    (b, e, Enemy1) -> wallBounceA e b inScopeWalls
+    (b, e, Projectile) -> when (aabb b (Box (cam, 1000, 1000))) $ wallBounceA e b inScopeWalls
+    _ -> return ()
+  
+  --mapM_ ( \(b, e, _) -> mapM_ ( wallBounceE e b) inScopeWalls) inScopeMoving
+ 
 
   --other ways of performing the box collisions
 
-  --
-  --cfoldM ( \_ ( b@(Box (c, w, h)), _ :: Not Wall, e) -> cmapM_ $ wallBounceE e b) ()
+  --  --cfoldM ( \_ ( b@(Box (c, w, h)), _ :: Not Wall, e) -> cmapM_ $ wallBounceE e b) ()
   --concurrently $ [ bounce c1 c2 |  c2@(b2,_,_) <- inScopeWalls, c1@(b1,_,_) <- inScopeMovingObjs, aabb b1 b2]
 
   --cfoldM ( \_ ( b@(Box (c, w, h)), _ :: Not Wall, e) -> cmapM_ $ wallBounceE e b) ()
   where
-    wallBounceO :: [(Box,Entity,Wall)] -> (Box, Entity, Not Wall) -> System World ()
-    wallBounceO w (b, e, _) = mapM_ (wallBounceE e b) w
-    wallBounceE :: Entity -> Box -> (Box, Entity, Wall) -> System World ()
-    wallBounceE otherEnt b@(Box (V2 ax ay, w1, h1)) (wb@(Box (V2 bx by, w2, h2)), _, _) = do
+    wallBounceA :: Entity -> Box -> [(Box, Entity, Actor)] -> System World ()
+    wallBounceA _ _ [] = return ()
+    wallBounceA otherEnt
+      b@(Box (V2 ax ay, w1, h1))
+      ((wb@(Box (V2 bx by, w2, h2)), _, a):rest) = do
       let edgeMeasures = [ ax - w1 - (bx + w2)
                            , bx - w2 - (ax + w1)
                            , ay - h1 - (by + h2)
                            , by - h2 - (ay + h1) ]
-      let wallTouched = all (<0) edgeMeasures
-      let collideProc = do
+          wallTouched = not $ any (>=0) edgeMeasures
+          collideProc = do
             Gravity (V2 _ g) <- get global
             (Position p@(V2 p1 p2), Velocity v@(V2 v1 v2),b) <- get otherEnt
             --(BodyPicture pic) <- get e' :: System World BodyPicture
@@ -99,13 +82,14 @@ boxBound = do
               (d,BottomEdge) -> otherEnt `set` (Position $ p + V2 v1 ( negate . abs $ v2 - d), Velocity (V2 v1 (negate . abs $ v2) / friction))
               (d,RightEdge) -> otherEnt `set` (Position $ p + V2 (abs v1 + d) v2, Velocity (V2 (abs v1) v2 / friction))
               (d,LeftEdge) -> otherEnt `set` (Position $ p + V2 ( negate . abs $ v1 - d) v2, Velocity (V2 (negate . abs $ v1) v2 / friction))
-      when wallTouched $ do
-        
+      if a /= Wall || not wallTouched then wallBounceA otherEnt b rest else do
         p <- get otherEnt
-        unless ( p `elem` [Carry,Plant,Sing]) $ do 
+        unless ( p `elem` [Carry,Plant,Sing] ) $ do 
           isProj <- exists otherEnt (Proxy :: Proxy Projectile)
-          --isEnm <- exists otherEnt (Proxy :: Proxy Enemy)
+          isEnm <- exists otherEnt (Proxy :: Proxy Enemy1)
+          otherEnt `set` Sing
           if isProj then get otherEnt >>= \case
-            Bullet -> otherEnt `destroy` ( Proxy :: Proxy Box) 
-            Arrow -> otherEnt `set` Sing >> collideProc
-            else otherEnt `set` Sing >> collideProc    
+            Bullet -> otherEnt `set` ( Position $ pure 2e7 ) 
+            _ -> return () -- collideProc
+            
+            else if isEnm then return () else collideProc

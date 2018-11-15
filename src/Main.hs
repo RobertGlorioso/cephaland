@@ -7,6 +7,7 @@ module Main where
 import Ceph.Scene
 import Ceph.Components
 import Ceph.Physics
+import Ceph.Physics.Box
 import Ceph.Component.Enemy
 import Ceph.Component.Sword
 import Ceph.Handler
@@ -14,6 +15,7 @@ import Ceph.Jams
 
 
 import Apecs
+import Data.List (zip4)
 import Options.Applicative
 import Graphics.Gloss
 import Graphics.Gloss.Juicy
@@ -83,7 +85,7 @@ parseopts = GameOpts <$> switch
 
 initGame :: System World ()
 initGame = do
-  set global ( Camera 0 10
+  set global ( Camera 0 2
              , Gravity $ V2 0 (-0.001)
              , mempty :: Beat)  
   
@@ -94,12 +96,16 @@ initGame = do
   marimbas <- liftIO $  mapM M.load . filter ((&&) <$> ("Marimba" `isInfixOf`) <*> ("8" `isInfixOf`)) =<< getDirectoryContents "." :: System World [M.Chunk]
 
 --}
-  let m1 = c 3 wn -- :+: d 4 en :+: e 3 en
-      m2 = d 3 wn
-      --transpose 3 m1
-      m3 = e 3 wn
-      --invert m2 :+: retro m2
-
+  let e1 = c 4 wn 
+      e2 = b 4 wn 
+      e3 = g 4 wn
+      m1 = instrument Flute e1
+      m2 = instrument Oboe e2
+      m3 = instrument Glockenspiel e3
+      n1 = m1 :=: m2 :=: m3
+      n2 = invert n1 :+: n1
+      n3 = transpose 5 n2
+      l1 = tempo 3 $ Euterpea.line [m1,m2,m1,m2,m1,m2,m1,m2,m1,m2,m1,m2]
   --read in sprites
   let handlePic = maybe
         (error "img not loading")
@@ -115,24 +121,80 @@ initGame = do
   sword cig
   
   let blck = do
-        m <- randomRIO ((-70), 70 :: Int)
-        y <- randomRIO ((-20), 20 :: Int)
-        g <- randomRIO (30, 40 :: Int)
-        a <- randomRIO (30, 40 :: Int)
-        return $ [m,y,g,a]
+        r <- randomRIO ((-70), 70 :: Float)
+        s <- randomRIO ((-20), 20 :: Float)
+        g <- randomRIO (30, 40 :: Float)
+        a <- randomRIO (30, 40 :: Float)
+        return $ (r,s,g,a)
   
   let blck2 = do
-        m <- randomRIO ((-40), 40 :: Int)
-        y <- randomRIO ((-70), 70 :: Int)
-        g <- randomRIO (20, 30 :: Int)
-        a <- randomRIO (20, 30 :: Int)
-        return $ [m,y,g,a]
+        r <- randomRIO ((-400), 400 :: Float)
+        s <- randomRIO ((-700), 700 :: Float)
+        g <- randomRIO (20, 30 :: Float)
+        a <- randomRIO (20, 30 :: Float)
+        return $ (r,s,g,a)
 
-  gblx <- liftIO $ liftA2 (++) (replicateM 14 blck2) (replicateM 14 blck)
-  let bl (fmap fromIntegral -> [r,s,g,a]) = wave (pure 0.05) (V2 r s) (0.1 * V2 g a)  plante
+  let blck3 = zip4 <$> randomDonutBox 500 600 900 <*> randomDonutBox 500 600 1900 <*> replicateM 500 (randomRIO (20,30 :: Float)) <*> replicateM 500 (randomRIO (20,30 :: Float))
+  gblx <- liftIO $ liftA2 (++) (replicateM 1 blck) (liftA2 (++) (replicateM 40 blck2) blck3)
+  let bl (r,s,g,a) =
+        newEntity (Wall
+                  , Position (V2 r s)
+                  , Angle 0
+                  , box ( V2 r s ) g a
+                  , BodyPicture $ Scale (0.05 * g) (0.05 * a) plante
+                  )
   mapM_ bl gblx
   
-  mapM_ (enemy squid) $ concat $ replicate 4 [m1,m2,m3]
+  cm <- M.decode $ makeByteMusic $ instrument Xylophone n3 :: System World M.Chunk
+  newEntity (( Position (V2 0 50)
+             , 0 :: Velocity
+             , BodyPicture $ Scale 0.6 0.6 octo 
+             , Box (0, 1, 1))
+            ,(ProjCount 30, Health 99, Dash 0)
+            --, Weapon Xylophone 
+            , Resources [] [cm]
+            , Song n3
+            , (Player1, Player)
+            , (NoBehavior, Charge 0.01 False))
+  newEntity (Target 0)
+  
+
+  replicateM 70 $ newEntity ( Position 2e7
+            , Velocity 0 
+            , Angle 0
+            , NoBehavior
+            , (( Projectile, Arrow)
+              , Box (2000, 1, 0.7)
+              , Resources [Scale 0.4 0.4 arw] [cm]
+              )
+            )
+  replicateM 70 $ newEntity ( Position 2e7
+            , Velocity 0 
+            , Angle 0
+            , Seek
+            , ( Bullet, Projectile )
+              
+            , Box (2000, 0.1, 0.1)
+            , Resources (fmap (Translate 0 0 . Scale 0.1 0.1 ) bults) [cm]
+            )
+            
+  enemies <- replicateM 7 $ newEntity (
+    (Enemy1, Enemy),
+    Charge 0.0 True,
+    ( BodyPicture . Rotate (pi/2) . Scale (0.1) (0.1) $ squid,
+      Position 0,
+      Velocity 0,
+      Angle 0
+    )
+    , ( ProjCount 3
+      , Box (2000, 1, 1)
+      , Attack
+      )
+    )
+  mapM_ (uncurry enemy) $ zip [m1,m2,m3,n1,n2,n3,l1] enemies
+  newEntity (Grid $ fromList [ (0, fromList [(0,())] ) ] )
+  return ()
+
   {--replicateM 1 $ do
     g <- liftIO $ randomRIO (1, 10 :: Double)
     h <- liftIO $ randomRIO (1, 10 :: Double)
@@ -156,37 +218,4 @@ initGame = do
               , PHS $ toPhase pendSys $ Cfg (konst 40 :: R 1) (konst (h / 10) :: R 1)
               , NoBehavior)
     --}
-
-  cm <- M.decode $ makeByteMusic $ instrument Xylophone m3 :: System World M.Chunk
-  newEntity (( Position (V2 0 50)
-             , Velocity (V2 0 0)
-             , BodyPicture $ scale 0.15 0.15 octo 
-             , Box (0, 1, 1))
-            , (ProjCount 30, Health 99)
-            , Weapon Xylophone 
-            , Resources [] [cm] 
-            , Player
-            , (NoBehavior, Charge 0.01 False))
-  newEntity (Target 0)
-  newEntity (Dash 0)
-  newEntity ( Position 2000
-            , Velocity 0 
-            , Angle 0
-            , NoBehavior
-            , ( Arrow
-              , Box (2000, 0.1, 0.07)
-              , Resources [Scale 0.1 0.1 arw] [cm]
-              )
-            )
-  newEntity ( Position 2000
-            , Velocity 0 
-            , Angle 0
-            , Seek
-            , ( Bullet
-              , Box (2000, 0.01, 0.01)
-              , Resources (fmap (Scale 0.02 0.02) bults) [cm]
-              )
-            )
-  newEntity (Grid $ fromList [ (0, fromList [(0,())] ) ] )
-  return ()
 

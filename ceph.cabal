@@ -74,24 +74,25 @@ library
                , text
                , text-conversions
                , time
+               , vector
   default-language: Haskell2010
 
 executable ceph
   main-is: Main.hs
-  other-modules:
-      Ceph.Component.Enemy
-      Ceph.Component.Projectile
-      Ceph.Component.Sword
-      Ceph.Components
-      Ceph.Handler
-      Ceph.Jams
-      Ceph.Physics
-      Ceph.Physics.Box
-      Ceph.Scene
-      Ceph.Scene.Camera
-      Ceph.Scene.HUD
-      Ceph.Util
-      Paths_ceph
+  other-modules: Ceph.Component.Enemy
+                 Ceph.Component.Projectile
+                 Ceph.Component.Player
+                 Ceph.Component.Sword
+                 Ceph.Components
+                 Ceph.Handler
+                 Ceph.Jams
+                 Ceph.Physics
+                 Ceph.Physics.Box
+                 Ceph.Scene
+                 Ceph.Scene.Camera
+                 Ceph.Scene.HUD
+                 Ceph.Util
+                 Paths_ceph
   hs-source-dirs:
       src
   default-extensions: DuplicateRecordFields FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving LambdaCase NamedFieldPuns ScopedTypeVariables OverloadedStrings
@@ -122,4 +123,5 @@ executable ceph
               , text
               , text-conversions
               , time
+              , vector
   default-language: Haskell2010

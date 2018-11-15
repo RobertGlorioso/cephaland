@@ -25,49 +25,43 @@ killEnemy painBox (Enemy, Box enemyBox, e) =
   else return ()
 
 
-hurtPlayer :: Box -> (Enemy, Box, Entity) -> System World ()
-hurtPlayer (Box playerBox) (Enemy, Box enemyBox, e) =
+hurtPlayer :: Box -> (Actor, Box, Entity) -> System World ()
+hurtPlayer (Box playerBox) (Enemy1, Box enemyBox, e) =
   if aabb (Box playerBox) (Box enemyBox)
   then do
     cmap $ \(Player, Health e) -> (Player, Health $ e - 5)
   else return ()
 
-shootPlayer :: (Enemy, Velocity, Position, Behavior) -> System World () 
-shootPlayer (Enemy, v, p2, b) = do
+shootPlayer :: (Enemy1, Velocity, Position, Behavior) -> System World (Charge, Velocity) 
+shootPlayer (Enemy, v, p2@(Position x), b) = do
   (Player,Position p1) <- head <$> getAll
-  shootBullet (Target p1) p2 v (Charge 1 False)
-  return ()
+  shootBullet (Target p1) p2 v (Charge 3 False)
+  return (Charge 0 False, v + Velocity ( 0.1 * (normalize $ x - p1)))
+--shootPlayer (_,v,_,_) = return (Charge 0 False, v)
 
-goToPlayer :: V2 Float -> (Enemy, Velocity, Position) -> (Enemy, Velocity)
-goToPlayer m (Enemy, Velocity v, Position p)
-  | (norm (m - p) < 68) = (Enemy, Velocity $ v + (0.008 * (normalize $ m - p)))
-  | (norm (m - p) < 26) = (Enemy, Velocity $ v + (0.009 * (normalize $ m - p)))
-  | (norm (m - p) < 18) = (Enemy, Velocity $ v + (0.014 * (normalize $ m - p)))
-  | (norm (m - p) < 13) = (Enemy, Velocity $  v + (0.024 * (normalize $ m - p)))
-  | True = (Enemy, Velocity v) 
+goToPlayerAndShoot :: V2 Float -> (Enemy1, Velocity, Position, Charge, Entity) -> System World ()
+goToPlayerAndShoot _ (Enemy, Velocity v, Position p, Charge c False,e) = if c < 1 then e `set` (Charge (c + 0.005) False) else e `set` (Charge 0 True)
+goToPlayerAndShoot m (Enemy, Velocity v, Position p, Charge c True,e) = do
+  if c < 1 then e `set` (Charge (c + 0.005) True, go2p) else get e >>= shootPlayer >>= set e
+  where
+    go2p 
+      | (norm (m - p) < 680) = ( Velocity $ v + (0.007 * (normalize $ m - p)))
+      | (norm (m - p) < 260) = ( Velocity $ v + (0.008 * (normalize $ m - p)))
+      | (norm (m - p) < 180) = ( Velocity $ v + (0.010 * (normalize $ m - p)))
+      | (norm (m - p) < 130) = ( Velocity $  v + (0.020 * (normalize $ m - p)))
+      | True = (Velocity v) 
+goToPlayerAndShoot m _ = return ()
 
-randGoToPlayer ::  V2 Float  -> Entity -> (Enemy, Velocity, Position, Entity) -> System World ()
-randGoToPlayer m (Entity e') (Enemy, Velocity v, Position p, Entity e) = do
+
+randGoToPlayer ::  V2 Float  -> Entity -> (Actor, Velocity, Position, Entity) -> System World ()
+randGoToPlayer m (Entity e') (Enemy1, Velocity v, Position p, Entity e) = do
   if (e == e') then (Entity e) `set` (Enemy, Velocity $ (pure $ 0.1 + norm v) * (normalize $ m - p)) else return () 
     
-enemy :: Picture -> Music Pitch -> System World ()
-enemy j s = do
+enemy :: Music Pitch -> Entity -> System World ()
+enemy s e = do
   g <- liftIO $ randomRIO (0.1, 3 :: Float)
   [n,o,p,q] <- liftIO $ replicateM 4 $ randomRIO (-100, 100 :: Int)
   let i = toEnum (max 0 . min 127 $ sum [n,o,p,q])
   mzk <- M.decode . makeByteMusic $ instrument i s
+  e `set` (Resources [] [mzk], Song s, Weapon i , Box ((fromIntegral <$> V2 p q), g, g), Attack, Position ((*0.1).fromIntegral <$> V2 p q))
   
-  newEntity ( (Enemy, Charge 0.0 True, Weapon i)
-            
-            , ( BodyPicture . (Rotate $ (pi/2)) . Scale (0.02*g) (0.02*g) $ j
-              , Velocity 0
-              , Position ((*0.1).fromIntegral <$> V2 p q)
-              , Angle 0
-              )
-            , (Resources [] [mzk]
-              , ProjCount 3
-              , Box ((fromIntegral <$> V2 p q), g, g)
-              , Attack
-              )
-            )
-  return ()

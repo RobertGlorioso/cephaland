@@ -14,17 +14,22 @@ import Data.Char
 import GHC.Int
 import qualified Data.ByteString as Byte
 
-playTune :: Entity -> System World ()
-playTune otherEnt = do
+playSong :: World -> Entity -> System World ()
+playSong w otherEnt = do
+  (Resources _ s) <- get otherEnt
   let chanPlay i mzk
         | i <= 7 && i >= 0 = do
             isP <- M.playing i
-            if not isP then (M.playOn i M.Once mzk) else chanPlay (i+1) mzk
-        | True = return i
+            if not isP then do
+              chan <- M.playOn i M.Once mzk
+              M.whenChannelFinished (\p -> runWith w ( otherEnt `set` (Debug "",NoBehavior)))
+            else chanPlay (i+1) mzk
+        | True = return ()
 
-  (Resources _ s) <- get otherEnt
   
-  when (s /= []) $ chanPlay 0 (head s) >> return ()
+  
+  
+  when (s /= []) $ chanPlay 0 (head s)
   --liftIO $ when (h /= Sing) $ playDev 0 s >> return ()
         
 

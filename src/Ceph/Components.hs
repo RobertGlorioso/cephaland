@@ -6,7 +6,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Ceph.Components where
 
-import Ceph.Util
 
 import Apecs
 import Apecs.Util
@@ -22,7 +21,7 @@ import qualified SDL.Mixer as M
 
 data GameOpts = GameOpts { debugOn :: Bool }
 
-newtype Weapon = Weapon InstrumentName
+newtype Weapon = Weapon InstrumentName deriving Show
 instance Component Weapon where
   type Storage Weapon = Map Weapon
 
@@ -40,10 +39,18 @@ instance Component Ghost where
   type Storage Ghost = Map Ghost
 --}
 
-data Player = Player 
-instance Component Player where
-  type Storage Player = Unique Player
-  
+data Actor = Player1 | Enemy1 | Wall | Sword | Harpoon | Projectile deriving (Show,Eq)
+instance Component Actor where
+  type Storage Actor = Map Actor
+
+data Enemy1 = Enemy
+instance Component Enemy1 where
+  type Storage Enemy1 = Map Enemy1
+
+data Player1 = Player
+instance Component Player1 where
+  type Storage Player1 = Unique Player1
+
 data Attacking = Attacking
 instance Component Attacking where
   type Storage Attacking = Unique Attacking
@@ -51,7 +58,6 @@ instance Component Attacking where
 data Charge = Charge { amt :: Float, charging :: Bool } 
 instance Component Charge where
   type Storage Charge = Map Charge
-
 
 data Target = Target (V2 Float)
 instance Component Target where
@@ -65,15 +71,11 @@ data Projectile = Bullet | Arrow deriving Eq
 instance Component Projectile where
   type Storage Projectile = Map Projectile
 
-data Wall = Wall
-instance Component Wall where
-  type Storage Wall = Map Wall
-
 data ProjCount = ProjCount Int deriving Show
 instance Component ProjCount where
   type Storage ProjCount = Map ProjCount
 
-data Behavior = Seek | Sing | Attack | Carry | Defend | Dead | Heal | Plant | NoBehavior deriving Eq
+data Behavior = Seek | Sing | Attack | Carry | Defend | Dead | Heal | Plant | NoBehavior deriving (Show,Eq)
 instance Component Behavior where
   type Storage Behavior = Map Behavior
 
@@ -86,10 +88,6 @@ instance Component History where
 data Health = Health Float
 instance Component Health where
   type Storage Health = Map Health
-  
-data Enemy = Enemy
-instance Component Enemy where
-  type Storage Enemy = Map Enemy
 
 data Resources = Resources { sprites :: [Picture] , soundEffects :: [M.Chunk] }
 instance Component Resources where
@@ -98,19 +96,15 @@ instance Component Resources where
 data Box = Box (V2 Float, Float, Float) deriving (Show)
 instance Component Box where
   type Storage Box = Map Box
-  
-data Sword = Sword
-instance Component Sword where
-  type Storage Sword = Unique Sword
 
 newtype Grid = Grid (IntMap (IntMap ())) deriving Show
 instance Component Grid where type Storage Grid = Unique Grid
 
-newtype Position = Position (V2 Float) deriving Show
+newtype Position = Position (V2 Float) deriving (Num, Show)
 instance Component Position where type Storage Position = (Map Position) -- Cache 100 (Map Position)
 
-newtype Velocity = Velocity (V2 Float) deriving Show
-instance Component Velocity where type Storage Velocity = Cache 100 (Map Velocity)
+newtype Velocity = Velocity (V2 Float) deriving (Num, Show)
+instance Component Velocity where type Storage Velocity = Map Velocity
 
 newtype Gravity = Gravity (V2 Float) deriving Show
 instance Semigroup Gravity where
@@ -152,8 +146,8 @@ instance Monoid ScreenBounds where
   mappend = const
 instance Component ScreenBounds where
   type Storage ScreenBounds = Global ScreenBounds
-{--
+
 newtype Song = Song (Music Pitch) deriving Show
 instance Component Song where type Storage Song = Map Song
---}
-makeWorld "World" [''Camera, ''BodyPicture, ''Player, ''Position, ''Velocity, ''Gravity, ''Angle, ''Target, ''Attacking, ''Charge, ''Dash, ''Projectile, ''ProjCount, ''Sword, ''Weapon, ''Enemy, ''Health, ''Box, ''Resources, ''Wall, ''Beat, ''Debug, ''Behavior, ''Grid, ''ScreenBounds]
+
+makeWorld "World" [''Camera, ''BodyPicture, ''Player1, ''Enemy1, ''Projectile, ''Actor, ''Position, ''Velocity, ''Gravity, ''Angle, ''Target, ''Attacking, ''Charge, ''Dash, ''ProjCount, ''Song, ''Weapon, ''Health, ''Box, ''Resources, ''Beat, ''Debug, ''Behavior, ''Grid, ''ScreenBounds]

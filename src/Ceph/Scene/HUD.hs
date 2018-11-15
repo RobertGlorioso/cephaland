@@ -23,7 +23,7 @@ hudPic = do
     where
       mkhud (SB (fmap fromIntegral -> (V2 w h))) = do
         [(Player, Position p, Velocity v, ProjCount numArrows, Health playerHP)] <- getAll
-        numEnemies <- return . length =<< (getAll :: System World [(Enemy,Position)])
+        numEnemies <- return . length =<< (getAll :: System World [(Enemy1,Position)])
         Dash dashVal <- get global
         return $ [Translate (w/2 - 50) (h/2 - 100) $ Scale 4 4 $ Line [((-8),10),(dashVal,10)],
             Color red $ Translate (w/2 - 40) (h/2 - 70) $ ThickArc 0 (max 0 playerHP*pi) 2 59,

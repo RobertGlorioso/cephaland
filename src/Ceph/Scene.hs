@@ -1,3 +1,5 @@
+{-# LANGUAGE ViewPatterns #-}
+
 module Ceph.Scene where
 
 import Ceph.Physics.Box
@@ -7,6 +9,14 @@ import Ceph.Scene.Camera
 
 import Apecs
 import Graphics.Gloss
+import Linear
+
+addTrailPics :: Picture -> Velocity -> BodyPicture -> BodyPicture
+addTrailPics p (Velocity (V2 x y)) (BodyPicture (Pictures ps)) =
+  BodyPicture $ Pictures (p : (take 20 $ flip fmap ps $ \case
+    (Translate x0 y0 p0) -> (Translate (x0-x) (y0-y) p0)
+    --p0 -> p0
+    ))
 
 render :: GameOpts -> World -> IO Picture
 render (GameOpts g) w = runWith w $ do
@@ -15,7 +25,7 @@ render (GameOpts g) w = runWith w $ do
         
         view@(Camera cam scale) <- get global :: System World Camera
 
-        movableEnts <- return . filter (\((b, _, _, _)) -> aabb b (Box (cam, 80, 80))) =<< (getAll :: System World [(Box, Position, Angle, BodyPicture)])
+        movableEnts <- return . filter (\((b, _, _, _)) -> aabb b (Box (cam, 680, 680))) =<< (getAll :: System World [(Box, Position, Angle, BodyPicture)])
 
         pics <- mapM entsToPics movableEnts
         
