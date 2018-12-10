@@ -22,7 +22,7 @@ playSong w otherEnt = do
             isP <- M.playing i
             if not isP then do
               chan <- M.playOn i M.Once mzk
-              M.whenChannelFinished (\p -> runWith w ( otherEnt `set` (Debug "",NoBehavior)))
+              M.whenChannelFinished (\_ -> runWith w ( otherEnt `set` (NoBehavior) >> otherEnt `destroy` (Proxy :: Proxy Debug)))
             else chanPlay (i+1) mzk
         | True = return ()
 

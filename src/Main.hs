@@ -10,16 +10,16 @@ import Ceph.Physics
 import Ceph.Physics.Box
 import Ceph.Component.Enemy
 import Ceph.Component.Sword
+import Ceph.Component.Player
+import Ceph.Component.Projectile
 import Ceph.Handler
 import Ceph.Jams
-
 
 import Apecs
 import Data.List (zip4)
 import Options.Applicative
 import Graphics.Gloss
 import Graphics.Gloss.Juicy
-import Graphics.Gloss.Data.Color
 import Graphics.Gloss.Interface.IO.Game
 --import Numeric.Hamilton hiding (System)
 
@@ -63,7 +63,6 @@ main' = do
 main :: IO ()
 main = do
   S.initialize [S.InitAudio]
-  
   M.openAudio M.defaultAudio 256
   w <- initWorld
   let opts = info (parseopts <**> helper)
@@ -88,24 +87,37 @@ initGame = do
   set global ( Camera 0 2
              , Gravity $ V2 0 (-0.001)
              , mempty :: Beat)  
-  
- {--read in sfx
-  --sound <- liftIO $ (M.load "test.wav") --"./resource/sfx/water.wav" :: IO M.Chunk)
-  jams <- liftIO $  mapM M.load . filter ("Jam" `isInfixOf`) =<< getDirectoryContents "." :: System World [M.Chunk]
-  ocarinas <- liftIO $  mapM M.load . filter ((&&) <$> ("Ocarina" `isInfixOf`) <*> ("C" `isInfixOf`)) =<< getDirectoryContents "." :: System World [M.Chunk]
-  marimbas <- liftIO $  mapM M.load . filter ((&&) <$> ("Marimba" `isInfixOf`) <*> ("8" `isInfixOf`)) =<< getDirectoryContents "." :: System World [M.Chunk]
+  -- make some euterpea sounds
+  let e1 = c 4 qn 
+      e2 = a 4 qn 
+      e3 = g 4 qn
+      m1 = transpose 3 $ e1
+      m2 = transpose 3 $ e2
+      m3 = transpose 3 $ e3
+      n1 = instrument Flute $ m1 :=: m2 :=: m3
+      n2 = transpose 2 n1
+      n3 = transpose 5 n1
+      l1 = tempo 9 $ Euterpea.line [n1,n2,n1,n2,n1,n2,n1,n2,n1,n2,n1,n2]
+      l2 = transpose 8 l1
+      l3 = transpose 3 l1 
+      u1 = tempo 0.3 $ t1 2 Oboe
+      u2 = tempo 0.3 $ t1 3 Bassoon
+      am = [m1,m2,n1,n2,l1,l2,l3,u1,u2]
 
---}
-  let e1 = c 4 wn 
-      e2 = b 4 wn 
-      e3 = g 4 wn
-      m1 = instrument Flute e1
-      m2 = instrument Oboe e2
-      m3 = instrument Glockenspiel e3
-      n1 = m1 :=: m2 :=: m3
-      n2 = invert n1 :+: n1
-      n3 = transpose 5 n2
-      l1 = tempo 3 $ Euterpea.line [m1,m2,m1,m2,m1,m2,m1,m2,m1,m2,m1,m2]
+      b1 = perc HiMidTom qn
+      b2 = perc HiBongo qn
+      b3 = perc HighFloorTom qn
+      b4 = perc HiWoodBlock qn
+      b5 = perc BassDrum1 qn
+      b6 = perc LowMidTom qn
+      b7 = perc LowBongo qn
+      b8 = perc LowFloorTom qn
+      b9 = perc LowWoodBlock qn
+      b10 = perc LongWhistle qn
+      bm = [b1,b2,b3,b4,b5,b6,b7,b8,b9,b10]
+     
+  cm <- mapM ( M.decode . makeByteMusic ) am :: System World [M.Chunk]
+  dm <- mapM ( M.decode . makeByteMusic ) bm :: System World [M.Chunk] 
   --read in sprites
   let handlePic = maybe
         (error "img not loading")
@@ -120,79 +132,25 @@ initGame = do
   bults <- liftIO $ mapM (\b -> handlePic =<< loadJuicy b) ["./resource/image/bullet1.png","./resource/image/bullet2.png","./resource/image/bullet3.png"]
   sword cig
   
-  let blck = do
-        r <- randomRIO ((-70), 70 :: Float)
-        s <- randomRIO ((-20), 20 :: Float)
-        g <- randomRIO (30, 40 :: Float)
-        a <- randomRIO (30, 40 :: Float)
-        return $ (r,s,g,a)
-  
-  let blck2 = do
-        r <- randomRIO ((-400), 400 :: Float)
-        s <- randomRIO ((-700), 700 :: Float)
-        g <- randomRIO (20, 30 :: Float)
-        a <- randomRIO (20, 30 :: Float)
-        return $ (r,s,g,a)
-
-  let blck3 = zip4 <$> randomDonutBox 500 600 900 <*> randomDonutBox 500 600 1900 <*> replicateM 500 (randomRIO (20,30 :: Float)) <*> replicateM 500 (randomRIO (20,30 :: Float))
-  gblx <- liftIO $ liftA2 (++) (replicateM 1 blck) (liftA2 (++) (replicateM 40 blck2) blck3)
+  blck3 <- liftIO  $ zip4 <$> randomDonutBox 500 600 900 <*> randomDonutBox 500 600 400 <*> replicateM 500 (randomRIO (20,30 :: Float)) <*> replicateM 500 (randomRIO (20,30 :: Float))
   let bl (r,s,g,a) =
         newEntity (Wall
                   , Position (V2 r s)
                   , Angle 0
+                  , Velocity 0
                   , box ( V2 r s ) g a
                   , BodyPicture $ Scale (0.05 * g) (0.05 * a) plante
                   )
-  mapM_ bl gblx
+  mapM_ bl blck3
   
-  cm <- M.decode $ makeByteMusic $ instrument Xylophone n3 :: System World M.Chunk
-  newEntity (( Position (V2 0 50)
-             , 0 :: Velocity
-             , BodyPicture $ Scale 0.6 0.6 octo 
-             , Box (0, 1, 1))
-            ,(ProjCount 30, Health 99, Dash 0)
-            --, Weapon Xylophone 
-            , Resources [] [cm]
-            , Song n3
-            , (Player1, Player)
-            , (NoBehavior, Charge 0.01 False))
+  player octo n3
   newEntity (Target 0)
-  
 
-  replicateM 70 $ newEntity ( Position 2e7
-            , Velocity 0 
-            , Angle 0
-            , NoBehavior
-            , (( Projectile, Arrow)
-              , Box (2000, 1, 0.7)
-              , Resources [Scale 0.4 0.4 arw] [cm]
-              )
-            )
-  replicateM 70 $ newEntity ( Position 2e7
-            , Velocity 0 
-            , Angle 0
-            , Seek
-            , ( Bullet, Projectile )
-              
-            , Box (2000, 0.1, 0.1)
-            , Resources (fmap (Translate 0 0 . Scale 0.1 0.1 ) bults) [cm]
-            )
+  mapM_ (newArrow arw) $ concat . replicate 10 $ zip am cm
+  mapM_ (newBullet bults) $ concat . replicate 10 $ zip am cm
             
-  enemies <- replicateM 7 $ newEntity (
-    (Enemy1, Enemy),
-    Charge 0.0 True,
-    ( BodyPicture . Rotate (pi/2) . Scale (0.1) (0.1) $ squid,
-      Position 0,
-      Velocity 0,
-      Angle 0
-    )
-    , ( ProjCount 3
-      , Box (2000, 1, 1)
-      , Attack
-      )
-    )
-  mapM_ (uncurry enemy) $ zip [m1,m2,m3,n1,n2,n3,l1] enemies
-  newEntity (Grid $ fromList [ (0, fromList [(0,())] ) ] )
+  mapM_ (enemy squid) $ zip bm dm 
+  newEntity ( Grid $ fromList [ (0, fromList [(0,())] ) ] )
   return ()
 
   {--replicateM 1 $ do

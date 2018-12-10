@@ -29,7 +29,7 @@ box :: V2 Float -> Float -> Float -> Box
 box (V2 x y) w h = Box ((V2 x y), w, h)
 
 randomDonutBox :: Int -> Float -> Float -> IO [Float]
-randomDonutBox l r s = (fmap.fmap) (\a ->  signum a * r + a) $ replicateM l $ randomRIO (negate s,s)
+randomDonutBox l holeRadius diam = (fmap.fmap) (\a ->  signum a * holeRadius + a) $ replicateM l $ randomRIO (negate diam,diam)
   
 boxBound :: System World ()
 boxBound = do
@@ -39,13 +39,13 @@ boxBound = do
   --to limit moving things to the current view point
   --(inScopeMoving, outMoving) <- partition (\(b, _, w) ->  (aabb b (Box (cam, 500, 500)))) <$> (getAll :: System World [(Box, Entity, Actor)])
   --when (length outMoving > 50) $ mapM_ (\(_,e,_) -> e `destroy` ( Proxy :: Proxy Box) ) outMoving
-  (inScopeWalls, outWalls) <- partition (\(b, _, _) -> aabb b (Box (cam, 1000, 1000))) <$> (getAll :: System World [(Box, Entity, Actor)])
+  (inScopeWalls, outWalls) <- partition (\(b, _, _) -> aabb b (Box (cam, 600, 600))) <$> (getAll :: System World [(Box, Entity, Actor)])
   
     
   cmapM_ $ \case
     --(b, e, Wall) -> return ()
-    (b, e, Player1) -> wallBounceA e b inScopeWalls
-    (b, e, Enemy1) -> wallBounceA e b inScopeWalls
+    (b, e, Player) -> wallBounceA e b inScopeWalls
+    (b, e, Enemy) -> wallBounceA e b inScopeWalls
     (b, e, Projectile) -> when (aabb b (Box (cam, 1000, 1000))) $ wallBounceA e b inScopeWalls
     _ -> return ()
   
@@ -86,8 +86,9 @@ boxBound = do
         p <- get otherEnt
         unless ( p `elem` [Carry,Plant,Sing] ) $ do 
           isProj <- exists otherEnt (Proxy :: Proxy Projectile)
-          isEnm <- exists otherEnt (Proxy :: Proxy Enemy1)
-          otherEnt `set` Sing
+          isEnm <- exists otherEnt (Proxy :: Proxy Enemy)
+          isPlr <- exists otherEnt (Proxy :: Proxy Player)
+          when (not isPlr) $ otherEnt `set` Sing
           if isProj then get otherEnt >>= \case
             Bullet -> otherEnt `set` ( Position $ pure 2e7 ) 
             _ -> return () -- collideProc

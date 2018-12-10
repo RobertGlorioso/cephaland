@@ -33,7 +33,7 @@ render (GameOpts g) w = runWith w $ do
         
         --add debuggers here
         cmap $ \(Target t) -> (Target t, Debug $ show t)
-        cmap $ \(Player, Position t) -> (Player, Debug $ show t)
+        cmap $ \(Player1, Position t) -> (Player1, Debug $ show t)
         
         --make the scene by combining the HUD and the current world
         hud <- hudPic

@@ -7,10 +7,11 @@ module Ceph.Util where
 
 import Ceph.Components
 
+import Control.Monad.Reader
 import Linear
 import Apecs
 import Apecs.Core
-import Control.Monad
+import Data.Group
 import Data.Vector.Unboxed as U
 --import GHC.Prim
 
@@ -27,18 +28,46 @@ conceM_ f =  do
   x <- lift . explGet sx . U.head $ sl 
   f x
 
-conceIfM_ :: forall w m cx cp. (Get w m cx, Get w m cp, Members w m cx) => (cp -> Bool) -> (cx -> SystemT w m ()) -> SystemT w m ()
+{-# INLINE conceIf #-} 
+conceIf :: forall w m cx cp cy.
+  (Get w m cx
+  , Get w m cp
+  , Members w m cx
+  , Set w m cy
+  , MonadIO m)
+  => (cp -> Bool)
+  -> (cx -> cy)
+  -> SystemT w m ()
+conceIf cond f =  do
+  sx :: Storage cx <- getStore
+  sp :: Storage cp <- getStore
+  sy :: Storage cy <- getStore
+  lift $ do
+    sl <- explMembers (sx,sp)
+    es <- U.filterM (\n -> (explGet sp n) >>= return . cond) sl
+    if (U.null es) then return () else do
+      e <- return $ U.head es
+      explGet sx e >>=  explSet sy e . f
+
+  --sl <- lift $ explMembers (sx,sp)
+  --e <- U.head <$> U.filterM (\n -> lift (explGet sp n ) >>= return . not . cond) sl
+  --lift $ explGet sx e >>= explSet sy e . f
+
+conceIfM_ :: forall w m cx cp.
+  (Get w m cx
+  , Get w m cp
+  , Members w m cx)
+  => (cp -> Bool)
+  -> (cx -> SystemT w m ())
+  -> SystemT w m ()
 conceIfM_ cond f =  do
   sx :: Storage cx <- getStore
   sp :: Storage cp <- getStore
   sl <- lift $ explMembers (sx,sp)
-  --e <- return . U.head $ sl
-  --rest <- return . U.tail $ sl
- {-- p <- lift $ explGet sp e
-  if (cond p)
-     
-  then lift (explGet sx e) >>= f
-  else 
---}
-  es <- U.head <$> U.filterM (\e -> lift (explGet sp e ) >>= return . not . cond) sl
-  lift (explGet sx es) >>= f
+  es <- lift $ U.filterM (\e -> explGet sp e >>= return . cond) sl
+    --guard (U.null es)
+  when (not $ U.null es) $ do
+    e <- lift $ explGet sx ( U.head es )
+    f e
+    --p <- explGet sp $ U.head e
+    --when (cond p) $ do

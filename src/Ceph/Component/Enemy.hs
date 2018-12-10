@@ -19,49 +19,47 @@ import Graphics.Gloss.Juicy
 import qualified SDL.Mixer as M
 import Linear
 
-killEnemy painBox (Enemy, Box enemyBox, e) =
+killEnemy :: (V2 Float, Float, Float) -> (Enemy, Box, Entity) -> System World ()
+killEnemy painBox (Enemy1, Box enemyBox, e) =
   if aabb (Box painBox) (Box enemyBox)
-  then e `set` Position ( pure 12000 )
+  then e `set` Position ( pure 2e7 )
   else return ()
 
-
-hurtPlayer :: Box -> (Actor, Box, Entity) -> System World ()
-hurtPlayer (Box playerBox) (Enemy1, Box enemyBox, e) =
-  if aabb (Box playerBox) (Box enemyBox)
+hurtPlayerEnm :: Box -> (Actor, Box, Entity) -> System World ()
+hurtPlayerEnm (Box playerBox) (a, Box enemyBox, e) =
+  if a == Enemy && aabb (Box playerBox) (Box enemyBox)
   then do
-    cmap $ \(Player, Health e) -> (Player, Health $ e - 5)
+    cmap $ \(Player1, Health e) -> (Player1, Health $ e - 5)
   else return ()
 
-shootPlayer :: (Enemy1, Velocity, Position, Behavior) -> System World (Charge, Velocity) 
-shootPlayer (Enemy, v, p2@(Position x), b) = do
-  (Player,Position p1) <- head <$> getAll
-  shootBullet (Target p1) p2 v (Charge 3 False)
-  return (Charge 0 False, v + Velocity ( 0.1 * (normalize $ x - p1)))
---shootPlayer (_,v,_,_) = return (Charge 0 False, v)
 
-goToPlayerAndShoot :: V2 Float -> (Enemy1, Velocity, Position, Charge, Entity) -> System World ()
-goToPlayerAndShoot _ (Enemy, Velocity v, Position p, Charge c False,e) = if c < 1 then e `set` (Charge (c + 0.005) False) else e `set` (Charge 0 True)
-goToPlayerAndShoot m (Enemy, Velocity v, Position p, Charge c True,e) = do
-  if c < 1 then e `set` (Charge (c + 0.005) True, go2p) else get e >>= shootPlayer >>= set e
+goToPlayerAndShoot :: V2 Float -> (Enemy, Velocity, Position, Charge, Entity) -> System World ()
+goToPlayerAndShoot _ (Enemy1, _, _, Charge c False, e) = if c <= 1 then e `set` (Charge (c + 0.1) False) else e `set` (Charge 0 True)
+goToPlayerAndShoot m (Enemy1, v, Position p, Charge c True, e) = do
+  if c <= 1 then e `set` (Charge (c + 0.001) True, go2p) else shootBullet (Target m) (Position p) v (Charge 3 False) >> set e (Charge 0 False)
   where
     go2p 
-      | (norm (m - p) < 680) = ( Velocity $ v + (0.007 * (normalize $ m - p)))
-      | (norm (m - p) < 260) = ( Velocity $ v + (0.008 * (normalize $ m - p)))
-      | (norm (m - p) < 180) = ( Velocity $ v + (0.010 * (normalize $ m - p)))
-      | (norm (m - p) < 130) = ( Velocity $  v + (0.020 * (normalize $ m - p)))
-      | True = (Velocity v) 
-goToPlayerAndShoot m _ = return ()
-
-
-randGoToPlayer ::  V2 Float  -> Entity -> (Actor, Velocity, Position, Entity) -> System World ()
-randGoToPlayer m (Entity e') (Enemy1, Velocity v, Position p, Entity e) = do
-  if (e == e') then (Entity e) `set` (Enemy, Velocity $ (pure $ 0.1 + norm v) * (normalize $ m - p)) else return () 
+      | (norm (m - p) < 680) = ( v + Velocity (0.007 * (normalize $ m - p)))
+      | (norm (m - p) < 260) = ( v + Velocity (0.008 * (normalize $ m - p)))
+      | (norm (m - p) < 180) = ( v + Velocity (0.010 * (normalize $ m - p)))
+      | (norm (m - p) < 30) = ( v + Velocity (0.020 * (normalize $ m - p)))
+      | True = v
     
-enemy :: Music Pitch -> Entity -> System World ()
-enemy s e = do
-  g <- liftIO $ randomRIO (0.1, 3 :: Float)
+enemy :: Picture -> (Music Pitch,M.Chunk) -> System World ()
+enemy s (am,cm) = do
+  g <- liftIO $ randomRIO (1, 3 :: Float)
   [n,o,p,q] <- liftIO $ replicateM 4 $ randomRIO (-100, 100 :: Int)
-  let i = toEnum (max 0 . min 127 $ sum [n,o,p,q])
-  mzk <- M.decode . makeByteMusic $ instrument i s
-  e `set` (Resources [] [mzk], Song s, Weapon i , Box ((fromIntegral <$> V2 p q), g, g), Attack, Position ((*0.1).fromIntegral <$> V2 p q))
-  
+  newEntity (
+    (Enemy1, Enemy)
+    , Charge g (g <= 2)
+    , ( BodyPicture . Rotate (pi/2) . Scale (0.05*g) (0.05*g) $ s,
+        Position (fromIntegral <$> V2 p q),
+        Velocity 0,
+        Box (fromIntegral <$> V2 p q, 1, 1),
+        Angle 0)
+    , ( ProjCount 3,
+      Attack,
+      Resources [] [cm],
+      Song am)
+    )
+  return ()

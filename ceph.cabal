@@ -51,7 +51,7 @@ library
                , HCodecs
                , StateVar
                , aeson
-               , apecs >=0.5.0.0
+               , apecs >=0.5.0
                , base >=4.7 && <5
                , bytestring
                , containers
@@ -102,13 +102,14 @@ executable ceph
               , HCodecs
               , StateVar
               , aeson
-              , apecs >=0.5.0.0
+              , apecs >=0.5.0
               , base >=4.7 && <5
               , bytestring
               , containers
               , directory
               , gloss
               , gloss-juicy
+              , groups
               , lens
               , linear
               , mtl

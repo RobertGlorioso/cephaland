@@ -8,22 +8,18 @@ module Ceph.Components where
 
 
 import Apecs
-import Apecs.Util
 import Graphics.Gloss
 --import Numeric.Hamilton
 import Euterpea
 import Linear
 import Data.Semigroup
 import Data.IntMap
-import Graphics.Gloss.Interface.IO.Game hiding ( Play )
+import Control.Concurrent.Chan
+import Graphics.Gloss.Interface.IO.Game
 import Data.Time.Clock
 import qualified SDL.Mixer as M
 
 data GameOpts = GameOpts { debugOn :: Bool }
-
-newtype Weapon = Weapon InstrumentName deriving Show
-instance Component Weapon where
-  type Storage Weapon = Map Weapon
 
 newtype Debug = Debug String deriving (Show)
 instance Component Debug where
@@ -39,23 +35,23 @@ instance Component Ghost where
   type Storage Ghost = Map Ghost
 --}
 
-data Actor = Player1 | Enemy1 | Wall | Sword | Harpoon | Projectile deriving (Show,Eq)
+data Actor = Player | Enemy | Wall | Sword | Projectile deriving (Show,Eq)
 instance Component Actor where
   type Storage Actor = Map Actor
 
-data Enemy1 = Enemy
-instance Component Enemy1 where
-  type Storage Enemy1 = Map Enemy1
+data Enemy = Enemy1
+instance Component Enemy where
+  type Storage Enemy = Map Enemy
 
-data Player1 = Player
-instance Component Player1 where
-  type Storage Player1 = Unique Player1
+data Player = Player1
+instance Component Player where
+  type Storage Player = Unique Player
 
 data Attacking = Attacking
 instance Component Attacking where
   type Storage Attacking = Unique Attacking
 
-data Charge = Charge { amt :: Float, charging :: Bool } 
+data Charge = Charge { chgAmt :: Float, charging :: Bool } 
 instance Component Charge where
   type Storage Charge = Map Charge
 
@@ -67,7 +63,7 @@ data Dash = Dash Float
 instance Component Dash where
   type Storage Dash = Unique Dash
 
-data Projectile = Bullet | Arrow deriving Eq
+data Projectile = Bullet | Arrow | Harpoon deriving Eq
 instance Component Projectile where
   type Storage Projectile = Map Projectile
 
@@ -101,10 +97,10 @@ newtype Grid = Grid (IntMap (IntMap ())) deriving Show
 instance Component Grid where type Storage Grid = Unique Grid
 
 newtype Position = Position (V2 Float) deriving (Num, Show)
-instance Component Position where type Storage Position = (Map Position) -- Cache 100 (Map Position)
+instance Component Position where type Storage Position = Cache 100 (Map Position)
 
 newtype Velocity = Velocity (V2 Float) deriving (Num, Show)
-instance Component Velocity where type Storage Velocity = Map Velocity
+instance Component Velocity where type Storage Velocity =  Cache 100 (Map Velocity)
 
 newtype Gravity = Gravity (V2 Float) deriving Show
 instance Semigroup Gravity where
@@ -150,4 +146,4 @@ instance Component ScreenBounds where
 newtype Song = Song (Music Pitch) deriving Show
 instance Component Song where type Storage Song = Map Song
 
-makeWorld "World" [''Camera, ''BodyPicture, ''Player1, ''Enemy1, ''Projectile, ''Actor, ''Position, ''Velocity, ''Gravity, ''Angle, ''Target, ''Attacking, ''Charge, ''Dash, ''ProjCount, ''Song, ''Weapon, ''Health, ''Box, ''Resources, ''Beat, ''Debug, ''Behavior, ''Grid, ''ScreenBounds]
+makeWorld "World" [''Camera, ''BodyPicture, ''Player, ''Enemy, ''Projectile, ''Actor, ''Position, ''Velocity, ''Gravity, ''Angle, ''Target, ''Attacking, ''Charge, ''Dash, ''ProjCount, ''Song, ''Health, ''Box, ''Resources, ''Beat, ''Debug, ''Behavior, ''Grid, ''ScreenBounds]

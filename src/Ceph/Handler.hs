@@ -54,27 +54,27 @@ handle (EventKey press downup modifiers mscreen) = do
       cmap $ movePlayer (V2 0.0 (-0.2))
     (Char 's', Down) ->
       cmap $ movePlayer (V2 0.0 (-0.2))
-    (MouseButton RightButton, Down) -> do
-      cmapM_ $ playerDash                         
-    (MouseButton RightButton,Up) -> do
-      cmapM_ $ \c@(Player,Attacking, e) -> destroy e (Proxy :: Proxy Attacking)
     
     (SpecialKey KeySpace, Up) -> do
-      cmap $ \(Player, b :: Behavior) -> (Player, NoBehavior)
+      cmap $ \(Player1, b :: Behavior) -> (Player1, NoBehavior)
     (SpecialKey KeySpace, Down) ->
-      cmap $ \(Player) -> (Player, Carry)
+      cmap $ \(Player1) -> (Player1, Carry)
                           
     (e, f) -> return () -- -- liftIO (print e >> print f >> return ())
     
   case (press, downup, modifiers) of
     (MouseButton LeftButton,Down,Modifiers Down Up Up) -> cmapM_ removeProjectile
     (MouseButton LeftButton,Down,Modifiers _ _ _) -> cmap $ \case
-      (Player, Charge c _) -> (Player, Charge c True)
+      (Player1, Charge c _) -> (Player1, Charge c True)
       a -> a
-
+   
     (MouseButton LeftButton,Up,Modifiers _ _ _) -> do
       cmapM_ playerShoot 
-        
+    (MouseButton RightButton, Down, Modifiers _ _ _) -> do
+      cmapM_ $ playerDash                         
+    (MouseButton RightButton,Up, Modifiers _ _ _) -> do
+      cmapM_ $ \c@(Player,Attacking, e) -> destroy e (Proxy :: Proxy Attacking)
+    
       
     (_,_,_) -> return ()
             

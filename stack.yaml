@@ -4,7 +4,7 @@ require-stack-version: ">= 1.7.1"
 packages:
   - .
 extra-deps:
-  - apecs-0.5.0.0
+  - apecs-0.5.0
   - gloss-juicy-0.2.3
   - gloss-1.13.0.1
   - gloss-rendering-1.13.0.2
