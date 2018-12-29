@@ -9,7 +9,7 @@ import Ceph.Components
 import Ceph.Physics
 import Ceph.Physics.Box
 import Ceph.Component.Enemy
-import Ceph.Component.Sword
+import Ceph.Component.Weapon
 import Ceph.Component.Player
 import Ceph.Component.Projectile
 import Ceph.Handler
@@ -88,22 +88,22 @@ initGame = do
              , Gravity $ V2 0 (-0.001)
              , mempty :: Beat)  
   -- make some euterpea sounds
-  let e1 = c 4 qn 
-      e2 = a 4 qn 
-      e3 = g 4 qn
+  let e1 = c 4 wn 
+      e2 = a 4 wn 
+      e3 = g 4 wn
       m1 = transpose 3 $ e1
       m2 = transpose 3 $ e2
       m3 = transpose 3 $ e3
       n1 = instrument Flute $ m1 :=: m2 :=: m3
       n2 = transpose 2 n1
       n3 = transpose 5 n1
-      l1 = tempo 9 $ Euterpea.line [n1,n2,n1,n2,n1,n2,n1,n2,n1,n2,n1,n2]
+      l1 = tempo 1 $ Euterpea.line [n1,n2,n1,n2,n1,n2]
       l2 = transpose 8 l1
       l3 = transpose 3 l1 
       u1 = tempo 0.3 $ t1 2 Oboe
       u2 = tempo 0.3 $ t1 3 Bassoon
-      am = [m1,m2,n1,n2,l1,l2,l3,u1,u2]
-
+      am = [l1,u1,u2,n1,n2,n3]
+      
       b1 = perc HiMidTom qn
       b2 = perc HiBongo qn
       b3 = perc HighFloorTom qn
@@ -124,13 +124,14 @@ initGame = do
         return
   
   cig <- liftIO $ handlePic =<< loadJuicy "./resource/image/sword.png"
+  hrpn <- liftIO $ handlePic =<< loadJuicy "./resource/image/harpoon.png"
   plante <- liftIO $ handlePic =<< loadJuicy "./resource/image/coral1.png" 
   grund <- liftIO $ handlePic =<< loadJuicy "./resource/image/ground.png"
   squid <- liftIO $ handlePic =<< loadJuicy "./resource/image/squid1.png"
   arw <- liftIO $ handlePic =<< loadJuicy "./resource/image/arrow.png"
-  octo <- liftIO $ handlePic =<< loadJuicy "./resource/image/octo1.png"
+  octo <- liftIO $ handlePic =<< loadJuicy "./resource/image/octo2.png"
   bults <- liftIO $ mapM (\b -> handlePic =<< loadJuicy b) ["./resource/image/bullet1.png","./resource/image/bullet2.png","./resource/image/bullet3.png"]
-  sword cig
+  
   
   blck3 <- liftIO  $ zip4 <$> randomDonutBox 500 600 900 <*> randomDonutBox 500 600 400 <*> replicateM 500 (randomRIO (20,30 :: Float)) <*> replicateM 500 (randomRIO (20,30 :: Float))
   let bl (r,s,g,a) =
@@ -142,7 +143,8 @@ initGame = do
                   , BodyPicture $ Scale (0.05 * g) (0.05 * a) plante
                   )
   mapM_ bl blck3
-  
+  sword cig
+  harpoon hrpn
   player octo n3
   newEntity (Target 0)
 

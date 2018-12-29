@@ -10,7 +10,7 @@ import Ceph.Component.Projectile
 import Ceph.Physics.Box
 
 import Apecs
-import Apecs.Util
+import Apecs.System
 import Euterpea
 import Control.Monad
 import System.Random
@@ -25,24 +25,31 @@ killEnemy painBox (Enemy1, Box enemyBox, e) =
   then e `set` Position ( pure 2e7 )
   else return ()
 
-hurtPlayerEnm :: Box -> (Actor, Box, Entity) -> System World ()
-hurtPlayerEnm (Box playerBox) (a, Box enemyBox, e) =
-  if a == Enemy && aabb (Box playerBox) (Box enemyBox)
+hurtPlayerEnm :: Box -> (Box, Entity) -> System World ()
+hurtPlayerEnm (Box playerBox) ( Box enemyBox, e) = do
+  a <- exists e (Proxy :: Proxy Enemy)
+  b <- exists e (Proxy :: Proxy Projectile)
+  if (a || b) && aabb (Box playerBox) (Box enemyBox)
   then do
     cmap $ \(Player1, Health e) -> (Player1, Health $ e - 5)
   else return ()
 
+enemyLoop :: V2 Float -> System World ()
+enemyLoop p1 = do
+      conceIfM_
+        (\(Enemy1,Charge c _) -> c > 1)
+        (\(Enemy1, v, p, e) -> shootBullet (Target p1) p v (Charge 3 False) >> e `set` (Charge 0 True,go2p p1 p v))
 
-goToPlayerAndShoot :: V2 Float -> (Enemy, Velocity, Position, Charge, Entity) -> System World ()
-goToPlayerAndShoot _ (Enemy1, _, _, Charge c False, e) = if c <= 1 then e `set` (Charge (c + 0.1) False) else e `set` (Charge 0 True)
-goToPlayerAndShoot m (Enemy1, v, Position p, Charge c True, e) = do
-  if c <= 1 then e `set` (Charge (c + 0.001) True, go2p) else shootBullet (Target m) (Position p) v (Charge 3 False) >> set e (Charge 0 False)
-  where
-    go2p 
-      | (norm (m - p) < 680) = ( v + Velocity (0.007 * (normalize $ m - p)))
-      | (norm (m - p) < 260) = ( v + Velocity (0.008 * (normalize $ m - p)))
-      | (norm (m - p) < 180) = ( v + Velocity (0.010 * (normalize $ m - p)))
-      | (norm (m - p) < 30) = ( v + Velocity (0.020 * (normalize $ m - p)))
+      cmapIf (\(Enemy1,Charge c _) -> c <= 1) (\(Enemy1, Charge c _, v, p) -> (Charge (c + 0.01) True, go2p p1 p v))
+      cmapIf (\(Enemy1,Charge c _) -> c > 2) (\(Enemy1, Charge c _, v, p) -> (Charge 0 True, go2p p1 p v))
+    
+
+go2p :: V2 Float -> Position -> Velocity -> Velocity
+go2p m (Position p) v 
+      | (norm (m - p) < 10680) = ( v + Velocity (0.007 * (normalize $ m - p)))
+      | (norm (m - p) < 2600) = ( v + Velocity (0.008 * (normalize $ m - p)))
+      | (norm (m - p) < 800) = ( v + Velocity (0.009 * (normalize $ m - p)))
+      | (norm (m - p) < 300) = ( v + Velocity (0.02 * (normalize $ m - p)))
       | True = v
     
 enemy :: Picture -> (Music Pitch,M.Chunk) -> System World ()

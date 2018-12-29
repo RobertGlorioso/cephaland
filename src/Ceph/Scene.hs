@@ -36,7 +36,7 @@ render (GameOpts g) w = runWith w $ do
         cmap $ \(Player1, Position t) -> (Player1, Debug $ show t)
         
         --make the scene by combining the HUD and the current world
-        hud <- hudPic
+        hud <- hudPic g
         
         return $ Pictures $ [newWorld] ++ hud -- , Translate 150 150 $ Scale 0.1 0.1 newWorld] ++ hud
                            

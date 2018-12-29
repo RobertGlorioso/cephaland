@@ -30,7 +30,7 @@ library
   exposed-modules:
       Ceph.Component.Enemy
       Ceph.Component.Projectile
-      Ceph.Component.Sword
+      Ceph.Component.Weapon
       Ceph.Components
       Ceph.Handler
       Ceph.Jams
@@ -51,7 +51,7 @@ library
                , HCodecs
                , StateVar
                , aeson
-               , apecs >=0.5.0
+               , apecs >=0.7.0
                , base >=4.7 && <5
                , bytestring
                , containers
@@ -82,7 +82,7 @@ executable ceph
   other-modules: Ceph.Component.Enemy
                  Ceph.Component.Projectile
                  Ceph.Component.Player
-                 Ceph.Component.Sword
+                 Ceph.Component.Weapon
                  Ceph.Components
                  Ceph.Handler
                  Ceph.Jams
@@ -102,7 +102,7 @@ executable ceph
               , HCodecs
               , StateVar
               , aeson
-              , apecs >=0.5.0
+              , apecs >=0.7.0
               , base >=4.7 && <5
               , bytestring
               , containers

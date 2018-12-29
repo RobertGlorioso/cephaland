@@ -24,26 +24,23 @@ import Ceph.Jams
 import Ceph.Physics.Box
 import Ceph.Components
 import Ceph.Component.Projectile
-import Ceph.Component.Sword
+import Ceph.Component.Weapon
 import Ceph.Component.Enemy
 
 import Apecs
-import Apecs.System
 --import qualified Data.Vector.Sized                   as V
 --import qualified Data.Vector.Generic.Sized           as VG
 --import Numeric.LinearAlgebra.Static hiding (dim, (<>))
 --import Numeric.LinearAlgebra.Static.Vector
-import Control.Concurrent
 import Control.Monad
 import qualified Data.IntMap as M
-import Graphics.Gloss
 import System.Random
 --import Numeric.Hamilton
 import Linear
 
 moveStuff :: V2 Float -> Entity -> Float -> System World ()
 moveStuff r e a = do
-  [o,p] <- liftIO $ fmap (\m -> signum m * a + m) <$> replicateM 2 (randomRIO (-400,400))
+  [o,p] <- liftIO $ fmap (\m -> signum m * a + m) <$> replicateM 2 (randomRIO (-800,800))
   e `modify` (\(Box (_,x,y)) -> Box ( (r + V2 o p) , x, y))
   e `set` (Velocity 0,Position (r + V2 o p))
           
@@ -52,12 +49,12 @@ stepper _ !w = runWith w $ do
   incrementBeat w
   [(Player1, Position p)] <- getAll
   cmapM playerLoop1
+  enemyLoop p
   motion
-  cmapM $ playerLoop2 p
   return w
   where
     incrementBeat w = do
-      (Beat m i) <- get global
+      Beat m i <- get global
       -- plays sound effects on beat
       -- maybe do other stuff on beat like animations?
       if (m == i) then (global `set` Beat m 0) >> cmapM_ ( \case
@@ -66,7 +63,6 @@ stepper _ !w = runWith w $ do
         )
         else global `set` Beat m (i+1) 
 
--------------------------------------------------------------------
     motion = do
       Gravity g <- get global
       --moves all objects that are in motion (have a Velocity and Box )
@@ -74,65 +70,44 @@ stepper _ !w = runWith w $ do
       cmap $ \case
         c@( _, _, _, Plant) -> c
         (Box (_,w,h), Position p, Velocity v, Seek) -> (Box (p+v,w,h), Position $ p + v, Velocity v, Seek)
-        (Box (_,w,h), Position p, Velocity v, e) -> (Box (p+v,w,h), Position $ p + v, Velocity $ ( v + g ), e)
+        (Box (_,w,h), Position p, Velocity v, e) -> (Box (p+v,w,h), Position $ p + v, Velocity $ ( v + g ) * 0.999 , e)
+
       --correct angle for certain moving objs
-      cmap $ \ (Velocity v, Angle t, a ) -> if a == Enemy || a == Projectile then (Angle $ v2ToRad v) else Angle t
+      cmap $ \(Velocity v, Angle t, a ) -> if a == Enemy || a == Projectile then (Angle $ v2ToRad v) else Angle t
+
       --physics for colliding with walls
       boxBound
-
-
---------------------------------------------------------------------
-    playerLoop1 :: (Player, Dash, Box, Behavior, Charge, Entity) -> System World ()
-    
-    playerLoop1 (Player1, Dash dx, b@(Box (p1@(V2 x1 y1),_,_)), c, Charge cv chging, e) = do
+      
+    playerLoop1 :: (Player, Dash, Velocity, Box, Behavior, Charge, Entity) -> System World ()
+    playerLoop1 (Player1, _, _, b@(Box (p1@(V2 x1 y1),_,_)), Attack, _, _) = cmapM_ $ \case
+      (Sword, Box sb) -> do
+        Target tp@(V2 x2 y2) <- get global
+        cmap $ showSword x1 x2 tp p1
+        cmapM_ $ killEnemy sb
+      _ -> return ()
+    playerLoop1
+      (Player1, _, _, b@(Box (p1,_,_)), Carry, _, _) =
+      conceIf
+        (\(p, a) -> aabb b p && a == Wall)
+        (\(Box (_,x,y)) -> (Box (p1, x, y), Position p1))
       --allows the player to pick up an enemy or other entity
-      when ( c == Carry ) $ do
-        e <- return . filter (\(p, _, a) -> aabb b p && a == Wall) =<< (getAll :: System World [(Box, Entity, Actor)])
-        if length e == 0 then return () else do
-          let (_,carriedEnt,_) = head e
-          carriedEnt `modify` (\(Box (_,x,y)) -> Box (p1, x, y))
-          carriedEnt `set` (Position p1)
+      
+      --e <- return . filter (\(p, _, a) -> aabb b p && a == Wall) =<< (getAll :: System World [(Box, Entity, Actor)])
+      --if length e == 0 then return () else do
+        --let (_,carriedEnt,_) = head e
+        --carriedEnt `modify` (\(Box (_,x,y)) -> Box (p1, x, y))
+        --carriedEnt `set` (Position p1)
 
-      Target tp@(V2 x2 y2) <- get global
-      conceIfM_ (\(Charge c _) -> c > 1) (\(Enemy1, v, p) -> shootBullet (Target p1) p v (Charge 3 False))
-      cmapIf (\(Charge c _) -> c <= 1) (\(Enemy1, Charge c _) -> (Charge (c + 0.01) True))
-      cmapIf (\(Charge c _) -> c > 1) (\(Enemy1, Charge c _) -> (Charge 0 True))
-      
-      cmapM_ $ hurtPlayerEnm b
-      let chg
-            | chging = if cv < 10 then (Charge (cv + 0.005) True) else (Charge cv False)
-            | True   = Charge cv False
-      let dsh
-            | dx < 8.0 = Dash (dx + 0.3)
-            | True     =  Dash dx
-                                                                  
-      e `set` (Player, Angle (v2ToRad $ p1 - tp), chg, dsh)
-        
-      cmapM_ $ \(Player1, _ :: Not Attacking) -> cmap hideSword
-      cmapM_ $ \(Player1, Attacking) -> do  
-        cmapM_ $ \case
-          (Sword, Box sb) -> do
-            cmap $ showSword x1 x2 tp p1
-            cmapM_ $ killEnemy sb
-          _ -> return ()
-      
-      
-      
-      --a cooldown timer for the dash action  
-    playerLoop2 :: V2 Float -> (Position,Player) -> System World ()
-    playerLoop2 p1 (Position p2@(V2 x1 y1),Player1) = do
-      --cmap checkProj
-      
-      cmap $ \(Target o) -> Target (o + p2 - p1)
-      
+    playerLoop1 (Player1, Dash dx, Velocity v, b@(Box (p1@(V2 x1 y1),_,_)), _, Charge cv chging, e) = do
+      cmap $ \(Target o) -> Target (o + v)
       cmapM_ $ \(Grid is) -> do
-        let (floor -> gx) = (x1 / 500) + (signum x1)
-            (floor -> gy) = (y1 / 500) + (signum y1)
+        let (floor -> gx) = (x1 / 1000) + (signum x1)
+            (floor -> gy) = (y1 / 1000) + (signum y1)
             updateGrid g = cmap $ \(Grid _) -> Grid g
             moveEnemyWalls =
               cmapM_ $ \case
-                (Wall,Position wp, e) -> when (norm (wp - p2) > 1000) $ moveStuff p2 e 300
-                (Enemy,Position ep, e) -> when (norm (ep - p2) > 1000) $ moveStuff p2 e 300
+                (Wall,Position wp, e) -> when (norm (wp - p1) > 5000) $ moveStuff p1 e 400
+                (Enemy,Position ep, e) -> when (norm (ep - p1) > 5000) $ moveStuff p1 e 400
                 (_,_,_) -> return ()
                                     
         if length is > 10 then updateGrid mempty else return ()
@@ -140,15 +115,21 @@ stepper _ !w = runWith w $ do
           Just ys -> if gy `elem` M.keys ys then return ()
                      else updateGrid (M.insert gx (M.insert gy () ys) is) >> moveEnemyWalls
           Nothing -> moveEnemyWalls >> updateGrid (M.insert gx mempty is)
-                    
+      Target tp@(V2 x2 y2) <- get global
+      
+      
+      cmapM_ $ hurtPlayerEnm b
 
-      --}
-      --we can implement a clamp like so
-      --cmap $ \(Position (V2 o p)) -> (Position $ V2 (max (-9e6) $ min 9e6 o) (min 9e6 $ max (-9e6) p))
+      let chg
+            | chging = if cv < 10 then (Charge (cv + 0.005) True) else (Charge cv False)
+            | True   = Charge cv False
+      let dsh
+            | dx < 8.0 = Dash (dx + 0.3)
+            | True     = Dash dx
+                                                                  
+      e `set` (Player, Angle (v2ToRad $ p1 - tp), chg, dsh)    
         
 
-      
-      
 
 
 {--

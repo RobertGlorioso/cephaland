@@ -39,7 +39,7 @@ newBullet ps (am,cm) =
             , Angle 0
             , Seek
             , ( Bullet, Projectile )
-            , ( Box (2e7, 0.1, 0.1)
+            , ( Box (2e7, 0.3, 0.3)
               , Song am
               , Resources (fmap ( Scale 0.1 0.1 ) ps) [cm]
               , BodyPicture $ Pictures $ fmap ( Scale 0.1 0.1 ) ps

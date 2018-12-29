@@ -73,8 +73,7 @@ handle (EventKey press downup modifiers mscreen) = do
     (MouseButton RightButton, Down, Modifiers _ _ _) -> do
       cmapM_ $ playerDash                         
     (MouseButton RightButton,Up, Modifiers _ _ _) -> do
-      cmapM_ $ \c@(Player,Attacking, e) -> destroy e (Proxy :: Proxy Attacking)
-    
+      conceIf (\(Player1, a) -> a == Attack) (\Attack -> NoBehavior) 
       
     (_,_,_) -> return ()
             
