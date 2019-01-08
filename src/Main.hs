@@ -85,7 +85,7 @@ parseopts = GameOpts <$> switch
 initGame :: System World ()
 initGame = do
   set global ( Camera 0 2
-             , Gravity $ V2 0 (-0.001)
+             , Gravity $ V2 0 (-0.004)
              , mempty :: Beat)  
   -- make some euterpea sounds
   let e1 = c 4 wn 
@@ -133,7 +133,7 @@ initGame = do
   bults <- liftIO $ mapM (\b -> handlePic =<< loadJuicy b) ["./resource/image/bullet1.png","./resource/image/bullet2.png","./resource/image/bullet3.png"]
   
   
-  blck3 <- liftIO  $ zip4 <$> randomDonutBox 500 600 900 <*> randomDonutBox 500 600 400 <*> replicateM 500 (randomRIO (20,30 :: Float)) <*> replicateM 500 (randomRIO (20,30 :: Float))
+  blck3 <- liftIO  $ zip4 <$> randomDonutBox 700 600 900 <*> randomDonutBox 700 600 400 <*> replicateM 700 (randomRIO (20,30 :: Float)) <*> replicateM 700 (randomRIO (20,30 :: Float))
   let bl (r,s,g,a) =
         newEntity (Wall
                   , Position (V2 r s)

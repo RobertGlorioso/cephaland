@@ -26,7 +26,7 @@ playerShoot o@(c, x, v, ProjCount arrowsLeft, Player1, e) = do
         t <- get global 
         when (arrowsLeft >= 1) $ do
           shootArrow t x v c
-          e `set` (Charge 0.25 False, ProjCount $ arrowsLeft - 1)
+          e `set` (Charge 1.0 False, ProjCount $ arrowsLeft - 1)
 
 
 speedLimit = 7

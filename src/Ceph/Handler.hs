@@ -59,6 +59,11 @@ handle (EventKey press downup modifiers mscreen) = do
       cmap $ \(Player1, b :: Behavior) -> (Player1, NoBehavior)
     (SpecialKey KeySpace, Down) ->
       cmap $ \(Player1) -> (Player1, Carry)
+    (Char '`', Up) -> do
+      let toggleAuto Seek = NoBehavior
+          toggleAuto _ = Seek
+      cmap $ \(Player1, b) -> (Player1, toggleAuto b)
+    
                           
     (e, f) -> return () -- -- liftIO (print e >> print f >> return ())
     

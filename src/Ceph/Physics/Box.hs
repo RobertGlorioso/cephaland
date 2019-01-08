@@ -11,6 +11,7 @@ import Data.List
 import System.Random
 import Control.Monad
 import Apecs
+import Apecs.System
 import Linear
 import qualified SDL.Mixer as M
 
@@ -34,52 +35,16 @@ randomDonutBox l holeRadius diam = (fmap.fmap) (\a ->  signum a * holeRadius + a
   
 boxBound :: System World ()
 boxBound = do
-  view@(Camera cam scale) <- get global :: System World Camera
-
-  --we can use the current camera's position (or the player's pos)
-  --to limit moving things to the current view point
-  --(inScopeMoving, outMoving) <- partition (\(b, _, w) ->  (aabb b (Box (cam, 500, 500)))) <$> (getAll :: System World [(Box, Entity, Actor)])
-  --when (length outMoving > 50) $ mapM_ (\(_,e,_) -> e `destroy` ( Proxy :: Proxy Box) ) outMoving
-  (inScopeWalls, outs) <- partition (\(b, _, w) -> w == Wall && aabb b (Box (cam, 600, 600))) <$> (getAll :: System World [(Box, Entity, Actor)])
   
-  cmapM_ $ wallBounce inScopeWalls 
-  {--cmapM_ $ \case
-    (b, e, Player) -> wallBounce inScopeWalls
-    (b, e, Enemy) -> wallBounce inScopeWalls
-    (b, e, Projectile) -> when (aabb b (Box (cam, 1000, 1000))) ( wallBounceA e b inScopeWalls )
-    _ -> return ()
-  
-  --mapM_ ( \(b, e, _) -> mapM_ ( wallBounceE e b) inScopeWalls) inScopeMoving
- 
-
+  inScopeWall <- filter (\(_,a,i) -> a == Wall && i == In) <$> (getAll :: System World [(Box,Actor,Scope)])
+  cmapM_ $ wallBounce inScopeWall 
   --other ways of performing the box collisions
 
   --cfoldM ( \_ ( b@(Box (c, w, h)), _ :: Not Wall, e) -> cmapM_ $ wallBounceE e b) ()
   --concurrently $ [ bounce c1 c2 |  c2@(b2,_,_) <- inScopeWalls, c1@(b1,_,_) <- inScopeMovingObjs, aabb b1 b2]
 
   --cfoldM ( \_ ( b@(Box (c, w, h)), _ :: Not Wall, e) -> cmapM_ $ wallBounceE e b) () --}
-wlbnce :: (Box, Velocity, Position, Entity, Actor) -> System World ()
-wlbnce (a,v,p,e,Wall) = return ()
-wlbnce (a,v,p,e,Weapon) = return ()
-wlbnce (a,v,p,e,Projectile) = conceIfM_
-      (\case
-          (b,Wall) -> wallTouched a b
-          (_,_) -> False
-      )
-      $ ((\b -> e `set` Sing) :: Box -> System World ())
-wlbnce (a,v,p,e,Player) = conceIfM_
-      (\case
-          (b,Wall) -> wallTouched a b
-          (_,_) -> False
-      )
-      $ \b -> collideProc a b v p e
-wlbnce (a,_,_,e,Enemy) = conceIfM_
-      (\case
-          (b,Wall) -> wallTouched a b
-          (_,_) -> False
-      )
-      $ ((\b -> e `set` Sing) :: Box -> System World ())
-      
+  
 edgeMeasures :: Box -> Box -> [Float]
 edgeMeasures (Box (V2 ax ay, w1, h1)) (Box (V2 bx by, w2, h2)) =
       [ ax - w1 - (bx + w2)
@@ -87,8 +52,8 @@ edgeMeasures (Box (V2 ax ay, w1, h1)) (Box (V2 bx by, w2, h2)) =
       , ay - h1 - (by + h2)
       , by - h2 - (ay + h1) ]
 
-wallTouched :: Box -> Box -> Bool
-wallTouched a b = not $ any (>=0) $ edgeMeasures a b
+touched :: Box -> Box -> Bool
+touched a b = all (<0) $ edgeMeasures a b
 
 collideProc :: Box -> Box -> Velocity -> Position -> Entity -> System World ()
 collideProc b1 b2 (Velocity v@(V2 v1 v2)) (Position p) otherEnt = do
@@ -101,27 +66,26 @@ collideProc b1 b2 (Velocity v@(V2 v1 v2)) (Position p) otherEnt = do
         (d,RightEdge) -> otherEnt `set` (Position $ p + V2 (abs v1 + d) v2, Velocity (V2 (abs v1) v2 / friction))
         (d,LeftEdge) -> otherEnt `set` (Position $ p + V2 ( negate . abs $ v1 - d) v2, Velocity (V2 (negate . abs $ v1) v2 / friction))
 
---wallBounce :: [(Box, Entity)] -> _ -> System World ()
 wallBounce ::
-  [(Box, t1, t)]
+  [(Box, Actor, Scope)]
   -> (Box, Velocity, Position, Entity, Behavior, Actor)
   -> SystemT World IO ()
 wallBounce [] _ = return ()
 wallBounce
   ((b, _, _):rest)
   c@(a,v,p,e,_,Projectile) = do
-    if not (wallTouched a b) then wallBounce rest c else do
+    if not (touched a b) then wallBounce rest c else do
       get e >>= \case
         Bullet -> e `set` (Sing, Position $ pure 2e7 )
         Arrow -> e `set` (Sing)
 wallBounce
   ((b, _, _):rest)
   c@(a,v,p,e,l,Player) = do
-    if not (wallTouched a b) then wallBounce rest c else do
+    if touched a b then wallBounce rest c else do
         unless ( l `elem` [Carry,Plant] ) $ collideProc a b v p e
 wallBounce
   ((b, _, _):rest)
   c@(a,v,p,e,_,Enemy) = do
-    if not (wallTouched a b) then wallBounce rest c else do
+    if touched a b then wallBounce rest c else do
         e `set` Sing >> collideProc a b v p e
 wallBounce _ _ = return ()    

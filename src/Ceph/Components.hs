@@ -30,26 +30,28 @@ data Phases = PHS (Phase 1) | PHS2 (Phase 2)
 instance Component Phases where
   type Storage Phases = Map Phases
 
-data Ghost = Pend  (V2 Float) | OneBody  (V2 Float) | TwoBody  (V2 Float) deriving Eq
-instance Component Ghost where
-  type Storage Ghost = Map Ghost
 --}
 
 data Actor = Player | Enemy | Wall | Weapon | Projectile deriving (Show,Eq)
 instance Component Actor where
   type Storage Actor = Map Actor
 
-data Weapon = Sword | Lance | Harpoon
+data Weapon = Sword | Lance | Harpoon | Chain
 instance Component Weapon where
   type Storage Weapon = Map Weapon
+
+data Linked = Linked Entity Entity
+instance Component Linked where
+  type Storage Linked = Map Linked
 
 data Enemy = Enemy1
 instance Component Enemy where
   type Storage Enemy = Map Enemy
 
-data Player = Player1
+data Player = Player1 | Player2 | OtherPlayer
 instance Component Player where
   type Storage Player = Unique Player
+
 data Projectile = Bullet | Arrow deriving Eq
 instance Component Projectile where
   type Storage Projectile = Map Projectile
@@ -57,7 +59,6 @@ instance Component Projectile where
 data ProjCount = ProjCount Int deriving Show
 instance Component ProjCount where
   type Storage ProjCount = Map ProjCount
---merge into behavior
 
 data Charge = Charge { chgAmt :: Float, charging :: Bool } 
 instance Component Charge where
@@ -121,6 +122,9 @@ data Beat = Beat Int Int
 instance Component Beat where type Storage Beat = Global Beat
 instance Monoid Beat where mempty = Beat 15 0
 
+data Scope = In | Out deriving Eq
+instance Component Scope where type Storage Scope = Map Scope
+
 data Camera = Camera
   { gvOffset :: V2 Float
   , gvScale  :: Float
@@ -146,4 +150,4 @@ instance Component ScreenBounds where
 newtype Song = Song (Music Pitch) deriving Show
 instance Component Song where type Storage Song = Map Song
 
-makeWorld "World" [''Camera, ''BodyPicture, ''Player, ''Enemy, ''Projectile, ''Actor, ''Position, ''Velocity, ''Gravity, ''Angle, ''Target, ''Weapon, ''Charge, ''Dash, ''ProjCount, ''Song, ''Health, ''Box, ''Resources, ''Beat, ''Debug, ''Behavior, ''Grid, ''ScreenBounds]
+makeWorld "World" [''Camera, ''Scope, ''BodyPicture, ''Player, ''Enemy, ''Projectile, ''Actor, ''Position, ''Velocity, ''Gravity, ''Angle, ''Target, ''Weapon, ''Charge, ''Dash, ''ProjCount, ''Song, ''Health, ''Box, ''Resources, ''Beat, ''Debug, ''Behavior, ''Grid, ''ScreenBounds]

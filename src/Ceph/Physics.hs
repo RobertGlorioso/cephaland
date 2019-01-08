@@ -28,11 +28,13 @@ import Ceph.Component.Weapon
 import Ceph.Component.Enemy
 
 import Apecs
+import Apecs.System
 --import qualified Data.Vector.Sized                   as V
 --import qualified Data.Vector.Generic.Sized           as VG
 --import Numeric.LinearAlgebra.Static hiding (dim, (<>))
 --import Numeric.LinearAlgebra.Static.Vector
 import Control.Monad
+import Data.Bool
 import qualified Data.IntMap as M
 import System.Random
 --import Numeric.Hamilton
@@ -40,7 +42,7 @@ import Linear
 
 moveStuff :: V2 Float -> Entity -> Float -> System World ()
 moveStuff r e a = do
-  [o,p] <- liftIO $ fmap (\m -> signum m * a + m) <$> replicateM 2 (randomRIO (-800,800))
+  [o,p] <- liftIO $ fmap (\m -> signum m * a + m) <$> replicateM 2 (randomRIO (-1000,1000))
   e `modify` (\(Box (_,x,y)) -> Box ( (r + V2 o p) , x, y))
   e `set` (Velocity 0,Position (r + V2 o p))
           
@@ -74,12 +76,14 @@ stepper _ !w = runWith w $ do
 
       --correct angle for certain moving objs
       cmap $ \(Velocity v, Angle t, a ) -> if a == Enemy || a == Projectile then (Angle $ v2ToRad v) else Angle t
-
+      --updates scope for collision detection
+      view@(Camera cam scale) <- get global :: System World Camera
+      cmap (\b -> bool Out In $ aabb b (Box (cam, 600, 600)))
       --physics for colliding with walls
       boxBound
       
     playerLoop1 :: (Player, Dash, Velocity, Box, Behavior, Charge, Entity) -> System World ()
-    playerLoop1 (Player1, _, _, b@(Box (p1@(V2 x1 y1),_,_)), Attack, _, _) = cmapM_ $ \case
+    playerLoop1 (Player1, _, _, b@(Box (p1@(V2 x1 y1), _, _)), Attack, _, _) = cmapM_ $ \case
       (Sword, Box sb) -> do
         Target tp@(V2 x2 y2) <- get global
         cmap $ showSword x1 x2 tp p1
@@ -98,7 +102,8 @@ stepper _ !w = runWith w $ do
         --carriedEnt `modify` (\(Box (_,x,y)) -> Box (p1, x, y))
         --carriedEnt `set` (Position p1)
 
-    playerLoop1 (Player1, Dash dx, Velocity v, b@(Box (p1@(V2 x1 y1),_,_)), _, Charge cv chging, e) = do
+    playerLoop1 (Player1, Dash dx, Velocity v, b@(Box (p1@(V2 x1 y1),_,_)), a, Charge cv chging, e) = do
+      
       cmap $ \(Target o) -> Target (o + v)
       cmapM_ $ \(Grid is) -> do
         let (floor -> gx) = (x1 / 1000) + (signum x1)
@@ -106,9 +111,9 @@ stepper _ !w = runWith w $ do
             updateGrid g = cmap $ \(Grid _) -> Grid g
             moveEnemyWalls =
               cmapM_ $ \case
-                (Wall,Position wp, e) -> when (norm (wp - p1) > 5000) $ moveStuff p1 e 400
-                (Enemy,Position ep, e) -> when (norm (ep - p1) > 5000) $ moveStuff p1 e 400
-                (_,_,_) -> return ()
+                (Wall,Position wp,Out, e) -> moveStuff p1 e 400
+                (Enemy,Position ep,Out, e) -> moveStuff p1 e 400
+                (_,_,_,_) -> return ()
                                     
         if length is > 10 then updateGrid mempty else return ()
         case M.lookup gx is of
@@ -126,8 +131,10 @@ stepper _ !w = runWith w $ do
       let dsh
             | dx < 8.0 = Dash (dx + 0.3)
             | True     = Dash dx
-                                                                  
-      e `set` (Player, Angle (v2ToRad $ p1 - tp), chg, dsh)    
+
+      [nv,nvv] <- liftIO $ replicateM 2 $ randomRIO (-0.05, 0.05)        
+      let newV = if ( a /= Seek ) then v else v + V2 nv nvv                                                             
+      e `set` (Player, Angle (v2ToRad $ p1 - tp), chg, dsh, Velocity newV)    
         
 
 
