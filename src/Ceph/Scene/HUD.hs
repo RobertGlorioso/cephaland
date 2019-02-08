@@ -24,9 +24,8 @@ hudPic g = do
   return $ hud ++ debugPicture 
     where
       mkhud (SB (fmap fromIntegral -> (V2 w h))) = do
-        [(Player, Position p, Velocity v, ProjCount numArrows, Health playerHP)] <- getAll
-        
-        numThingsInScope <- length . filter (==In) <$> (getAll :: System World [(Scope)])--length . fst . partition (\(b, _) -> aabb b (Box (cam, 600, 600))) <$> (getAll :: System World [(InScope)])
+        [(Player1, ProjCount numArrows, Health playerHP)] <- getAll
+        numThingsInScope <- length . filter (==In) <$> (getAll :: System World [(Scope)])
         Dash dashVal <- get global
         return $ [Translate (w/2 - 50) (h/2 - 100) $ Scale 4 4 $ Line [((-8),10),(dashVal,10)],
             Color red $ Translate (w/2 - 40) (h/2 - 70) $ ThickArc 0 (max 0 playerHP*pi) 2 59,

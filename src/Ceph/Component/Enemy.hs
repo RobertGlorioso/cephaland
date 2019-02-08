@@ -15,41 +15,33 @@ import Euterpea
 import Control.Monad
 import System.Random
 import Graphics.Gloss
-import Graphics.Gloss.Juicy
 import qualified SDL.Mixer as M
 import Linear
 
-killEnemy :: (V2 Float, Float, Float) -> (Enemy, Box, Entity) -> System World ()
-killEnemy painBox (Enemy1, Box enemyBox, e) =
-  if aabb (Box painBox) (Box enemyBox)
-  then e `set` Position ( pure 2e7 )
-  else return ()
+killEnemy :: (Enemy, Health, Position) ->  (Enemy, Health, Position)
+killEnemy e@(Enemy1, h, p)
+  | h < 0 = (Enemy1, 0, Position 2e7)
+  | True = e
 
-hurtPlayerEnm :: Box -> (Box, Entity) -> System World ()
-hurtPlayerEnm (Box playerBox) ( Box enemyBox, e) = do
-  a <- exists e (Proxy :: Proxy Enemy)
-  b <- exists e (Proxy :: Proxy Projectile)
-  if (a || b) && aabb (Box playerBox) (Box enemyBox)
-  then do
-    cmap $ \(Player1, Health e) -> (Player1, Health $ e - 5)
-  else return ()
+hurtEnemy :: Box -> (Box, Health, Enemy) -> Health
+hurtEnemy (Box painBox) (Box enemyBox, h, _)  = if (aabb (Box painBox) (Box enemyBox)) then (h - 1) else h
 
 enemyLoop :: V2 Float -> System World ()
 enemyLoop p1 = do
       conceIfM_
-        (\(Enemy1,Charge c _) -> c > 1)
+        (\(Enemy1,Charge c _) -> c >= 1)
         (\(Enemy1, v, p, e) -> shootBullet (Target p1) p v (Charge 3 False) >> e `set` (Charge 0 True,go2p p1 p v))
 
-      cmapIf (\(Enemy1,Charge c _) -> c <= 1) (\(Enemy1, Charge c _, v, p) -> (Charge (c + 0.01) True, go2p p1 p v))
-      cmapIf (\(Enemy1,Charge c _) -> c > 2) (\(Enemy1, Charge c _, v, p) -> (Charge 0 True, go2p p1 p v))
+      cmapIf (\(Enemy1,Charge c _) -> c <= 2) (\(Enemy1, Charge c _, v, p) -> (Charge (c + 0.01) True, go2p p1 p v))
+      cmapIf (\(Enemy1,Charge c _) -> c >= 2) (\(Enemy1, Charge c _, v, p) -> (Charge 0 True, go2p p1 p v))
     
 
 go2p :: V2 Float -> Position -> Velocity -> Velocity
 go2p m (Position p) v 
-      | (norm (m - p) < 10680) = ( v + Velocity (0.007 * (normalize $ m - p)))
-      | (norm (m - p) < 2600) = ( v + Velocity (0.008 * (normalize $ m - p)))
-      | (norm (m - p) < 800) = ( v + Velocity (0.009 * (normalize $ m - p)))
-      | (norm (m - p) < 300) = ( v + Velocity (0.02 * (normalize $ m - p)))
+      | (norm (m - p) < 10680) = ( v + Velocity (0.07 * (normalize $ m - p)))
+      | (norm (m - p) < 4600) = ( v + Velocity (0.008 * (normalize $ m - p)))
+      | (norm (m - p) < 1800) = ( v + Velocity (0.09 * (normalize $ m - p)))
+      | (norm (m - p) < 500) = ( v + Velocity (0.001 * (normalize $ m - p)))
       | True = v
     
 enemy :: Picture -> (Music Pitch,M.Chunk) -> System World ()
@@ -66,6 +58,7 @@ enemy s (am,cm) = do
         Angle 0)
     , ( ProjCount 3,
       Attack,
+      Health 100,
       Resources [] [cm],
       Song am)
     )

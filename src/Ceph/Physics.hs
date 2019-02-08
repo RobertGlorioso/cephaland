@@ -1,5 +1,4 @@
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
---{-# LANGUAGE CPP #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GADTs #-}
@@ -13,8 +12,6 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE BangPatterns #-}
--- {-# OPTIONS_GHC -fno-warn-orphans                     #-}
--- {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 
 
 module Ceph.Physics where
@@ -29,16 +26,13 @@ import Ceph.Component.Enemy
 
 import Apecs
 import Apecs.System
---import qualified Data.Vector.Sized                   as V
---import qualified Data.Vector.Generic.Sized           as VG
---import Numeric.LinearAlgebra.Static hiding (dim, (<>))
---import Numeric.LinearAlgebra.Static.Vector
 import Control.Monad
 import Data.Bool
 import qualified Data.IntMap as M
 import System.Random
---import Numeric.Hamilton
 import Linear
+import Euterpea
+import Graphics.Gloss
 
 moveStuff :: V2 Float -> Entity -> Float -> System World ()
 moveStuff r e a = do
@@ -60,37 +54,54 @@ stepper _ !w = runWith w $ do
       -- plays sound effects on beat
       -- maybe do other stuff on beat like animations?
       if (m == i) then (global `set` Beat m 0) >> cmapM_ ( \case
-        (Sing, Song i, a :: Actor, e) ->  e `set` (Debug . show $ (a, Song i)) >> playSong w e
+        (Sing, Song i, a :: Actor, e) ->  e `set` (Debug . show $ (a, Song i)) >> playSong w e >> when ( a == Weapon ) ( e `set` Seek )
         _ -> return () 
         )
         else global `set` Beat m (i+1) 
-
+      liftIO . print =<< flip cfoldM (Song (rest 0)) (\s@(Song i) ->
+                (\case
+                    (Sing, Song j) -> return (Song $ i :=: j)
+                    _ -> return (Song i)
+                )
+              )
+                                  
     motion = do
       Gravity g <- get global
       --moves all objects that are in motion (have a Velocity and Box )
       --forkSys . atomically .
       cmap $ \case
-        c@( _, _, _, Plant) -> c
-        (Box (_,w,h), Position p, Velocity v, Seek) -> (Box (p+v,w,h), Position $ p + v, Velocity v, Seek)
-        (Box (_,w,h), Position p, Velocity v, e) -> (Box (p+v,w,h), Position $ p + v, Velocity $ ( v + g ) * 0.999 , e)
+        c@( _, _, _, Plant, _) -> c
+        (Box (_,w,h), Position p, Velocity v, s, Weapon) -> (Box (p+v,w,h), Position $ p + v, Velocity v, s, Weapon)
+        (Box (_,w,h), Position p, Velocity v, Seek, f) -> (Box (p+v,w,h), Position $ p + v, Velocity v, Seek, f)
+        (Box (_,w,h), Position p, Velocity v, e, f) -> (Box (p+v,w,h), Position $ p + v, Velocity $ ( v + g ) * 0.999 , e, f)
 
       --correct angle for certain moving objs
       cmap $ \(Velocity v, Angle t, a ) -> if a == Enemy || a == Projectile then (Angle $ v2ToRad v) else Angle t
-      --updates scope for collision detection
+
+      cmapM $ \(Linked e f, Chain) -> do
+        [x,y] <- liftIO $ replicateM 2 (randomRIO (0.1,1) :: IO Float)
+        (Position p1) <- get e
+        (Position p0) <- get f
+        return $ (Angle $ v2ToRad (p0 - p1), Position $ (p0 + p1) / 2)
+
+      --updates scope for rendering & collision detection
       view@(Camera cam scale) <- get global :: System World Camera
-      cmap (\b -> bool Out In $ aabb b (Box (cam, 600, 600)))
+      cmap (\b -> bool Out In $ aabb b (Box (cam, 400, 400)))
+
       --physics for colliding with walls
       boxBound
       
-    playerLoop1 :: (Player, Dash, Velocity, Box, Behavior, Charge, Entity) -> System World ()
-    playerLoop1 (Player1, _, _, b@(Box (p1@(V2 x1 y1), _, _)), Attack, _, _) = cmapM_ $ \case
+    playerLoop1 :: (BodyPicture, Player, Dash, Velocity, Box, Behavior, Charge, Entity) -> System World ()
+    playerLoop1 (BodyPicture bp,Player1, _, _, b@(Box (p1@(V2 x1 y1), _, _)), Attack, _, e) = cmapM_ $ \case
       (Sword, Box sb) -> do
+        e `set` BodyPicture (Pictures [bp, color (makeColor 0.1 0.1 0.1 0.01) $ ThickCircle 0.5 5])
+          
         Target tp@(V2 x2 y2) <- get global
         cmap $ showSword x1 x2 tp p1
-        cmapM_ $ killEnemy sb
+        cmap killEnemy
       _ -> return ()
     playerLoop1
-      (Player1, _, _, b@(Box (p1,_,_)), Carry, _, _) =
+      (_, Player1, _, _, b@(Box (p1,_,_)), Carry, _, _) =
       conceIf
         (\(p, a) -> aabb b p && a == Wall)
         (\(Box (_,x,y)) -> (Box (p1, x, y), Position p1))
@@ -102,31 +113,32 @@ stepper _ !w = runWith w $ do
         --carriedEnt `modify` (\(Box (_,x,y)) -> Box (p1, x, y))
         --carriedEnt `set` (Position p1)
 
-    playerLoop1 (Player1, Dash dx, Velocity v, b@(Box (p1@(V2 x1 y1),_,_)), a, Charge cv chging, e) = do
+    playerLoop1 (_,Player1, Dash dx, Velocity v, b@(Box (p1@(V2 x1 y1),_,_)), a, Charge cv chging, e) = do
       
-      cmap $ \(Target o) -> Target (o + v)
+      cmap $ \(Target o) -> ( Target (o + v), Position (o + v), Velocity (o + v))
       cmapM_ $ \(Grid is) -> do
-        let (floor -> gx) = (x1 / 1000) + (signum x1)
-            (floor -> gy) = (y1 / 1000) + (signum y1)
+        let (floor -> gx) = (x1 / 500) + (signum x1)
+            (floor -> gy) = (y1 / 500) + (signum y1)
             updateGrid g = cmap $ \(Grid _) -> Grid g
             moveEnemyWalls =
               cmapM_ $ \case
-                (Wall,Position wp,Out, e) -> moveStuff p1 e 400
-                (Enemy,Position ep,Out, e) -> moveStuff p1 e 400
-                (_,_,_,_) -> return ()
+                (Wall, Out, e) -> moveStuff p1 e 200
+                (Enemy, Out, e) -> moveStuff p1 e 200
+                (_,_,_) -> return ()
                                     
         if length is > 10 then updateGrid mempty else return ()
         case M.lookup gx is of
           Just ys -> if gy `elem` M.keys ys then return ()
                      else updateGrid (M.insert gx (M.insert gy () ys) is) >> moveEnemyWalls
           Nothing -> moveEnemyWalls >> updateGrid (M.insert gx mempty is)
-      Target tp@(V2 x2 y2) <- get global
+      Target tp <- get global
       
-      
-      cmapM_ $ hurtPlayerEnm b
+      cmapM_ $ \case
+        (Weapon, In, b) -> cmap (hurtEnemy b)
+        (_, _, _) -> return () 
 
       let chg
-            | chging = if cv < 10 then (Charge (cv + 0.005) True) else (Charge cv False)
+            | chging = if cv < 10 then (Charge (cv + 0.1) True) else (Charge cv False)
             | True   = Charge cv False
       let dsh
             | dx < 8.0 = Dash (dx + 0.3)

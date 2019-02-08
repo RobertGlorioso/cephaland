@@ -15,7 +15,6 @@ player p m = newEntity (( Position (V2 0 50)
                         , BodyPicture $ Scale (1/4) (1/4) p 
                         , Box (0, 1, 1))
                        , (ProjCount 30, Health 99, Dash 0)
-                       , Resources [] []
                        , Song m
                        , (Player1, Player)
                        , (NoBehavior, Charge 0.01 False))

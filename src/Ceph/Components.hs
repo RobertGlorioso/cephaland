@@ -14,7 +14,6 @@ import Euterpea
 import Linear
 import Data.Semigroup
 import Data.IntMap
-import Control.Concurrent.Chan
 import Graphics.Gloss.Interface.IO.Game
 import Data.Time.Clock
 import qualified SDL.Mixer as M
@@ -82,7 +81,7 @@ data History = History [UserInput]
 instance Component History where
   type Storage History = Map History
 
-data Health = Health Float
+newtype Health = Health Float deriving (Eq, Num, Ord)
 instance Component Health where
   type Storage Health = Map Health
 
@@ -150,4 +149,4 @@ instance Component ScreenBounds where
 newtype Song = Song (Music Pitch) deriving Show
 instance Component Song where type Storage Song = Map Song
 
-makeWorld "World" [''Camera, ''Scope, ''BodyPicture, ''Player, ''Enemy, ''Projectile, ''Actor, ''Position, ''Velocity, ''Gravity, ''Angle, ''Target, ''Weapon, ''Charge, ''Dash, ''ProjCount, ''Song, ''Health, ''Box, ''Resources, ''Beat, ''Debug, ''Behavior, ''Grid, ''ScreenBounds]
+makeWorld "World" [''Camera, ''Scope, ''BodyPicture, ''Player, ''Enemy, ''Projectile, ''Actor, ''Position, ''Linked, ''Velocity, ''Gravity, ''Angle, ''Target, ''Weapon, ''Charge, ''Dash, ''ProjCount, ''Song, ''Health, ''Box, ''Resources, ''Beat, ''Debug, ''Behavior, ''Grid, ''ScreenBounds]

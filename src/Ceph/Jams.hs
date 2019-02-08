@@ -12,27 +12,30 @@ import Control.Monad
 import Numeric
 import Data.Char
 import GHC.Int
+import Codec.Midi
 import qualified Data.ByteString as Byte
 
+--reading in songs from a user specified file
+importSong :: String -> IO ( M.Chunk)
+importSong f = either (error) (M.decode . makeFile) =<< importFile f
+
+--this function assigns a sound te the first open channel it finds
 playSong :: World -> Entity -> System World ()
-playSong w otherEnt = do
-  (Resources _ s) <- get otherEnt
+playSong w ent = do
+  (Resources _ s) <- get ent
   let chanPlay i mzk
         | i <= 7 && i >= 0 = do
             isP <- M.playing i
             if not isP then do
               chan <- M.playOn i M.Once mzk
-              M.whenChannelFinished (\_ -> runWith w ( otherEnt `set` (NoBehavior) >> otherEnt `destroy` (Proxy :: Proxy Debug)))
+              M.whenChannelFinished (\_ -> runWith w ( ent `set` (NoBehavior) >> ent `destroy` (Proxy :: Proxy Debug))) -- this doesnt always proc for some reason
             else chanPlay (i+1) mzk
         | True = return ()
-
-  
-  
-  
   when (s /= []) $ chanPlay 0 (head s)
-  --liftIO $ when (h /= Sing) $ playDev 0 s >> return ()
-        
 
+
+
+--this was all stolen from HSoM
 data DetGrammar a = DetGrammar  a           --  start symbol
                                 [(a,[a])]   --  productions
   deriving Show
@@ -145,8 +148,8 @@ data LFun = Inc | Dec | Same
      deriving (Eq, Ord, Show)
 
 ir :: IR LFun Pitch
-ir = [ (Inc, transpose 1),
-       (Dec, transpose (-1)),
+ir = [ (Inc, transpose 3),
+       (Dec, transpose (-3)),
        (Same, id)]
 
 inc, dec, same :: LSys LFun
@@ -166,7 +169,7 @@ r3c  = Rule same same
 
 g1 = Grammar same (Uni [r1b, r1a, r2b, r2a, r3a, r3b])
 
-t1 n i =  instrument i $ interpret (gen replFun g1 42 !! n) ir (c 5 tn)
+t1 n i =  instrument i $ interpret (gen replFun g1 n !! 3) ir (c 5 tn)
 
 
 ------------
@@ -299,8 +302,8 @@ msgToBytes (ControlChange c n v) =
     Byte.concat [Byte.pack [0xB0 + fromIntegral c], padByte 1 n, padByte 1 v]
 msgToBytes (TempoChange t) = -- META EVENT, HAS NO CHANNEL NUMBER
     Byte.concat [Byte.pack [0xFF, 0x51, 0x03], fixTempo t]
-msgToBytes x = error ("(msgToBytes) Message type not currently "++ 
-               "supported: "++show x)
+msgToBytes x = Byte.empty -- error ("(msgToBytes) Message type not currently "++ 
+--               "supported: "++show x)
 ----ix a tempo value to be exactly 3 bytes:
 fixTempo = Byte.pack . map (fromIntegral . binStrToNum . reverse) . 
            breakBinStrs 8 . pad (4*6) '0' . numToBinStr

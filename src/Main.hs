@@ -21,44 +21,14 @@ import Options.Applicative
 import Graphics.Gloss
 import Graphics.Gloss.Juicy
 import Graphics.Gloss.Interface.IO.Game
---import Numeric.Hamilton hiding (System)
-
---import Numeric.LinearAlgebra.Static hiding (dim, (<>))
 import Control.Monad
 import System.Random
---import System.Directory
---import System.CPUTime
 import Data.Monoid
-import Data.List (isInfixOf)
 import Data.IntMap (fromList)
---import GHC.TypeLits
 import Linear (V2(..))
 import qualified SDL.Mixer as M
 import qualified SDL as S
 import Euterpea
-import Apecs.Util
-
---makeWorld "World2" [''Camera, ''BodyPicture, ''Player, ''Position, ''Velocity, ''Gravity, ''Angle, ''Target, ''Attacking, ''Charging, ''Charge, ''Dash, ''Projectile, ''ProjCount, ''Sword, ''Weapon, ''Enemy, ''Vitality, ''Health, ''Box, ''Resources, ''Wall, ''Debug, ''Behavior, ''Grid, ''ScreenBounds]
-
-{--
-makeInstrumentFiles inst = mapM_ (\ (i,j) -> writeMidi (show inst ++ show i ++ ".wav") $ j) $ zip [0..] $ instrument inst <$> [Prim $ Note t (n, o) | t <- [dwn] , n <- [minBound..maxBound :: PitchClass], o <- [3,4,5 :: Octave]]
-
-makeJams = mapM_ (\ (i,j) -> writeMidi ("Jam" ++ show i ++ ".wav") $ j) $ zip [0..] $ t1 2 <$> [(Oboe)..(Ocarina)]
-
-main' :: IO ()
-main' = do
-  M.openAudio M.defaultAudio 256
-  --bm <- return . B.toStrict . toLazyByteString . buildMidi . toMidi . perform $ e 4 wn
-  bm <- return . makeFile . toMidi . perform $ c 4 en :+: g 4 en :+: c 5 en :+: g 5 en
-  (M.decode bm :: IO M.Chunk)  >>= M.playOn 0 M.Once >>  return () :: IO ()
-  let while t f = do
-        stop <- t
-        if stop then f >> while t f else return ()
-   
-  while (M.playing 0) $ return ()
-  print bm
-  print =<< B.readFile "./test.wav"
-  --}
 
 main :: IO ()
 main = do
@@ -85,35 +55,43 @@ parseopts = GameOpts <$> switch
 initGame :: System World ()
 initGame = do
   set global ( Camera 0 2
-             , Gravity $ V2 0 (-0.004)
-             , mempty :: Beat)  
+             , Gravity $ V2 0 (-0.02)
+             , Beat 15 0)  
   -- make some euterpea sounds
-  let e1 = c 4 wn 
-      e2 = a 4 wn 
-      e3 = g 4 wn
-      m1 = transpose 3 $ e1
-      m2 = transpose 3 $ e2
-      m3 = transpose 3 $ e3
-      n1 = instrument Flute $ m1 :=: m2 :=: m3
+  let e1 = e 4 wn 
+      e2 = fs 4 wn 
+      e3 = gs 4 wn
+      m1 = transpose 7 $ e1
+      m2 = transpose 7 $ e2
+      m3 = transpose 7 $ e3
+      o1 = instrument Flute $ m1 :=: m2 :=: m3
+      o2 = transpose 2 o1
+      o3 = transpose 5 o1
+      n1 = transpose (-12) $ instrument HammondOrgan $ e1 :=: e2 :=: e3
       n2 = transpose 2 n1
       n3 = transpose 5 n1
-      l1 = tempo 1 $ Euterpea.line [n1,n2,n1,n2,n1,n2]
-      l2 = transpose 8 l1
-      l3 = transpose 3 l1 
-      u1 = tempo 0.3 $ t1 2 Oboe
-      u2 = tempo 0.3 $ t1 3 Bassoon
-      am = [l1,u1,u2,n1,n2,n3]
+      j1 = Euterpea.chord $ concat $ replicate 4 [n1,o2]
+      j2 = Euterpea.chord $ concat $ replicate 4 [n3,o2]
+      j3 = Euterpea.chord $ concat $ replicate 4 [n3,o1]
+      l1 = Euterpea.chord $ concat $ replicate 4 [n2,o1]
+      l2 = Euterpea.chord $ concat $ replicate 4 [n2,o3]
+      l3 = Euterpea.chord $ concat $ replicate 4 [n1,o3]
+      u1 = tempo 0.1 $ t1 42 AcousticGrandPiano
+      u2 = tempo 0.5 $ t1 14 ElectricGuitarJazz
+      u3 = tempo 0.2 $ t1 2 OverdrivenGuitar
+      u4 = tempo 0.1 $ t1 5 Banjo
+      am = [j1,j2,j3,l1,l2,l3] -- [u1,u2,u3,u4]
       
-      b1 = perc HiMidTom qn
-      b2 = perc HiBongo qn
-      b3 = perc HighFloorTom qn
-      b4 = perc HiWoodBlock qn
-      b5 = perc BassDrum1 qn
-      b6 = perc LowMidTom qn
-      b7 = perc LowBongo qn
-      b8 = perc LowFloorTom qn
-      b9 = perc LowWoodBlock qn
-      b10 = perc LongWhistle qn
+      b1 = perc HiMidTom sn
+      b2 = perc HiBongo sn
+      b3 = perc HighFloorTom sn
+      b4 = perc HiWoodBlock sn
+      b5 = perc BassDrum1 sn
+      b6 = perc LowMidTom sn
+      b7 = perc LowBongo sn
+      b8 = perc LowFloorTom sn
+      b9 = perc LowWoodBlock sn
+      b10 = perc LongWhistle sn
       bm = [b1,b2,b3,b4,b5,b6,b7,b8,b9,b10]
      
   cm <- mapM ( M.decode . makeByteMusic ) am :: System World [M.Chunk]
@@ -133,7 +111,9 @@ initGame = do
   bults <- liftIO $ mapM (\b -> handlePic =<< loadJuicy b) ["./resource/image/bullet1.png","./resource/image/bullet2.png","./resource/image/bullet3.png"]
   
   
-  blck3 <- liftIO  $ zip4 <$> randomDonutBox 700 600 900 <*> randomDonutBox 700 600 400 <*> replicateM 700 (randomRIO (20,30 :: Float)) <*> replicateM 700 (randomRIO (20,30 :: Float))
+  blck3 <- liftIO  $ zip4 <$> randomDonutBox 1000 600 900 <*> randomDonutBox 1000 600 400 <*> replicateM 1000 (randomRIO (20,30 :: Float)) <*> replicateM 500 (randomRIO (20,30 :: Float))
+
+  targ <- newEntity (Target 0, Position 0)
   let bl (r,s,g,a) =
         newEntity (Wall
                   , Position (V2 r s)
@@ -142,40 +122,43 @@ initGame = do
                   , box ( V2 r s ) g a
                   , BodyPicture $ Scale (0.05 * g) (0.05 * a) plante
                   )
+      ch = newEntity (Chain
+                     , Weapon
+                     , NoBehavior
+                     , Angle 0
+                     , Position 0
+                     , Velocity 0
+                     ,( box 0 0.1 0.1
+                     , Song (rest 0)
+                     , BodyPicture $ Pictures
+                       [Line [(0,0), (10,0)]
+                       ,Scale (0.1) (0.1) plante]
+                     ))
+      chains [] _ = return ()
+      chains (last2:last:[]) (d:ds) = last `set` (Resources [] [d], Linked last2 targ)
+      chains (prev:cur:next:rest) (d:ds) = do
+        cur `set` (Resources [] [d],Linked prev next)
+        chains (cur:next:rest) $ ds ++ [d]
+        
   mapM_ bl blck3
   sword cig
   harpoon hrpn
-  player octo n3
-  newEntity (Target 0)
-
+  pl <- player octo n3
+  chns <- replicateM 10 ch
+  --chns2 <- replicateM 25 ch
+  chns3 <- replicateM 7 ch
+  --chns4 <- replicateM 15 ch
+  chns5 <- replicateM 4 ch
+  chains (pl:chns) dm
+  --chains (pl:chns2) dm
+  chains (pl:chns3) dm
+  --chains (pl:chns4) dm 
+  chains (pl:chns5) dm
+  
   mapM_ (newArrow arw) $ concat . replicate 10 $ zip am cm
   mapM_ (newBullet bults) $ concat . replicate 10 $ zip am cm
             
   mapM_ (enemy squid) $ zip bm dm 
   newEntity ( Grid $ fromList [ (0, fromList [(0,())] ) ] )
   return ()
-
-  {--replicateM 1 $ do
-    g <- liftIO $ randomRIO (1, 10 :: Double)
-    h <- liftIO $ randomRIO (1, 10 :: Double)
-
-    let newBodyPhase = toPhase (twoBodySys 0.5 5) $ Cfg (vec2 2 0) (vec2 0 0.5)
-    newEntity ( BodyPicture $ Scale 1 1 plante
-              , (Position 0, box 0 0.1 0.1, Velocity 0, Angle 0)
-              , OneBody 0 
-              , PHS2 newBodyPhase
-              , NoBehavior)
-    
-    newEntity ( BodyPicture $ Color green $ Circle 0.5
-              , (Position 0, box 0 1 1, Velocity 0, Angle 0)
-              , TwoBody 0
-              , PHS2 newBodyPhase
-              , NoBehavior)
-
-    newEntity ( BodyPicture $ Color orange $ Circle 2
-              , (Position 0, box 0 1 1, Velocity 0, Angle 0)
-              , Pend (V2 (realToFrac g) (realToFrac h))
-              , PHS $ toPhase pendSys $ Cfg (konst 40 :: R 1) (konst (h / 10) :: R 1)
-              , NoBehavior)
-    --}
 

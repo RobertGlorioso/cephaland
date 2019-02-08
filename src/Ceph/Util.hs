@@ -7,12 +7,12 @@ module Ceph.Util where
 
 import Ceph.Components
 
-import Control.Monad.Reader
+import Control.Monad
+import Control.Monad.Reader hiding (forM_)
 import Linear
 import Apecs
 import Apecs.Core
-import Data.Group
-import Data.Vector.Unboxed as U
+import qualified Data.Vector.Unboxed as U
 --import GHC.Prim
 
 v2ToRad :: (Floating a, Ord a) => V2 a -> a
@@ -20,6 +20,55 @@ v2ToRad (V2 m n) = case compare m 0 of
   LT -> atan ( n / m ) + pi
   GT -> atan ( n / m ) 
   EQ -> (-pi)/2 * (signum n)
+
+{-# INLINE cmapIf_ #-}
+cmapIf_ :: forall w m cp cx cy.
+  ( Get w m cx
+  , Get w m cp
+  , Members w m cx
+  , Set w m cy )
+  => (cp -> Bool)
+  -> (cx -> cy)
+  -> SystemT w m ()
+cmapIf_ cond f = do
+  sp :: Storage cp <- getStore
+  sx :: Storage cx <- getStore
+  sy :: Storage cy <- getStore
+  sl <- lift $ explMembers (sx,sp)
+  slf <- filter (\(_,p) -> cond p ) <$>  forM (U.toList sl)
+    (\e -> do
+        p <- lift $ explGet sp e
+        return (e,p)
+    )
+  
+  lift $ forM_ slf $ \(e,_) -> do 
+      x <- explGet sx e
+      explSet sy e (f x)
+
+{-# INLINE cmapIfM_ #-}
+cmapIfM_ :: forall w m cp cx .
+  ( Get w m cx
+  , Get w m cp
+  , Members w m cx
+  , MonadIO m
+  )
+  => (cp -> Bool)
+  -> (cx -> SystemT w m ())
+  -> SystemT w m ()
+cmapIfM_ cond f = do
+  sp :: Storage cp <- getStore
+  sx :: Storage cx <- getStore
+  sl <- lift $ explMembers (sx,sp)
+  slf <- filter (\(_,p) -> cond p ) <$>  forM (U.toList sl)
+    (\e -> do
+        p <- lift $ explGet sp e
+        return (e,p)
+    )
+  liftIO . print $ length slf
+  forM_ slf $ \(e,_) -> do 
+      x <- lift $ explGet sx e
+      f x
+
 
 conceM_ :: forall w m cx. (Get w m cx, Members w m cx) => (cx -> SystemT w m ()) -> SystemT w m ()
 conceM_ f =  do
@@ -49,14 +98,11 @@ conceIf cond f =  do
       e <- return $ U.head es
       explGet sx e >>=  explSet sy e . f
 
-  --sl <- lift $ explMembers (sx,sp)
-  --e <- U.head <$> U.filterM (\n -> lift (explGet sp n ) >>= return . not . cond) sl
-  --lift $ explGet sx e >>= explSet sy e . f
-
 conceIfM_ :: forall w m cx cp.
   (Get w m cx
   , Get w m cp
-  , Members w m cx)
+  , Members w m cx
+  , MonadIO m)
   => (cp -> Bool)
   -> (cx -> SystemT w m ())
   -> SystemT w m ()
@@ -64,10 +110,12 @@ conceIfM_ cond f =  do
   sx :: Storage cx <- getStore
   sp :: Storage cp <- getStore
   sl <- lift $ explMembers (sx,sp)
-  es <- lift $ U.filterM (\e -> explGet sp e >>= return . cond) sl
-    --guard (U.null es)
-  when (not $ U.null es) $ do
-    e <- lift $ explGet sx ( U.head es )
+  --es <- lift $ U.filterM (\e -> explGet sp e >>= return . cond) sl
+  es <- filter (\(_,p) -> cond p) <$> forM (U.toList sl)
+    (\e -> do
+        p <- lift $ explGet sp e
+        return (e,p)
+    )
+  when ( not $ null es ) $ do
+    e <- lift $ explGet sx ( fst $ head es )
     f e
-    --p <- explGet sp $ U.head e
-    --when (cond p) $ do
