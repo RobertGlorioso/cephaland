@@ -25,7 +25,7 @@ render (GameOpts g) w = runWith w $ do
         
         view@(Camera cam scale) <- get global :: System World Camera
 
-        movableEnts <- return . filter (\((b, _, _, _)) -> aabb b (Box (cam, 680, 680))) =<< (getAll :: System World [(Box, Position, Angle, BodyPicture)])
+        movableEnts <- return . filter (\((b, _, _, _)) -> aabb b (Box (cam, 680, 680))) =<< (cfoldM (\a b -> return (b:a) ) [] :: System World [(Box, Position, Angle, BodyPicture)])
 
         pics <- mapM entsToPics movableEnts
         

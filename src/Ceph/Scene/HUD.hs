@@ -18,14 +18,14 @@ debugToPic (SB (fmap fromIntegral ->  (V2 w h))) d = zipWith (\z (Debug str) -> 
 hudPic :: Bool -> System World [Picture]
 hudPic g = do
   screenbounds <- get global  
-  debugStrings <- getAll :: System World [Debug]
+  debugStrings <- cfoldM (\a b -> return (b:a) ) [] :: System World [Debug]
   debugPicture <- if g then return $ debugToPic screenbounds debugStrings else return []
   hud <- mkhud screenbounds
   return $ hud ++ debugPicture 
     where
       mkhud (SB (fmap fromIntegral -> (V2 w h))) = do
-        [(Player1, ProjCount numArrows, Health playerHP)] <- getAll
-        numThingsInScope <- length . filter (==In) <$> (getAll :: System World [(Scope)])
+        [(Player1, ProjCount numArrows, Health playerHP)] <- cfoldM (\a b -> return (b:a) ) []
+        numThingsInScope <- length . filter (==In) <$> (cfoldM (\a b -> return (b:a) ) [] :: System World [(Scope)])
         Dash dashVal <- get global
         return $ [Translate (w/2 - 50) (h/2 - 100) $ Scale 4 4 $ Line [((-8),10),(dashVal,10)],
             Color red $ Translate (w/2 - 40) (h/2 - 70) $ ThickArc 0 (max 0 playerHP*pi) 2 59,

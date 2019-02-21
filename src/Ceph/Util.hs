@@ -21,6 +21,14 @@ v2ToRad (V2 m n) = case compare m 0 of
   GT -> atan ( n / m ) 
   EQ -> (-pi)/2 * (signum n)
 
+kpow :: (Monad m, Num t, Eq t) => t -> (b -> m b) -> b -> m b
+kpow 0 _ = return
+kpow n f = f <=< kpow (n-1) f
+
+fpow :: t2 -> Int -> (t2 -> t) -> (t2 -> t2) -> [t]
+fpow a 0 _ _ = []
+fpow a n f g = f a : fpow (g a) (n-1) f g
+
 {-# INLINE cmapIf_ #-}
 cmapIf_ :: forall w m cp cx cy.
   ( Get w m cx
@@ -98,6 +106,7 @@ conceIf cond f =  do
       e <- return $ U.head es
       explGet sx e >>=  explSet sy e . f
 
+
 conceIfM_ :: forall w m cx cp.
   (Get w m cx
   , Get w m cp
@@ -110,7 +119,17 @@ conceIfM_ cond f =  do
   sx :: Storage cx <- getStore
   sp :: Storage cp <- getStore
   sl <- lift $ explMembers (sx,sp)
-  --es <- lift $ U.filterM (\e -> explGet sp e >>= return . cond) sl
+  {--U.foldM_ (\b e -> do
+               if b then do
+                 p <- lift (explGet sp e)
+                 if cond p then do
+                   lift (explGet sx e) >>= f
+                   return False
+                   else return True
+                 else return True
+           )
+    True sl
+  return ()--}
   es <- filter (\(_,p) -> cond p) <$> forM (U.toList sl)
     (\e -> do
         p <- lift $ explGet sp e

@@ -43,32 +43,24 @@ moveStuff r e a = do
 stepper :: Float -> World -> IO World
 stepper _ !w = runWith w $ do
   incrementBeat w
-  [(Player1, Position p)] <- getAll
+  [(Player1, Position p)] <- cfoldM (\a b -> return (b:a) ) [] 
   cmapM playerLoop1
   enemyLoop p
   motion
   return w
   where
-    incrementBeat w = do
-      Beat m i <- get global
-      -- plays sound effects on beat
-      -- maybe do other stuff on beat like animations?
-      if (m == i) then (global `set` Beat m 0) >> cmapM_ ( \case
-        (Sing, Song i, a :: Actor, e) ->  e `set` (Debug . show $ (a, Song i)) >> playSong w e >> when ( a == Weapon ) ( e `set` Seek )
-        _ -> return () 
-        )
-        else global `set` Beat m (i+1) 
-      liftIO . print =<< flip cfoldM (Song (rest 0)) (\s@(Song i) ->
-                (\case
-                    (Sing, Song j) -> return (Song $ i :=: j)
-                    _ -> return (Song i)
-                )
-              )
-                                  
     motion = do
       Gravity g <- get global
       --moves all objects that are in motion (have a Velocity and Box )
       --forkSys . atomically .
+      [(_,p',b',e')] <- cfoldM (\es f -> return (f:es) ) [] :: System World [(Player,Position,Box,Entity)]
+      [(_,d')] <- cfoldM (\es f -> return (f:es) ) [] :: System World [(Dummy,Entity)]
+      cmapM_ $ \case
+        (Wall1, Angle a, Seek, b) -> do
+          --set e (Wall1, Angle $ if a > 2*pi then 0 else (a + 0.01), Seek)
+          --liftIO (print $ (p',rotate_box_around_pt b a (p',b')))
+          d' `set` rotate_box_around_pt b a (p',b')
+        _ -> return () :: System World ()
       cmap $ \case
         c@( _, _, _, Plant, _) -> c
         (Box (_,w,h), Position p, Velocity v, s, Weapon) -> (Box (p+v,w,h), Position $ p + v, Velocity v, s, Weapon)
@@ -94,7 +86,7 @@ stepper _ !w = runWith w $ do
     playerLoop1 :: (BodyPicture, Player, Dash, Velocity, Box, Behavior, Charge, Entity) -> System World ()
     playerLoop1 (BodyPicture bp,Player1, _, _, b@(Box (p1@(V2 x1 y1), _, _)), Attack, _, e) = cmapM_ $ \case
       (Sword, Box sb) -> do
-        e `set` BodyPicture (Pictures [bp, color (makeColor 0.1 0.1 0.1 0.01) $ ThickCircle 0.5 5])
+        --e `set` BodyPicture (Pictures [bp, color (makeColor 0.1 0.1 0.1 0.01) $ ThickCircle 0.5 5])
           
         Target tp@(V2 x2 y2) <- get global
         cmap $ showSword x1 x2 tp p1

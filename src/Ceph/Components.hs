@@ -24,24 +24,17 @@ newtype Debug = Debug String deriving (Show)
 instance Component Debug where
   type Storage Debug = Map Debug
 
-{--
-data Phases = PHS (Phase 1) | PHS2 (Phase 2)
-instance Component Phases where
-  type Storage Phases = Map Phases
-
---}
-
 data Actor = Player | Enemy | Wall | Weapon | Projectile deriving (Show,Eq)
 instance Component Actor where
   type Storage Actor = Map Actor
 
+data Wall = Wall1
+instance Component Wall where
+  type Storage Wall = Map Wall
+
 data Weapon = Sword | Lance | Harpoon | Chain
 instance Component Weapon where
   type Storage Weapon = Map Weapon
-
-data Linked = Linked Entity Entity
-instance Component Linked where
-  type Storage Linked = Map Linked
 
 data Enemy = Enemy1
 instance Component Enemy where
@@ -50,6 +43,10 @@ instance Component Enemy where
 data Player = Player1 | Player2 | OtherPlayer
 instance Component Player where
   type Storage Player = Unique Player
+
+data Linked = Linked Entity Entity
+instance Component Linked where
+  type Storage Linked = Map Linked
 
 data Projectile = Bullet | Arrow deriving Eq
 instance Component Projectile where
@@ -70,6 +67,11 @@ instance Component Target where
 data Dash = Dash Float
 instance Component Dash where
   type Storage Dash = Unique Dash
+  
+data Dummy = Dummy 
+instance Component Dummy where
+  type Storage Dummy = Unique Dummy
+
 
 data Behavior = Seek | Sing | Attack | Carry | Defend | Dead | Heal | Plant | NoBehavior deriving (Show,Eq)
 instance Component Behavior where
@@ -85,9 +87,13 @@ newtype Health = Health Float deriving (Eq, Num, Ord)
 instance Component Health where
   type Storage Health = Map Health
 
-data Resources = Resources { sprites :: [Picture] , soundEffects :: [M.Chunk] }
-instance Component Resources where
-  type Storage Resources = Map Resources
+data Sprite = Sprite [Picture]
+instance Component Sprite where
+  type Storage Sprite = Map Sprite
+  
+data SFXResources = SFXResources { percussion :: [M.Chunk] , melody :: [M.Chunk] }
+instance Component SFXResources where
+  type Storage SFXResources = Map SFXResources
 
 data Box = Box (V2 Float, Float, Float) deriving (Show)
 instance Component Box where
@@ -125,8 +131,8 @@ data Scope = In | Out deriving Eq
 instance Component Scope where type Storage Scope = Map Scope
 
 data Camera = Camera
-  { gvOffset :: V2 Float
-  , gvScale  :: Float
+  { cameraOffset :: V2 Float
+  , cameraScale  :: Float
   }
 
 instance Monoid Camera where
@@ -149,4 +155,4 @@ instance Component ScreenBounds where
 newtype Song = Song (Music Pitch) deriving Show
 instance Component Song where type Storage Song = Map Song
 
-makeWorld "World" [''Camera, ''Scope, ''BodyPicture, ''Player, ''Enemy, ''Projectile, ''Actor, ''Position, ''Linked, ''Velocity, ''Gravity, ''Angle, ''Target, ''Weapon, ''Charge, ''Dash, ''ProjCount, ''Song, ''Health, ''Box, ''Resources, ''Beat, ''Debug, ''Behavior, ''Grid, ''ScreenBounds]
+makeWorld "World" [''Camera, ''Scope, ''BodyPicture, ''Player, ''Enemy, ''Dummy, ''Wall, ''Projectile, ''Actor, ''Position, ''Linked, ''Velocity, ''Gravity, ''Angle, ''Target, ''Weapon, ''Charge, ''Dash, ''ProjCount, ''Song, ''Health, ''Box, ''Sprite, ''SFXResources, ''Beat, ''Debug, ''Behavior, ''Grid, ''ScreenBounds]

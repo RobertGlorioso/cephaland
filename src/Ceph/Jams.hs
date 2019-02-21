@@ -19,20 +19,49 @@ import qualified Data.ByteString as Byte
 importSong :: String -> IO ( M.Chunk)
 importSong f = either (error) (M.decode . makeFile) =<< importFile f
 
+incrementBeat :: World -> SystemT World IO ()
+incrementBeat w = do
+      Beat m i <- get global
+      -- plays sound effects on beat
+      -- maybe do other stuff on beat like animations?
+      if (m == i) then (global `set` Beat m 0) >> cmapM_ ( \case
+        (Sing, Song i, a :: Actor, e) ->  e `set` (Debug . show $ (a, Song i)) >> playSong w e >> if ( a == Weapon ) then ( e `set` Seek ) else e `set` NoBehavior
+        _ -> return () 
+        )
+        else global `set` Beat m (i+1) 
+      {--liftIO . print =<< flip cfoldM (Song (rest 0)) (\s@(Song i) ->
+                (\case
+                    (Sing, Song j) -> return (Song $ i :=: j)
+                    _ -> return (Song i)
+                )
+              )
+      --}
+    
+
 --this function assigns a sound te the first open channel it finds
 playSong :: World -> Entity -> System World ()
 playSong w ent = do
-  (Resources _ s) <- get ent
-  let chanPlay i mzk
-        | i <= 7 && i >= 0 = do
+  (SFXResources p s) <- get ent
+  when (s /= []) $ melodyPlay 5 (head s)
+  when (p /= []) $ percPlay 0 (head p)
+  where
+    percPlay i mzk
+        | i <= 4 && i >= 0 = do
             isP <- M.playing i
             if not isP then do
-              chan <- M.playOn i M.Once mzk
+              M.playOn i M.Once mzk >> return ()
               M.whenChannelFinished (\_ -> runWith w ( ent `set` (NoBehavior) >> ent `destroy` (Proxy :: Proxy Debug))) -- this doesnt always proc for some reason
-            else chanPlay (i+1) mzk
+            else percPlay (i+1) mzk
         | True = return ()
-  when (s /= []) $ chanPlay 0 (head s)
-
+    melodyPlay i mzk
+        | i <= 7 && i > 4 = do
+            isP <- M.playing i
+            if not isP then do
+              M.playOn i M.Once mzk >> return ()
+              M.whenChannelFinished (\_ -> runWith w ( ent `set` (NoBehavior) >> ent `destroy` (Proxy :: Proxy Debug))) -- this doesnt always proc for some reason
+            else melodyPlay (i+1) mzk
+        | True = return ()
+  
 
 
 --this was all stolen from HSoM

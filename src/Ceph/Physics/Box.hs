@@ -11,7 +11,6 @@ import Data.List
 import System.Random
 import Control.Monad
 import Apecs
-import Apecs.System
 import Linear
 
 data TouchedEdge = LeftEdge | RightEdge | TopEdge | BottomEdge | TopRightCorner | NotTouched | BottomRightCorner | BottomLeftCorner | TopLeftCorner deriving (Eq, Show, Ord)
@@ -22,6 +21,17 @@ aabb (Box (V2 ax ay,w1,h1)) (Box (V2 bx by,w2,h2)) = all (<0)
    , bx - w2 - (ax + w1)
    , ay - h1 - (by + h2)
    , by - h2 - (ay + h1) ]
+
+  
+rotate_box_around_pt ::
+  Box -> Float -> (Position, Box) -> (Position, Box)
+rotate_box_around_pt (Box ((V2 ax ay), w1, h1)) a (Position _, (Box ((V2 bx by),w2,h2))) =
+                     
+                      let bx' = (bx - ax)
+                          by' = (by - ay)
+                          alpha = if  a < pi then a else negate a
+                          newpos = ( V2 bx' by' - (V2 (bx' * cos alpha - by' * sin alpha) (bx' * sin alpha + by' * cos alpha)))
+                      in (Position newpos , Box ( newpos , w2, h2))
 
 minni :: Ord a => [a] -> [b] -> (a,b)
 minni a b = minimumBy (\c d -> compare (fst c) (fst d)) $ zip a b
@@ -37,46 +47,39 @@ randomDonutBox l holeRadius diam = (fmap.fmap) (\a ->  signum a * holeRadius + a
   
 boxBound :: System World ()
 boxBound = do
-  --simple recursive version that finds a  "neareast wall" for each moving, inscoped ent 
+  --simple recursive version that finds a "neareast wall" for each moving, in-scope ent
+
+  --this is faster than the fold version directly below
   g :: Gravity <- get global
-  inScopeWall <- filter (\(_,a,i) -> a == Wall && i == In) <$> (getAll :: System World [(Box,Actor,Scope)])
-  
+  inScopeWall <- cfoldM (\a b -> return (b:a) ) [] :: System World [(Box,Wall,Scope)]
   cmapM_ $ wallBounce inScopeWall 
 
-  
   --other way of performing the box collision
-  --a fold?
-  -- flip cfoldM_ () $ \() -> \case
-  --   (_, _, Wall, _) -> return ()
-  --   (_, Out, _, _) -> return ()
-  --   (b_, In, Player, e) -> do
-  --     conceIfM_
-  --       (\case
-  --           (_, Out,_) -> False
-  --           (a, In, c) -> a == Wall && aabb b_ c
-  --       ) (\b -> e `modify` collideProc' b g)
-  --   (b_, In, Enemy, e) -> do
-  --     conceIfM_
-  --       (\case
-  --           (_, Out,_) -> False
-  --           (a, In, c) -> a == Wall && aabb b_ c
-  --       ) (\b -> e `modify` collideProc' b g >> e `set` Sing)
-  --   (b_, In, Projectile, e) -> do
-  --     conceIfM_
-  --       (\case
-  --           (_, Out,_) -> False
-  --           (a, In, c) -> a == Wall && aabb b_ c
-  --       ) (\(Position _) -> e `set` (Position (pure 2e7), Sing))
-    -- (b_, In, Weapon, e) -> do
-    --   conceIfM_
-    --     (\case
-    --         (_, Out,_) -> False
-    --         (a, In, c) -> a == Wall && aabb b_ c
-    --     ) (\b -> e `modify` collideProc' b g >> e `set` Sing)
+  {--a fold?
+  flip cfoldM_ () $ \() -> \case
+    (_, _, Wall, _) -> return ()
+    (_, Out, _, _) -> return ()
+    (b_, In, Player, e) -> do
+      flip cfoldM_ () $ \() -> \case
+        (_, Out,_) -> return ()
+        (Wall1, In, c) -> when (aabb b_ c) $ ( e `modify` collideProc' c (Just g))
+    (b_, In, Enemy, e) -> do
+      flip cfoldM_ () $ \() -> \case
+        (_, Out,_) -> return ()
+        (Wall1, In, c) -> when (aabb b_ c) $
+          e `modify` collideProc' c (Just g) >> e `set` Sing
+    (b_, In, Projectile, e) -> do
+      flip cfoldM_ () $ \() -> \case
+        (_, Out,_) -> return ()
+        (Wall1, In, c) -> when (aabb b_ c) $ e `set` (Position (pure 2e7), Sing)
+    (b_, In, Weapon, e) -> do
+      flip cfoldM_ () $ \() -> \case
+        (_, Out,_) -> return ()
+        (Wall1, In, c) -> when (aabb b_ c) (e `modify` collideProc' c (Just g) >> e `set` Sing)
           
               
 
-  {--similar to the first but with recursion factored out to loops
+  --similar to the first but with recursion factored out to loops
   
 
   cmapIfM_
@@ -92,7 +95,6 @@ boxBound = do
               (a_, In, c) -> a_ /= Wall && aabb b_ c
           )
           (\b -> do
-              
               when (a == Player) $ e `modify` collideProc' b (Just g)
               when (a `elem` [Enemy, Projectile]) $ e `set` Sing
               when (a == Projectile) $ e `set` Position 2e7
@@ -151,15 +153,18 @@ collideProc b1 b2 (Velocity v@(V2 v1 v2)) (Position p) otherEnt = do
 
 
 wallBounce ::
-  [(Box, Actor, Scope)]
+  [(Box, Wall, Scope)]
   -> (Box, Scope, Velocity, Position, Entity, Behavior, Actor)
   -> SystemT World IO ()
 wallBounce [] _ = return ()
 wallBounce _ (_, Out, _, _, _, _, _) = return ()
 wallBounce
   ((b, _, _):rest)
-  c@(a,_,v,p,e,_,Projectile) = do
-    if not $ touched a b then wallBounce rest c else do
+  c@(a,_,v,p,e,h,Projectile) = do
+    if not $ touched a b
+      then do
+        (when (h == Sing) $ e `set` NoBehavior ) >> wallBounce rest c
+      else do
       get e >>= \case
         Bullet -> e `set` (Sing, Position $ pure 2e7 )
         Arrow -> e `set` (Sing)
@@ -175,7 +180,7 @@ wallBounce
         unless ( l `elem` [Carry,Plant] ) $ collideProc a b v p e
 wallBounce
   ((b, _, _):rest)
-  c@(a,_,v,p,e,_,Enemy) = do
-    if not $ touched a b then wallBounce rest c else do
+  c@(a,_,v,p,e,h,Enemy) = do
+    if not $ touched a b then (when (h `elem` [Plant,Sing]) $ e `set` NoBehavior ) >> wallBounce rest c else do
         e `set` Sing >> collideProc a b v p e
 wallBounce _ _ = return ()    

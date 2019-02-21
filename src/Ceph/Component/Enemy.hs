@@ -32,16 +32,16 @@ enemyLoop p1 = do
         (\(Enemy1,Charge c _) -> c >= 1)
         (\(Enemy1, v, p, e) -> shootBullet (Target p1) p v (Charge 3 False) >> e `set` (Charge 0 True,go2p p1 p v))
 
-      cmapIf (\(Enemy1,Charge c _) -> c <= 2) (\(Enemy1, Charge c _, v, p) -> (Charge (c + 0.01) True, go2p p1 p v))
+      cmapIf (\(Enemy1,Charge c _) -> c <= 2) (\(Enemy1, Charge c _, v, p) -> (Charge (c + 0.03) True, go2p p1 p v))
       cmapIf (\(Enemy1,Charge c _) -> c >= 2) (\(Enemy1, Charge c _, v, p) -> (Charge 0 True, go2p p1 p v))
     
 
 go2p :: V2 Float -> Position -> Velocity -> Velocity
 go2p m (Position p) v 
-      | (norm (m - p) < 10680) = ( v + Velocity (0.07 * (normalize $ m - p)))
-      | (norm (m - p) < 4600) = ( v + Velocity (0.008 * (normalize $ m - p)))
-      | (norm (m - p) < 1800) = ( v + Velocity (0.09 * (normalize $ m - p)))
-      | (norm (m - p) < 500) = ( v + Velocity (0.001 * (normalize $ m - p)))
+      | (norm (m - p) < 50) = ( v + Velocity (0.006 * (normalize $ m - p)))
+      | (norm (m - p) < 180) = ( v + Velocity (0.009 * (normalize $ m - p)))
+      | (norm (m - p) < 460) = ( v + Velocity (0.008 * (normalize $ m - p)))
+      | (norm (m - p) < 1068) = ( v + Velocity (0.07 * (normalize $ m - p)))
       | True = v
     
 enemy :: Picture -> (Music Pitch,M.Chunk) -> System World ()
@@ -59,7 +59,7 @@ enemy s (am,cm) = do
     , ( ProjCount 3,
       Attack,
       Health 100,
-      Resources [] [cm],
+      SFXResources [cm] [],
       Song am)
     )
   return ()

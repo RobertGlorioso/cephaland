@@ -25,7 +25,7 @@ newArrow p (am,cm) =
                , Arrow
                , BodyPicture $ Scale 0.4 0.4 p
                , Box (2e7, 1, 0.7)
-               , Resources [Scale 0.4 0.4 p] [cm]
+               , SFXResources [] [cm]
                , Song am
                )
              )
@@ -41,7 +41,8 @@ newBullet ps (am,cm) =
             , ( Bullet, Projectile )
             , ( Box (2e7, 0.3, 0.3)
               , Song am
-              , Resources (fmap ( Scale 0.1 0.1 ) ps) [cm]
+              , Sprite (fmap ( Scale 0.1 0.1 ) ps)
+              , SFXResources [] [cm]
               , BodyPicture $ Pictures $ fmap ( Scale 0.1 0.1 ) ps
               )
             )
@@ -52,9 +53,9 @@ removeProjectile  (_, Position p, Box pBox, e) = e `destroy` (Proxy :: Proxy Box
   cmap $ \(Box otherBox, Velocity v, Position p2) -> if aabb (Box otherBox) (Box pBox) then  Velocity ( v + (0.5 * normalize (p2 - p)) ) else Velocity v
   e `set` Position (pure 20000)
   --} 
-animateProj :: (Box,Velocity,BodyPicture, Resources, Projectile) -> (BodyPicture, Resources)
+animateProj :: (Box,Velocity,BodyPicture, Sprite, Projectile) -> (BodyPicture, Sprite)
 animateProj (_, _, bp, r, Arrow) = (bp,r)
-animateProj (_, v, pics, Resources (p:ps) s, Bullet) = ((addTrailPics p v pics), Resources ( ps ++ [ p ]) s)
+animateProj (_, v, pics, Sprite (p:ps), Bullet) = ((addTrailPics p v pics), Sprite ( ps ++ [ p ]))
 
 shootBullet :: Target -> Position -> Velocity -> Charge -> System World ()
 shootBullet (Target at) (Position from) (Velocity v_init) (Charge c _) = conceIf isInScopeBullet updateMotion

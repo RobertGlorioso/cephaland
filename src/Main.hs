@@ -14,7 +14,7 @@ import Ceph.Component.Player
 import Ceph.Component.Projectile
 import Ceph.Handler
 import Ceph.Jams
-
+import Ceph.Util
 import Apecs
 import Data.List (zip4)
 import Options.Applicative
@@ -55,32 +55,32 @@ parseopts = GameOpts <$> switch
 initGame :: System World ()
 initGame = do
   set global ( Camera 0 2
-             , Gravity $ V2 0 (-0.02)
+             , Gravity $ V2 0 (-0.01)
              , Beat 15 0)  
   -- make some euterpea sounds
-  let e1 = e 4 wn 
-      e2 = fs 4 wn 
-      e3 = gs 4 wn
+  let e1 = e 3 wn 
+      e2 = fs 3 wn 
+      e3 = gs 3 wn
       m1 = transpose 7 $ e1
       m2 = transpose 7 $ e2
       m3 = transpose 7 $ e3
-      o1 = instrument Flute $ m1 :=: m2 :=: m3
+      o1 = instrument ElectricGrandPiano $ m1 :=: m2 :=: m3
       o2 = transpose 2 o1
       o3 = transpose 5 o1
-      n1 = transpose (-12) $ instrument HammondOrgan $ e1 :=: e2 :=: e3
+      n1 = instrument HammondOrgan $ e1 :=: e2 :=: e3
       n2 = transpose 2 n1
       n3 = transpose 5 n1
-      j1 = Euterpea.chord $ concat $ replicate 4 [n1,o2]
-      j2 = Euterpea.chord $ concat $ replicate 4 [n3,o2]
-      j3 = Euterpea.chord $ concat $ replicate 4 [n3,o1]
-      l1 = Euterpea.chord $ concat $ replicate 4 [n2,o1]
-      l2 = Euterpea.chord $ concat $ replicate 4 [n2,o3]
-      l3 = Euterpea.chord $ concat $ replicate 4 [n1,o3]
+      j1 = Euterpea.line $ concat $ replicate 4 [n1, n2]
+      j2 = Euterpea.line $ concat $ replicate 4 [n3, n2]
+      j3 = Euterpea.line $ concat $ replicate 4 [n3, n1]
+      l1 = Euterpea.line $ concat $ replicate 4 [o2, o1]
+      l2 = Euterpea.line $ concat $ replicate 4 [o2, o3]
+      l3 = Euterpea.line $ concat $ replicate 4 [o1, o3]
       u1 = tempo 0.1 $ t1 42 AcousticGrandPiano
       u2 = tempo 0.5 $ t1 14 ElectricGuitarJazz
       u3 = tempo 0.2 $ t1 2 OverdrivenGuitar
       u4 = tempo 0.1 $ t1 5 Banjo
-      am = [j1,j2,j3,l1,l2,l3] -- [u1,u2,u3,u4]
+      am = Euterpea.line <$> fpow ( take 36 $ cycle [j1,j2,j3,l1,l2,l3] ) 6 (take 6) (drop 6) -- [u1,u2,u3,u4]
       
       b1 = perc HiMidTom sn
       b2 = perc HiBongo sn
@@ -91,7 +91,7 @@ initGame = do
       b7 = perc LowBongo sn
       b8 = perc LowFloorTom sn
       b9 = perc LowWoodBlock sn
-      b10 = perc LongWhistle sn
+      b10 = perc Cowbell sn
       bm = [b1,b2,b3,b4,b5,b6,b7,b8,b9,b10]
      
   cm <- mapM ( M.decode . makeByteMusic ) am :: System World [M.Chunk]
@@ -111,11 +111,11 @@ initGame = do
   bults <- liftIO $ mapM (\b -> handlePic =<< loadJuicy b) ["./resource/image/bullet1.png","./resource/image/bullet2.png","./resource/image/bullet3.png"]
   
   
-  blck3 <- liftIO  $ zip4 <$> randomDonutBox 1000 600 900 <*> randomDonutBox 1000 600 400 <*> replicateM 1000 (randomRIO (20,30 :: Float)) <*> replicateM 500 (randomRIO (20,30 :: Float))
+  blck3 <- liftIO  $ zip4 <$> randomDonutBox 1000 600 900 <*> randomDonutBox 1000 600 400 <*> replicateM 1000 (randomRIO (20,30 :: Float)) <*> replicateM 1000 (randomRIO (20,30 :: Float))
 
   targ <- newEntity (Target 0, Position 0)
   let bl (r,s,g,a) =
-        newEntity (Wall
+        newEntity ((Wall,Wall1)
                   , Position (V2 r s)
                   , Angle 0
                   , Velocity 0
@@ -135,30 +135,44 @@ initGame = do
                        ,Scale (0.1) (0.1) plante]
                      ))
       chains [] _ = return ()
-      chains (last2:last:[]) (d:ds) = last `set` (Resources [] [d], Linked last2 targ)
+      chains (last2:last:[]) (d:ds) = last `set` (SFXResources [d] [], Linked last2 targ)
       chains (prev:cur:next:rest) (d:ds) = do
-        cur `set` (Resources [] [d],Linked prev next)
+        cur `set` (SFXResources [d] [],Linked prev next)
         chains (cur:next:rest) $ ds ++ [d]
-        
+  --chains to arms     
   mapM_ bl blck3
+  blk1 <- bl (0,0,150,12)
+  blk1 `set` Seek
+
+  --dummy
+  newEntity (( Position (V2 0 50)
+             , 0 :: Velocity
+             , Angle 0
+             , BodyPicture $ Scale (1/4) (1/4) (Pictures [octo,color red $ Circle 1]) 
+             , Box (0, 1, 1))
+            , (Dummy, ProjCount 30, Health 99, Dash 0)
+            , (Plant, Charge 0.01 False))
+  
   sword cig
-  harpoon hrpn
+  hp1 <- harpoon arw
+  hp2 <- harpoon arw
   pl <- player octo n3
   chns <- replicateM 10 ch
-  --chns2 <- replicateM 25 ch
-  chns3 <- replicateM 7 ch
+  --chns2 <- replicateM 10 ch
+  --chns3 <- replicateM 7 ch
   --chns4 <- replicateM 15 ch
-  chns5 <- replicateM 4 ch
+  --chns5 <- replicateM 4 ch
   chains (pl:chns) dm
   --chains (pl:chns2) dm
-  chains (pl:chns3) dm
+  --chains (pl:chns3) dm
   --chains (pl:chns4) dm 
-  chains (pl:chns5) dm
-  
+  --chains (pl:chns5) dm
+
+  liftIO . print $ length am
   mapM_ (newArrow arw) $ concat . replicate 10 $ zip am cm
-  mapM_ (newBullet bults) $ concat . replicate 10 $ zip am cm
+  mapM_ (newBullet bults) $ concat . replicate 10 $ zip bm dm
             
-  mapM_ (enemy squid) $ zip bm dm 
+  mapM_ (enemy squid) $ zip am cm 
   newEntity ( Grid $ fromList [ (0, fromList [(0,())] ) ] )
   return ()
 
