@@ -54,7 +54,7 @@ parseopts = GameOpts <$> switch
 
 initGame :: System World ()
 initGame = do
-  set global ( Camera 0 2
+  set global ( Camera 0 3.3
              , Gravity $ V2 0 (-0.01)
              , Beat 15 0)  
   -- make some euterpea sounds
@@ -111,28 +111,31 @@ initGame = do
   bults <- liftIO $ mapM (\b -> handlePic =<< loadJuicy b) ["./resource/image/bullet1.png","./resource/image/bullet2.png","./resource/image/bullet3.png"]
   
   
-  blck3 <- liftIO  $ zip4 <$> randomDonutBox 1000 600 900 <*> randomDonutBox 1000 600 400 <*> replicateM 1000 (randomRIO (20,30 :: Float)) <*> replicateM 1000 (randomRIO (20,30 :: Float))
+  blck3 <- liftIO  $ zip4 <$> randomDonutBox 1000 600 900 <*> randomDonutBox 1000 600 400 <*> replicateM 1000 (randomRIO (20,100 :: Float)) <*> replicateM 500 (randomRIO (20,100 :: Float))
 
-  targ <- newEntity (Target 0, Position 0)
+  targ <- newEntity (Target 0)
   let bl (r,s,g,a) =
-        newEntity ((Wall,Wall1)
-                  , Position (V2 r s)
-                  , Angle 0
-                  , Velocity 0
-                  , box ( V2 r s ) g a
-                  , BodyPicture $ Scale (0.05 * g) (0.05 * a) plante
-                  )
+        --if (g > 70 && a < 30) || ( g < 30 && a > 70) then
+          newEntity ((Wall,Wall1)
+                    , Position (V2 r s)
+                    , Angle ( (g + a) / 21 )
+                    , Velocity 0
+                    , box ( V2 r s ) (0.3*g) (0.3*a)
+                    , BodyPicture $ Scale (0.02 * g) (0.02 * a) plante
+                    ) 
+          --else newEntity ()
+          
       ch = newEntity (Chain
                      , Weapon
                      , NoBehavior
                      , Angle 0
                      , Position 0
                      , Velocity 0
-                     ,( box 0 0.1 0.1
+                     ,( box 0 0.05 0.05
                      , Song (rest 0)
                      , BodyPicture $ Pictures
                        [Line [(0,0), (10,0)]
-                       ,Scale (0.1) (0.1) plante]
+                       ,Scale (0.03) (0.03) plante]
                      ))
       chains [] _ = return ()
       chains (last2:last:[]) (d:ds) = last `set` (SFXResources [d] [], Linked last2 targ)
@@ -141,8 +144,8 @@ initGame = do
         chains (cur:next:rest) $ ds ++ [d]
   --chains to arms     
   mapM_ bl blck3
-  blk1 <- bl (0,0,150,12)
-  blk1 `set` Seek
+  blk1 <- bl (0,40,150,12)
+  blk1 `set` (Angle (pi/3), Seek)
 
   --dummy
   newEntity (( Position (V2 0 50)
@@ -174,5 +177,7 @@ initGame = do
             
   mapM_ (enemy squid) $ zip am cm 
   newEntity ( Grid $ fromList [ (0, fromList [(0,())] ) ] )
+
+  
   return ()
 

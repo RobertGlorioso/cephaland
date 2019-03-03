@@ -1,14 +1,34 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskellQuotes #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE Strict #-}
 module Ceph.Util where
 
 import Ceph.Components
 
+import Control.Applicative
 import Control.Monad
 import Control.Monad.Reader hiding (forM_)
+import Data.Proxy
+import Fcf
+import GHC.TypeLits hiding (type (*))
+import Unsafe.Coerce
+import           Data.Kind
+import           Data.Singletons
+import           Data.Singletons.TH
+--import Language.Haskell.TH
 import Linear
 import Apecs
 import Apecs.Core
@@ -78,10 +98,11 @@ cmapIfM_ cond f = do
       f x
 
 
-conceM_ :: forall w m cx. (Get w m cx, Members w m cx) => (cx -> SystemT w m ()) -> SystemT w m ()
+conceM_ :: forall w m cx. (Alternative m,Get w m cx, Members w m cx) => (cx -> SystemT w m ()) -> SystemT w m ()
 conceM_ f =  do
   sx :: Storage cx <- getStore
   sl <- lift $ explMembers sx
+  lift $ guard (U.null sl)
   x <- lift . explGet sx . U.head $ sl 
   f x
 
@@ -138,3 +159,56 @@ conceIfM_ cond f =  do
   when ( not $ null es ) $ do
     e <- lift $ explGet sx ( fst $ head es )
     f e
+
+$(singletons [d|
+  data DoorState = Opened | Closed | Locked
+    deriving (Show, Eq)
+  |])
+
+data Door :: DoorState -> Type where
+    UnsafeMkDoor :: { doorMaterial :: String } -> Door s
+
+data OpenSum (f :: k -> Type) (ts :: [k]) where
+  UnsafeOpenSum :: Int -> f t -> OpenSum f ts
+
+type FindElem (key :: k) (ts :: [k]) = FromMaybe Stuck =<< FindIndex (TyEq key) ts
+
+type Member t ts = KnownNat (Eval (FindElem t ts))
+
+findElem :: forall t ts. Member t ts => Int
+findElem = fromIntegral . natVal $ Proxy @(Eval (FindElem t ts))
+
+inj :: forall f t ts. Member t ts => f t -> OpenSum f ts
+inj = UnsafeOpenSum (findElem @t @ts)
+
+prj :: forall f t ts. Member t ts => OpenSum f ts -> Maybe (f t)
+prj (UnsafeOpenSum i f) = if i == findElem @t @ts
+                             then Just $ unsafeCoerce f
+                             else Nothing
+
+decompose :: OpenSum f (t ': ts) -> Either (f t) (OpenSum f ts)
+decompose (UnsafeOpenSum 0 t) = Left $ unsafeCoerce t
+decompose (UnsafeOpenSum n t) = Right $ UnsafeOpenSum (n - 1) t
+
+match :: forall f ts b. (forall t. f t -> b) -> OpenSum f ts -> b
+match fn (UnsafeOpenSum _ t) = fn t
+
+genSingletons [''Actor]
+
+bar :: System World (Maybe Position)
+bar = do
+  g <- cfoldM (\a b -> return $ b:a) [] :: System World [DebugMode]
+  x <- exists (Entity 1) (Proxy :: Proxy Position) --foo (Entity 1) [Proxy :: Proxy Position] :: System World Bool
+  if x then return . Just =<< get (Entity 1) else return (Nothing )
+  
+foo :: forall w m a. (Get w m a, MonadIO m)  => Entity -> [Proxy a] -> SystemT w m a
+foo e@(Entity ety) cTypes = do
+  
+  cTypesNames <- forM cTypes $ \t -> do
+    --return $ ConT t
+    exists e t
+  liftIO . print . head $ cTypesNames
+  get e
+ -- s  :: Storage a <- getStore
+ -- lift $ explExists s ety  
+  

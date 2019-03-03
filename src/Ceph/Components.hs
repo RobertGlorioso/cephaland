@@ -1,7 +1,10 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Ceph.Components where
@@ -10,6 +13,7 @@ module Ceph.Components where
 import Apecs
 import Graphics.Gloss
 --import Numeric.Hamilton
+import Language.Haskell.TH
 import Euterpea
 import Linear
 import Data.Semigroup
@@ -23,6 +27,10 @@ data GameOpts = GameOpts { debugOn :: Bool }
 newtype Debug = Debug String deriving (Show)
 instance Component Debug where
   type Storage Debug = Map Debug
+
+data DebugMode = DebugMode [Proxy Actor] deriving (Show,Eq)
+instance Component DebugMode where
+  type Storage DebugMode = Map DebugMode
 
 data Actor = Player | Enemy | Wall | Weapon | Projectile deriving (Show,Eq)
 instance Component Actor where
@@ -72,7 +80,6 @@ data Dummy = Dummy
 instance Component Dummy where
   type Storage Dummy = Unique Dummy
 
-
 data Behavior = Seek | Sing | Attack | Carry | Defend | Dead | Heal | Plant | NoBehavior deriving (Show,Eq)
 instance Component Behavior where
   type Storage Behavior = Map Behavior
@@ -115,11 +122,10 @@ instance Monoid Gravity where
   mempty = Gravity 0
 instance Component Gravity where type Storage Gravity = Global Gravity
 
-newtype Angle = Angle Float deriving Show
+newtype Angle = Angle {unAngle :: Float} deriving (Show,Eq,Num)
 instance Component Angle where type Storage Angle = Map Angle
 
 newtype BodyPicture = BodyPicture Picture
-
 instance Component BodyPicture where
   type Storage BodyPicture = Map BodyPicture
 
@@ -155,4 +161,4 @@ instance Component ScreenBounds where
 newtype Song = Song (Music Pitch) deriving Show
 instance Component Song where type Storage Song = Map Song
 
-makeWorld "World" [''Camera, ''Scope, ''BodyPicture, ''Player, ''Enemy, ''Dummy, ''Wall, ''Projectile, ''Actor, ''Position, ''Linked, ''Velocity, ''Gravity, ''Angle, ''Target, ''Weapon, ''Charge, ''Dash, ''ProjCount, ''Song, ''Health, ''Box, ''Sprite, ''SFXResources, ''Beat, ''Debug, ''Behavior, ''Grid, ''ScreenBounds]
+makeWorld "World" [''Camera, ''Scope, ''BodyPicture, ''Player, ''Enemy, ''Dummy, ''Wall, ''Projectile, ''Actor, ''Position, ''Linked, ''Velocity, ''Gravity, ''Angle, ''Target, ''Weapon, ''Charge, ''Dash, ''ProjCount, ''Song, ''Health, ''Box, ''Sprite, ''SFXResources, ''Beat, ''Debug, ''DebugMode, ''Behavior, ''Grid, ''ScreenBounds]
