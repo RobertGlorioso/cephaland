@@ -43,7 +43,7 @@ main = do
   runSystem (initGame) w
   render o w
   stepper (1/60) w
-  playIO (InWindow "CEPH" (640,480) (100,100)) (mixColors 0.1 0.9 yellow black) 60 w (render o) (\e w -> runSystem (handle e) w >> return w) (stepper)
+  playIO (InWindow "CEPH" (640,480) (100,100)) (mixColors 0.1 0.9 redack) 60 w (render o) (\e w -> runSystem (handle e) w >> return w) (stepper)
   M.closeAudio
   M.quit
   S.quit
