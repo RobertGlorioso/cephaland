@@ -96,6 +96,11 @@ cmapIfM_ cond f = do
       x <- lift $ explGet sx e
       f x
 
+checkE :: forall w m cx. (Get w m cx, Members w m cx) => Proxy cx -> Entity -> SystemT w m (Maybe cx)
+checkE _ e = do
+  b <- exists e (Proxy :: Proxy cx)
+  if b then (return .Just =<< get e) else (return Nothing) 
+
 
 conceM_ :: forall w m cx. (Alternative m,Get w m cx, Members w m cx) => (cx -> SystemT w m ()) -> SystemT w m ()
 conceM_ f =  do

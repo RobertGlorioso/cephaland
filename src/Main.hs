@@ -177,7 +177,6 @@ initGame = do
             
   mapM_ (enemy squid) $ zip am cm 
   newEntity ( Grid $ fromList [ (0, fromList [(0,())] ) ] )
-
-  
+    
   return ()
 
