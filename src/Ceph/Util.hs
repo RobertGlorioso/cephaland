@@ -13,7 +13,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE Strict #-}
+-- {-# LANGUAGE Strict #-}
 module Ceph.Util where
 
 import Ceph.Components
@@ -25,14 +25,13 @@ import Data.Proxy
 import Fcf
 import GHC.TypeLits hiding (type (*))
 import Unsafe.Coerce
-import           Data.Kind
-import           Data.Singletons
-import           Data.Singletons.TH
+import Data.Kind
 --import Language.Haskell.TH
 import Linear
 import Apecs
 import Apecs.Core
 import qualified Data.Vector.Unboxed as U
+import qualified Data.Vector as V
 --import GHC.Prim
 
 v2ToRad :: (Floating a, Ord a) => V2 a -> a
@@ -160,14 +159,6 @@ conceIfM_ cond f =  do
     e <- lift $ explGet sx ( fst $ head es )
     f e
 
-$(singletons [d|
-  data DoorState = Opened | Closed | Locked
-    deriving (Show, Eq)
-  |])
-
-data Door :: DoorState -> Type where
-    UnsafeMkDoor :: { doorMaterial :: String } -> Door s
-
 data OpenSum (f :: k -> Type) (ts :: [k]) where
   UnsafeOpenSum :: Int -> f t -> OpenSum f ts
 
@@ -186,6 +177,13 @@ prj (UnsafeOpenSum i f) = if i == findElem @t @ts
                              then Just $ unsafeCoerce f
                              else Nothing
 
+weaken :: OpenSum f ts -> OpenSum f (x ': ts)
+weaken (UnsafeOpenSum i f) = (UnsafeOpenSum i (unsafeCoerce f))
+
+supply :: f x -> OpenSum f ts -> OpenSum f (x ': ts)
+supply x (UnsafeOpenSum i f) = inj x
+
+
 decompose :: OpenSum f (t ': ts) -> Either (f t) (OpenSum f ts)
 decompose (UnsafeOpenSum 0 t) = Left $ unsafeCoerce t
 decompose (UnsafeOpenSum n t) = Right $ UnsafeOpenSum (n - 1) t
@@ -193,13 +191,59 @@ decompose (UnsafeOpenSum n t) = Right $ UnsafeOpenSum (n - 1) t
 match :: forall f ts b. (forall t. f t -> b) -> OpenSum f ts -> b
 match fn (UnsafeOpenSum _ t) = fn t
 
-genSingletons [''Actor]
+
+data Any (f :: k -> Type) where
+  Any :: f t -> Any f
+
+data OpenProduct (f :: k -> Type) (ts :: [(Symbol,k)]) where
+  OpenProduct :: V.Vector (Any f) -> OpenProduct f ts
+
+nil :: OpenProduct f '[]
+nil = OpenProduct V.empty
+
+data Key (key :: Symbol) = Key
+
+insert :: Key key -> f t -> OpenProduct f ts -> OpenProduct f ('(key,t) ': ts)
+insert _ ft (OpenProduct v) = OpenProduct $ V.cons (Any ft) v
+
+type PFindElem (key :: Symbol) (ts :: [(Symbol,k)]) = Eval (FromMaybe Stuck =<< FindIndex (TyEq key <=< Fst) ts)
+
+pfindElem :: forall key ts. KnownNat (PFindElem key ts) => Int
+pfindElem = fromIntegral . natVal $ Proxy @(PFindElem key ts)
+
+type LookupType (key :: k) (ts :: [(k,t)]) = FromMaybe Stuck =<< Lookup key ts
+
+gett :: forall key ts f.
+       KnownNat (PFindElem key ts)
+       => Key key
+       -> OpenProduct f ts
+       -> f (Eval (LookupType key ts))
+gett _ (OpenProduct v) = unAny $ V.unsafeIndex v $ pfindElem @key @ts
+  where
+    unAny (Any a) = unsafeCoerce a
+
+type UpdateElem (key :: Symbol) (t :: k) (ts :: [(Symbol,k)]) = SetIndex (PFindElem key ts) '(key, t) ts
+
+update :: forall key ts t f.
+           KnownNat (PFindElem key ts)
+        => Key key
+        -> f t
+        -> OpenProduct f ts
+        -> OpenProduct f (Eval (UpdateElem key t ts))
+update _ ft (OpenProduct v) = OpenProduct $ v V.// [(pfindElem @key @ts, Any ft)]
+
+data HList (ts :: [Type]) where
+  HNil :: HList '[]
+  (:#) :: t -> HList ts -> HList (t ': ts)
+infixr 5 :#
+
+--genSingletons [Actor]
 
 bar :: System World (Maybe Position)
 bar = do
   g <- cfoldM (\a b -> return $ b:a) [] :: System World [DebugMode]
   x <- exists (Entity 1) (Proxy :: Proxy Position) --foo (Entity 1) [Proxy :: Proxy Position] :: System World Bool
-  if x then return . Just =<< get (Entity 1) else return (Nothing )
+  if x then return . Just =<< get (Entity 1) else return ( Nothing )
   
 foo :: forall w m a. (Get w m a, MonadIO m)  => Entity -> [Proxy a] -> SystemT w m a
 foo e@(Entity ety) cTypes = do
