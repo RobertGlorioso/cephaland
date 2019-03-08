@@ -162,24 +162,8 @@ collideProc' b2 g (b1,  Velocity v@(V2 v1 v2), Position p, a, l) = do
                         , l)
 
 collideProc :: (Angle, Box) -> (Box, Velocity,  Position, Entity) -> System World ()
-{--collideProc (Nothing,b1) (b2, (Velocity v@(V2 v1 v2)), (Position p), otherEnt) = do
-      Gravity (V2 _ g) <- get global
-      let friction = 1.90
-      case minni (abs <$> edgeMeasures b1 b2) [RightEdge, LeftEdge, TopEdge, BottomEdge] of
-            (d,TopEdge) -> otherEnt `modify` (\(b,_,_) -> (if norm v < (-10)*g then Plant else b, Position $ p + V2 v1 (abs v2 + d), Velocity (V2 v1 (abs v2) / friction)))
-            (d,BottomEdge) -> otherEnt `set` (Position $ p + V2 v1 ( negate . abs $ v2 - d ), Velocity (V2 v1 (negate . abs $ v2) / friction))
-            (d,RightEdge) -> otherEnt `set` (Position $ p + V2 ( abs v1 + d ) v2, Velocity (V2 (abs v1) v2 / friction))
-            (d,LeftEdge) -> otherEnt `set` (Position $ p + V2 ( negate . abs $ v1 - d ) v2, Velocity (V2 (negate . abs $ v1) v2 / friction))
---}
 collideProc (Angle alpha,b1) (b2, (Velocity v@(V2 v1 v2)), (Position p), otherEnt) = do
   let newb1 = (snd $ rotate_box_cw b2 (Angle alpha) (Position p,b1))
-  {--case minni (abs <$> edgeMeasures newb1 b2) [RightEdge, LeftEdge, TopEdge, BottomEdge] of
-            (d,TopEdge) -> otherEnt `set` ( Position $ p + V2 v1 ( abs v2 + d ))
-            (d,BottomEdge) -> otherEnt `set` (Position $ p + V2 v1 ( negate . abs $ v2 - d ))
-            (d,RightEdge) -> otherEnt `set` (Position $ p + V2 ( abs v1 + d ) v2)
-            (d,LeftEdge) -> otherEnt `set` (Position $ p + V2 ( negate . abs $ v1 - d ) v2)--}
-  --otherEnt `modify` rotate_box_ccw b1 alpha
-  
   otherEnt `modify` reflect_vel_box b1 (angle alpha) friction
 
 wallBounce ::
