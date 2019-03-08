@@ -56,7 +56,8 @@ initGame :: System World ()
 initGame = do
   set global ( Camera 0 3.3
              , Gravity $ V2 0 (-0.01)
-             , Beat 15 0)  
+             , Beat 15 0
+             , DebugMode 0)  
   -- make some euterpea sounds
   let e1 = e 3 wn 
       e2 = fs 3 wn 

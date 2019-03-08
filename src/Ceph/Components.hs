@@ -1,6 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -9,15 +10,14 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Ceph.Components where
 
-
+import Ceph.Util
 import Apecs
 import Graphics.Gloss
---import Numeric.Hamilton
 import Language.Haskell.TH
 import Euterpea
 import Linear
 import Data.Semigroup
-import Data.IntMap
+import Data.IntMap hiding (insert)
 import Graphics.Gloss.Interface.IO.Game
 import Data.Time.Clock
 import qualified SDL.Mixer as M
@@ -28,35 +28,38 @@ newtype Debug = Debug String deriving (Show)
 instance Component Debug where
   type Storage Debug = Map Debug
 
-data DebugMode = DebugMode [Proxy Actor] deriving (Show,Eq)
+data DebugMode = DebugMode Int deriving (Show,Eq)
 instance Component DebugMode where
-  type Storage DebugMode = Map DebugMode
+  type Storage DebugMode = Global DebugMode
+
+instance Monoid DebugMode where
+  mempty = DebugMode 0
 
 data Actor = Player | Enemy | Wall | Weapon | Projectile deriving (Show,Eq)
 instance Component Actor where
   type Storage Actor = Map Actor
 
-data Wall = Wall1
+data Wall = Wall1 deriving (Eq, Show)
 instance Component Wall where
   type Storage Wall = Map Wall
 
-data Weapon = Sword | Lance | Harpoon | Chain
+data Weapon = Sword | Lance | Harpoon | Chain deriving (Eq, Show)
 instance Component Weapon where
   type Storage Weapon = Map Weapon
 
-data Enemy = Enemy1
+data Enemy = Enemy1 deriving (Eq, Show)
 instance Component Enemy where
   type Storage Enemy = Map Enemy
 
-data Player = Player1 | Player2 | OtherPlayer
+data Player = Player1 | Player2 | OtherPlayer deriving (Eq, Show)
 instance Component Player where
   type Storage Player = Unique Player
 
-data Linked = Linked Entity Entity
+data Linked = Linked Entity Entity deriving (Eq, Show, Ord)
 instance Component Linked where
   type Storage Linked = Map Linked
 
-data Projectile = Bullet | Arrow deriving Eq
+data Projectile = Bullet | Arrow deriving (Eq,Show)
 instance Component Projectile where
   type Storage Projectile = Map Projectile
 
@@ -68,11 +71,11 @@ data Charge = Charge { chgAmt :: Float, charging :: Bool }
 instance Component Charge where
   type Storage Charge = Map Charge
 
-data Target = Target (V2 Float)
+data Target = Target (V2 Float) deriving (Eq, Show)
 instance Component Target where
   type Storage Target = Unique Target
 
-data Dash = Dash Float
+data Dash = Dash Float deriving (Eq, Show)
 instance Component Dash where
   type Storage Dash = Unique Dash
   
@@ -98,7 +101,7 @@ data Sprite = Sprite [Picture]
 instance Component Sprite where
   type Storage Sprite = Map Sprite
   
-data SFXResources = SFXResources { percussion :: [M.Chunk] , melody :: [M.Chunk] }
+data SFXResources = SFXResources { percussion :: [M.Chunk] , melody :: [M.Chunk] } deriving (Show,Eq)
 instance Component SFXResources where
   type Storage SFXResources = Map SFXResources
 
@@ -125,7 +128,7 @@ instance Component Gravity where type Storage Gravity = Global Gravity
 newtype Angle = Angle {unAngle :: Float} deriving (Show,Eq,Num)
 instance Component Angle where type Storage Angle = Map Angle
 
-newtype BodyPicture = BodyPicture Picture
+newtype BodyPicture = BodyPicture Picture deriving (Show, Eq)
 instance Component BodyPicture where
   type Storage BodyPicture = Map BodyPicture
 
@@ -133,7 +136,7 @@ data Beat = Beat Int Int
 instance Component Beat where type Storage Beat = Global Beat
 instance Monoid Beat where mempty = Beat 15 0
 
-data Scope = In | Out deriving Eq
+data Scope = In | Out deriving (Eq,Show)
 instance Component Scope where type Storage Scope = Map Scope
 
 data Camera = Camera
@@ -162,3 +165,17 @@ newtype Song = Song (Music Pitch) deriving Show
 instance Component Song where type Storage Song = Map Song
 
 makeWorld "World" [''Camera, ''Scope, ''BodyPicture, ''Player, ''Enemy, ''Dummy, ''Wall, ''Projectile, ''Actor, ''Position, ''Linked, ''Velocity, ''Gravity, ''Angle, ''Target, ''Weapon, ''Charge, ''Dash, ''ProjCount, ''Song, ''Health, ''Box, ''Sprite, ''SFXResources, ''Beat, ''Debug, ''DebugMode, ''Behavior, ''Grid, ''ScreenBounds]
+
+type Physics = (Position, Velocity, Angle, Box, Actor)
+
+type Sound = (SFXResources, Song)
+
+type Meta = (BodyPicture, Scope, Behavior)
+
+keyActor = Key @"Actor"
+
+keyGet k = gett k prod
+
+liss =  (Proxy :: Proxy Actor) :#  (Proxy :: Proxy Angle) :# (Proxy :: Proxy Beat) :# (Proxy :: Proxy Scope) :# (Proxy :: Proxy Velocity) :# (Proxy :: Proxy Position) :# HNil
+
+prod = insert (Key @"actor") (Proxy :: Proxy Actor) $ insert (Key @"angle") (Proxy :: Proxy Angle) $ insert (Key @"beat") (Proxy :: Proxy Beat) $ insert (Key @"scope") (Proxy :: Proxy Scope) $ insert (Key @"vel") (Proxy :: Proxy Velocity) $ insert (Key @"pos") (Proxy :: Proxy Position) nil

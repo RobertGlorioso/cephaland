@@ -1,3 +1,5 @@
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE GADTs #-}
@@ -16,14 +18,13 @@
 -- {-# LANGUAGE Strict #-}
 module Ceph.Util where
 
-import Ceph.Components
 
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Reader hiding (forM_)
 import Data.Proxy
 import Fcf
-import GHC.TypeLits hiding (type (*))
+import GHC.TypeLits hiding (type (*),Nat)
 import Unsafe.Coerce
 import Data.Kind
 --import Language.Haskell.TH
@@ -40,6 +41,11 @@ v2ToRad (V2 m n) = case compare m 0 of
   GT -> atan ( n / m ) 
   EQ -> (-pi)/2 * (signum n)
 
+
+poww :: (Eq t, Num t) => t1 -> t -> (t1 -> t1) -> [t1]
+poww a 0 _ = [a]
+poww a n f = f a : poww (f a) (n - 1) f
+
 kpow :: (Monad m, Num t, Eq t) => t -> (b -> m b) -> b -> m b
 kpow 0 _ = return
 kpow n f = f <=< kpow (n-1) f
@@ -47,6 +53,7 @@ kpow n f = f <=< kpow (n-1) f
 fpow :: t2 -> Int -> (t2 -> t) -> (t2 -> t2) -> [t]
 fpow a 0 _ _ = []
 fpow a n f g = f a : fpow (g a) (n-1) f g
+
 
 {-# INLINE cmapIf_ #-}
 cmapIf_ :: forall w m cp cx cy.
@@ -95,12 +102,6 @@ cmapIfM_ cond f = do
   forM_ slf $ \(e,_) -> do 
       x <- lift $ explGet sx e
       f x
-
-checkE :: forall w m cx. (Get w m cx, Members w m cx) => Proxy cx -> Entity -> SystemT w m (Maybe cx)
-checkE _ e = do
-  b <- exists e (Proxy :: Proxy cx)
-  if b then (return .Just =<< get e) else (return Nothing) 
-
 
 conceM_ :: forall w m cx. (Alternative m,Get w m cx, Members w m cx) => (cx -> SystemT w m ()) -> SystemT w m ()
 conceM_ f =  do
@@ -226,7 +227,7 @@ gett :: forall key ts f.
 gett _ (OpenProduct v) = unAny $ V.unsafeIndex v $ pfindElem @key @ts
   where
     unAny (Any a) = unsafeCoerce a
-
+  
 type UpdateElem (key :: Symbol) (t :: k) (ts :: [(Symbol,k)]) = SetIndex (PFindElem key ts) '(key, t) ts
 
 update :: forall key ts t f.
@@ -237,27 +238,59 @@ update :: forall key ts t f.
         -> OpenProduct f (Eval (UpdateElem key t ts))
 update _ ft (OpenProduct v) = OpenProduct $ v V.// [(pfindElem @key @ts, Any ft)]
 
+type family All (c :: Type -> Constraint) ( ts :: [Type]) :: Constraint where
+  All c  '[] = ()
+  All c (t ': ts) = (c t, All c ts)
+
 data HList (ts :: [Type]) where
   HNil :: HList '[]
   (:#) :: t -> HList ts -> HList (t ': ts)
 infixr 5 :#
 
---genSingletons [Actor]
+data Nat = Z | S Nat
 
-bar :: System World (Maybe Position)
-bar = do
-  g <- cfoldM (\a b -> return $ b:a) [] :: System World [DebugMode]
-  x <- exists (Entity 1) (Proxy :: Proxy Position) --foo (Entity 1) [Proxy :: Proxy Position] :: System World Bool
-  if x then return . Just =<< get (Entity 1) else return ( Nothing )
+data Natural a where
+  Zero :: Natural 'Z
+  Succ :: Natural a -> Natural ('S a)
+
+zero = Zero
+uno = Succ Zero
+dos = Succ uno
+tres = Succ dos
+quat = Succ tres
+cinc = Succ quat
+
+instance Show (Natural a) where
+  show Zero = "0"
+  show (Succ n) = "1+" ++ show n
   
-foo :: forall w m a. (Get w m a, MonadIO m)  => Entity -> [Proxy a] -> SystemT w m a
-foo e@(Entity ety) cTypes = do
+class IndexType (n :: Nat) (xs :: [Type]) (i :: Type) | n xs -> i where
+   fromIndex :: Natural n -> HList xs -> i
+
+instance IndexType 'Z (x ': xs) x where
+   fromIndex Zero (x :# _) = x
+
+instance IndexType n xs a => IndexType ('S n) (x ': xs) a where
+   fromIndex (Succ n) (_ :# xs) = fromIndex n xs
+
+instance All Show ts => Show (HList ts) where
+  show HNil = "'[]"
+  show (a :# as) = show a ++ " :# " ++ show as
+              
+instance All Eq ts => Eq (HList ts) where
+  HNil == HNil = True
+  (a :# as) == (b :# bs) = a == b && as == bs
   
-  cTypesNames <- forM cTypes $ \t -> do
-    --return $ ConT t
-    exists e t
-  liftIO . print . head $ cTypesNames
-  get e
- -- s  :: Storage a <- getStore
- -- lift $ explExists s ety  
+--type instance Elem (HList ts) = HList (Elem ts)
+
+--instance (All (Has w m) ts, Monad m, Component (HList ts))  => Has w m (HList ts) where
+--  getStore =  HNil <$> getStore
+nuProxy :: Proxy a -> Proxy b
+nuProxy _ = Proxy
+
+checkE :: forall w m cx. (Show cx, Get w m cx, Members w m cx, MonadIO m) => Proxy cx -> Entity -> SystemT w m (Maybe cx)
+checkE _ e = do
+  b <- exists e (Proxy :: Proxy cx)
+  if b then (return .Just =<< get e) else (return Nothing)
+  --cmap $ ((\(c) -> Debug (show c)) :: cx -> Debug)
   
