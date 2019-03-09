@@ -5,6 +5,7 @@ import Ceph.Components
 import Ceph.Util
 import Ceph.Component.Projectile
 import Ceph.Component.Player
+import Ceph.Physics.Box
 
 import Apecs
 import Apecs.Util
@@ -76,9 +77,10 @@ handle (EventKey press downup modifiers mscreen) = do
     (MouseButton LeftButton,Up,Modifiers _ _ _) -> do
       cmapM_ playerShoot 
     (MouseButton RightButton, Down, Modifiers _ _ _) -> do
-      cmapM_ $ playerDash                         
+      playerSwinging
     (MouseButton RightButton,Up, Modifiers _ _ _) -> do
-      conceIf (\(Player1, a) -> a == Attack) (\Attack -> NoBehavior) 
+      cmapM_ $ \(Player1, e) -> e `destroy` (Proxy :: Proxy Linked) 
+      --conceIf (\(Player1, a) -> a == Attack) (\Attack -> NoBehavior) 
       
     (_,_,_) -> return ()
             

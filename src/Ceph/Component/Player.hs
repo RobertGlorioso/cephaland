@@ -3,6 +3,8 @@ module Ceph.Component.Player where
 
 import Apecs
 import Linear
+import Data.List
+import Data.Ord
 import Control.Monad
 import System.Random
 import Ceph.Util
@@ -105,7 +107,25 @@ movePlayer v c@(d, Velocity p, b :: Behavior)
   | True = if b /= Plant then
              (d, Velocity $ p + v, b ) else
              (d, Velocity $ p + v, NoBehavior)
-       
+
+playerSwing :: (Player, Behavior) -> (Player, Behavior, Velocity)
+playerSwing (Player1, _) = (Player1, Seek, Velocity 0)
+
+playerSwinging :: System World ()
+playerSwinging = do
+  [(Player1,ep :: Entity)] <- cfoldM (\a b -> return (b:a)) []
+  ls <- cfoldM (\a b -> return (b:a)) [] :: System World [(Linked, Entity)]
+  let (Linked pl nxt,e) = minimumBy (comparing fst) ls
+  let (Linked prv tar,e_) = maximumBy (comparing fst) ls
+  [Target t] <- cfoldM (\a b -> return (b:a)) []
+  conceIfM_
+    (\case
+        (_, Out, _, _) -> False
+        (Wall1, In, n, c) -> let new_b = (snd $ rotate_box_cw c n (Position t,Box (t, 0.5, 0.5))) in touched new_b c
+    )
+    (\(Wall1,eb) -> e_ `set` ( Linked prv eb) )
+          
+  ep `set` (Player1, Linked nxt e)  
 
 playerDash :: (Player, Dash) -> System World ()
 playerDash (Player1, Dash w) =do

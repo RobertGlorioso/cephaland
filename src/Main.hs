@@ -148,15 +148,6 @@ initGame = do
   blk1 <- bl (0,40,150,12)
   blk1 `set` (Angle (pi/3), Seek)
 
-  --dummy
-  newEntity (( Position (V2 0 50)
-             , 0 :: Velocity
-             , Angle 0
-             , BodyPicture $ Scale (1/4) (1/4) (Pictures [octo,color red $ Circle 1]) 
-             , Box (0, 1, 1))
-            , (Dummy, ProjCount 30, Health 99, Dash 0)
-            , (Plant, Charge 0.01 False))
-  
   sword cig
   hp1 <- harpoon arw
   hp2 <- harpoon arw
@@ -172,7 +163,6 @@ initGame = do
   --chains (pl:chns4) dm 
   --chains (pl:chns5) dm
 
-  liftIO . print $ length am
   mapM_ (newArrow arw) $ concat . replicate 10 $ zip am cm
   mapM_ (newBullet bults) $ concat . replicate 10 $ zip bm dm
             
