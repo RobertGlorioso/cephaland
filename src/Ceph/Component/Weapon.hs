@@ -7,7 +7,8 @@ import Ceph.Util
 import Graphics.Gloss
 import Apecs
 import Linear
-
+import Data.List
+import Data.Ord
 
 showSword ::
   Ord a =>
@@ -28,7 +29,7 @@ showSword x1 x2 tp pl (Sword,_,_,_) =
 showSword _ _ _ _ a = a
 
 hideSword :: (Weapon, Position) -> (Weapon, Position)
-hideSword (Sword,_) = (Sword, Position $ V2 (-100) (-1000) )
+hideSword (Sword,_) = (Sword, Position $ pure 2e7 )
 hideSword a = a
 
 sword :: Picture -> System World Entity
@@ -54,3 +55,9 @@ chain c = newEntity (BodyPicture (scale 0.06 0.06 c)
                     , Angle 0
                     , Box ((V2 (-1.05) 9.66), 0.04, 0.21)
                     , Chain)
+
+chainExtended = do
+  ls <- cfoldM (\a b -> return (b:a)) [] :: System World [(Linked, Position)]
+  let (_, Position p1) = minimumBy (comparing fst) ls
+  let (_, Position pn) = maximumBy (comparing fst) ls
+  if norm ( p1 - pn ) > 50 then return (True,(p1,pn)) else return (False, (p1,pn)) 

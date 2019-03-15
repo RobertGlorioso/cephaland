@@ -24,14 +24,17 @@ moveStuff r e a = do
   e `set` (Velocity 0,Position (r + V2 o p))
 
 playerLoop :: (BodyPicture, Player, Dash, Velocity, Box, Behavior, Charge, Entity) -> System World ()
-playerLoop (BodyPicture bp,Player1, _, _, b@(Box (p1@(V2 x1 y1), _, _)), Attack, _, e) = cmapM_ $ \case
-      (Sword, Box sb) -> do
-        --e `set` BodyPicture (Pictures [bp, color (makeColor 0.1 0.1 0.1 0.01) $ ThickCircle 0.5 5])
-          
-        Target tp@(V2 x2 y2) <- get global
-        cmap $ showSword x1 x2 tp p1
-        cmap killEnemy
-      _ -> return ()
+playerLoop (_,Player1, _, v0, _, Swinging, _, e) = do
+  (chex,(p1,pn)) <- chainExtended
+  when chex $ e `set` (v0 + Velocity ((pure 0.02 * ) $  normalize $ pn - p1))
+playerLoop (BodyPicture bp,Player1, _, _, b@(Box (p1@(V2 x1 y1), _, _)), Attack, _, e) =
+  cmapM_ $ \case
+    (Sword, Box sb) -> do
+      --e `set` BodyPicture (Pictures [bp, color (makeColor 0.1 0.1 0.1 0.01) $ ThickCircle 0.5 5])
+      Target tp@(V2 x2 y2) <- get global
+      cmap $ showSword x1 x2 tp p1
+      cmap killEnemy
+    _ -> return ()
 playerLoop
   (_, Player1, _, _, b@(Box (p1,_,_)), Carry, _, _) =
   conceIf
@@ -47,7 +50,7 @@ playerLoop
 
 playerLoop (_,Player1, Dash dx, Velocity v, b@(Box (p1@(V2 x1 y1),_,_)), a, Charge cv chging, e) = do
       
-  cmap $ \(Target o) -> ( Target (o + v), Position (o + v), Velocity (o + v))
+  cmap $ \(Target o) -> ( Target (o + v), Position (o + v))
   cmapM_ $ \(Grid is) -> do
     let (floor -> gx) = (x1 / 2000) + (signum x1)
         (floor -> gy) = (y1 / 2000) + (signum y1)
@@ -77,9 +80,9 @@ playerLoop (_,Player1, Dash dx, Velocity v, b@(Box (p1@(V2 x1 y1),_,_)), a, Char
           | dx < 8.0 = Dash (dx + 0.3)
           | True     = Dash dx
 
-    [nv,nvv] <- liftIO $ replicateM 2 $ randomRIO (-0.05, 0.05)        
-    let newV = if ( a /= Seek ) then v else v + V2 nv nvv                                                             
-    e `set` (Player, Angle (v2ToRad $ p1 - tp), chg, dsh, Velocity newV)    
+    --[nv,nvv] <- liftIO $ replicateM 2 $ randomRIO (-0.05, 0.05)        
+    --let newV = if ( a /= Seek ) then v else v + V2 nv nvv                                                             
+    e `set` (Player, Angle (v2ToRad $ p1 - tp), chg, dsh, Velocity v )     
       
 player :: Picture -> Music Pitch -> System World Entity
 player p m = newEntity (( Position (V2 0 50)
@@ -108,24 +111,27 @@ movePlayer v c@(d, Velocity p, b :: Behavior)
              (d, Velocity $ p + v, b ) else
              (d, Velocity $ p + v, NoBehavior)
 
-playerSwing :: (Player, Behavior) -> (Player, Behavior, Velocity)
-playerSwing (Player1, _) = (Player1, Seek, Velocity 0)
 
-playerSwinging :: System World ()
-playerSwinging = do
-  [(Player1,ep :: Entity)] <- cfoldM (\a b -> return (b:a)) []
-  ls <- cfoldM (\a b -> return (b:a)) [] :: System World [(Linked, Entity)]
-  let (Linked pl nxt,e) = minimumBy (comparing fst) ls
-  let (Linked prv tar,e_) = maximumBy (comparing fst) ls
-  [Target t] <- cfoldM (\a b -> return (b:a)) []
+playerSwinging :: (Player, Behavior, Velocity,Entity) -> System World ()
+playerSwinging (Player1, Swinging, v0,_) = return ()
+playerSwinging (Player1, _, v0,e) = do
+  ls <- cfoldM (\a b -> return (b:a)) [] :: System World [(Linked,( Position, Entity))]
+  --let (Linked pl nxt,(Position p1, e)) = minimumBy (comparing fst) ls
+  --let (l,(Position pn, e_)) = maximumBy (comparing fst) ls
+  [(Target t)] <- cfoldM (\a b -> return (b:a)) []
   conceIfM_
     (\case
         (_, Out, _, _) -> False
         (Wall1, In, n, c) -> let new_b = (snd $ rotate_box_cw c n (Position t,Box (t, 0.5, 0.5))) in touched new_b c
     )
-    (\(Wall1,eb) -> e_ `set` ( Linked prv eb) )
-          
-  ep `set` (Player1, Linked nxt e)  
+    (\(Wall1) -> do
+        e `set` Swinging ) {--case l of
+          WLinked prv _ _ -> e_ `set` Linked prv tar
+          Linked prv _ -> do
+            
+            e_ `set` (WLinked prv eb 1.0)
+    )
+  ep `set` (Player1, Seek)  --}
 
 playerDash :: (Player, Dash) -> System World ()
 playerDash (Player1, Dash w) =do

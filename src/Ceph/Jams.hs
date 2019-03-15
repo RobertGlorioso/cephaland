@@ -11,8 +11,6 @@ import System.Random
 import Control.Monad
 import Numeric
 import Data.Char
-import GHC.Int
-import Codec.Midi
 import qualified Data.ByteString as Byte
 
 --reading in songs from a user specified file
@@ -38,15 +36,15 @@ incrementBeat w = do
       --}
     
 
---this function assigns a sound te the first open channel it finds
+--this function assigns a sound to the first open channel it finds
 playSong :: World -> Entity -> System World ()
 playSong w ent = do
   (SFXResources p s) <- get ent
-  when (s /= []) $ melodyPlay 5 (head s)
+  when (s /= []) $ melodyPlay 4 (head s)
   when (p /= []) $ percPlay 0 (head p)
   where
     percPlay i mzk
-        | i <= 4 && i >= 0 = do
+        | i <= 3 && i >= 0 = do
             isP <- M.playing i
             if not isP then do
               M.playOn i M.Once mzk >> return ()
@@ -54,7 +52,7 @@ playSong w ent = do
             else percPlay (i+1) mzk
         | True = return ()
     melodyPlay i mzk
-        | i <= 7 && i > 4 = do
+        | i <= 7 && i > 3 = do
             isP <- M.playing i
             if not isP then do
               M.playOn i M.Once mzk >> return ()

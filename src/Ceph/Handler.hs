@@ -2,48 +2,43 @@
 module Ceph.Handler where
 
 import Ceph.Components
-import Ceph.Util
 import Ceph.Component.Projectile
 import Ceph.Component.Player
-import Ceph.Physics.Box
 
 import Apecs
-import Apecs.Util
-import Control.Monad
-import Graphics.Gloss.Interface.IO.Game hiding ( Play )
-import Euterpea
-import qualified SDL.Mixer as M
+--import Control.Concurrent
+import Graphics.Gloss.Interface.IO.Game
 import Linear
 
 mouseToWorld :: (Float,Float) -> Camera -> V2 Float
-mouseToWorld (x,y) (Camera offset scale) = offset + V2 x y 
+mouseToWorld (x,y) (Camera o s) = o + ((V2 x y ) / pure s) 
 
 handle :: Event -> System World ()
 handle (EventResize (m1, m2)) = do
   modify global $ \(SB _) -> SB (V2 m1 m2)
 handle (EventMotion mscreen) = do
   mpos <- mouseToWorld mscreen <$> get global
-  cmap $ \(Target _) -> Target mpos
+  cmap $ \(Target _) -> Target (mpos)
   
 handle (EventKey press downup modifiers mscreen) = do
   case (press, downup) of
     (SpecialKey KeyRight, Down) -> 
-      cmap $ movePlayer (V2 0.2 0)
+      cmap $ movePlayer (V2 0.02 0)
     (Char 'd', Down) ->
-      cmap $ movePlayer (V2 0.2 0)
+      cmap $ movePlayer (V2 0.02 0)
     (SpecialKey KeyRight, Up) -> 
-      cmap $ movePlayer (V2 0.2 0)  
+      cmap $ movePlayer (V2 0.02 0)  
     (Char 'd', Up) ->
-      cmap $ movePlayer (V2 0.2 0)
+      cmap $ movePlayer (V2 0.02 0)
     (SpecialKey KeyLeft, Down) ->
-      cmap $ movePlayer (V2 (-0.2) 0)
+      cmap $ movePlayer (V2 (-0.02) 0)
     (Char 'a', Down) ->
-      cmap $ movePlayer (V2 (-0.2) 0)
+      cmap $ movePlayer (V2 (-0.02) 0)
     (SpecialKey KeyLeft, Up) ->
-      cmap $ movePlayer (V2 (-0.2) 0)
+      cmap $ movePlayer (V2 (-0.02) 0)
     (Char 'a', Up) ->
-      cmap $ movePlayer (V2 (-0.2) 0)
-    (SpecialKey KeyUp, Down) ->
+      cmap $ movePlayer (V2 (-0.02) 0)
+    {--(SpecialKey KeyUp, Down) ->
       cmap $ movePlayer (V2 0 0.2) 
     (Char 'w', Down) ->
       cmap $ movePlayer (V2 0 0.2)
@@ -55,9 +50,11 @@ handle (EventKey press downup modifiers mscreen) = do
       cmap $ movePlayer (V2 0.0 (-0.2))
     (Char 's', Down) ->
       cmap $ movePlayer (V2 0.0 (-0.2))
-    
+    --}
     (SpecialKey KeySpace, Up) -> do
-      cmap $ \(Player1, b :: Behavior) -> (Player1, NoBehavior)
+      cmap $ \case
+        (Player1, Carry) -> (Player1, NoBehavior)
+        c -> c
     (SpecialKey KeySpace, Down) ->
       cmap $ \(Player1) -> (Player1, Carry)
     (Char '`', Up) -> do
@@ -77,9 +74,13 @@ handle (EventKey press downup modifiers mscreen) = do
     (MouseButton LeftButton,Up,Modifiers _ _ _) -> do
       cmapM_ playerShoot 
     (MouseButton RightButton, Down, Modifiers _ _ _) -> do
-      playerSwinging
+      cmapM playerSwinging
+      
+      
     (MouseButton RightButton,Up, Modifiers _ _ _) -> do
-      cmapM_ $ \(Player1, e) -> e `destroy` (Proxy :: Proxy Linked) 
+      cmap $ \case
+        (Player1, Swinging) -> NoBehavior
+        (Player1, c) -> c
       --conceIf (\(Player1, a) -> a == Attack) (\Attack -> NoBehavior) 
       
     (_,_,_) -> return ()

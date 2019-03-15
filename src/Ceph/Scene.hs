@@ -20,24 +20,13 @@ addTrailPics p (Velocity (V2 x y)) (BodyPicture (Pictures ps)) =
 
 render :: GameOpts -> World -> IO Picture
 render (GameOpts g) w = runWith w $ do
-
         cmapM_ cameraFollowPlayer
-        
         view@(Camera cam scale) <- get global :: System World Camera
-
         movableEnts <- return . filter (\((b, _, _, _)) -> aabb b (Box (cam, 680, 680))) =<< (cfoldM (\a b -> return (b:a) ) [] :: System World [(Box, Position, Angle, BodyPicture)])
-
-        pics <- mapM entsToPics movableEnts
-        
-        newWorld <- return . applyView view . mconcat $ pics
-        
-        --add debuggers here
-        cmap $ \(Target t) -> (Target t, Debug $ show t)
-        cmap $ \(Player1, Position t) -> (Player1, Debug $ show t)
-        
+        pics <- mapM entsToPics movableEnts        
+        newWorld <- return . applyView view . mconcat $ pics        
         --make the scene by combining the HUD and the current world
-        hud <- hudPic g
-        
+        hud <- hudPic g       
         return $ Pictures $ [newWorld] ++ hud -- , Translate 150 150 $ Scale 0.1 0.1 newWorld] ++ hud
                            
 

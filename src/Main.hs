@@ -59,29 +59,29 @@ initGame = do
              , Beat 15 0
              , DebugMode 0)  
   -- make some euterpea sounds
-  let e1 = e 3 wn 
-      e2 = fs 3 wn 
-      e3 = gs 3 wn
+  let e1 = e 3 qn 
+      e2 = fs 3 qn 
+      e3 = gs 3 qn
       m1 = transpose 7 $ e1
       m2 = transpose 7 $ e2
       m3 = transpose 7 $ e3
-      o1 = instrument ElectricGrandPiano $ m1 :=: m2 :=: m3
+      o1 = instrument HammondOrgan $ m1 :+: m2 :+: m3
       o2 = transpose 2 o1
       o3 = transpose 5 o1
-      n1 = instrument HammondOrgan $ e1 :=: e2 :=: e3
+      n1 = instrument HammondOrgan $ e3 :+: e2 :+: e1
       n2 = transpose 2 n1
       n3 = transpose 5 n1
-      j1 = Euterpea.line $ concat $ replicate 4 [n1, n2]
-      j2 = Euterpea.line $ concat $ replicate 4 [n3, n2]
-      j3 = Euterpea.line $ concat $ replicate 4 [n3, n1]
-      l1 = Euterpea.line $ concat $ replicate 4 [o2, o1]
-      l2 = Euterpea.line $ concat $ replicate 4 [o2, o3]
-      l3 = Euterpea.line $ concat $ replicate 4 [o1, o3]
+      j1 = [n1, n2]
+      j2 = [n3, n2]
+      j3 = [n3, n1]
+      l1 = [o2, o1]
+      l2 = [o2, o3]
+      l3 = [o1, o3]
       u1 = tempo 0.1 $ t1 42 AcousticGrandPiano
       u2 = tempo 0.5 $ t1 14 ElectricGuitarJazz
       u3 = tempo 0.2 $ t1 2 OverdrivenGuitar
       u4 = tempo 0.1 $ t1 5 Banjo
-      am = Euterpea.line <$> fpow ( take 36 $ cycle [j1,j2,j3,l1,l2,l3] ) 6 (take 6) (drop 6) -- [u1,u2,u3,u4]
+      am = fmap Euterpea.line [j1,j2,j3,l1,l2,l3] --Euterpea.chord <$> fpow ( take 36 $ cycle [j1,j2,j3,l1,l2,l3] ) 6 (take 6) (drop 6) -- [u1,u2,u3,u4]
       
       b1 = perc HiMidTom sn
       b2 = perc HiBongo sn
@@ -102,19 +102,16 @@ initGame = do
         (error "img not loading")
         return
   
-  cig <- liftIO $ handlePic =<< loadJuicy "./resource/image/sword.png"
-  hrpn <- liftIO $ handlePic =<< loadJuicy "./resource/image/harpoon.png"
   plante <- liftIO $ handlePic =<< loadJuicy "./resource/image/coral1.png" 
-  grund <- liftIO $ handlePic =<< loadJuicy "./resource/image/ground.png"
   squid <- liftIO $ handlePic =<< loadJuicy "./resource/image/squid1.png"
   arw <- liftIO $ handlePic =<< loadJuicy "./resource/image/arrow.png"
   octo <- liftIO $ handlePic =<< loadJuicy "./resource/image/octo2.png"
   bults <- liftIO $ mapM (\b -> handlePic =<< loadJuicy b) ["./resource/image/bullet1.png","./resource/image/bullet2.png","./resource/image/bullet3.png"]
   
   
-  blck3 <- liftIO  $ zip4 <$> randomDonutBox 1000 600 900 <*> randomDonutBox 1000 600 400 <*> replicateM 1000 (randomRIO (20,100 :: Float)) <*> replicateM 500 (randomRIO (20,100 :: Float))
+  
 
-  targ <- newEntity (Target 0)
+  targ <- newEntity (Target 0,Box (0,0,0),Angle 0,Position 0,BodyPicture . (color yellow) $ (Circle 1))
   let bl (r,s,g,a) =
         --if (g > 70 && a < 30) || ( g < 30 && a > 70) then
           newEntity ((Wall,Wall1)
@@ -139,34 +136,26 @@ initGame = do
                        ,Scale (0.03) (0.03) plante]
                      ))
       chains [] _ = return ()
-      chains (last2:last:[]) (d:ds) = last `set` (SFXResources [d] [], Linked last2 targ)
+      chains (last2:last:[]) (d:ds) = last `set` (SFXResources [d] [], WLinked last targ 1.0 )
       chains (prev:cur:next:rest) (d:ds) = do
         cur `set` (SFXResources [d] [],Linked prev next)
         chains (cur:next:rest) $ ds ++ [d]
-  --chains to arms     
+  blck3 <- liftIO  $
+    zip4 <$>
+      randomDonutBox 1000 600 900
+      <*> randomDonutBox 1000 600 400
+      <*> replicateM 1000 (randomRIO (20,100 :: Float))
+      <*> replicateM 1000 (randomRIO (20,100 :: Float))
   mapM_ bl blck3
-  blk1 <- bl (0,40,150,12)
-  blk1 `set` (Angle (pi/3), Seek)
-
-  sword cig
-  hp1 <- harpoon arw
-  hp2 <- harpoon arw
+  
   pl <- player octo n3
   chns <- replicateM 10 ch
-  --chns2 <- replicateM 10 ch
-  --chns3 <- replicateM 7 ch
-  --chns4 <- replicateM 15 ch
-  --chns5 <- replicateM 4 ch
   chains (pl:chns) dm
-  --chains (pl:chns2) dm
-  --chains (pl:chns3) dm
-  --chains (pl:chns4) dm 
-  --chains (pl:chns5) dm
 
   mapM_ (newArrow arw) $ concat . replicate 10 $ zip am cm
-  mapM_ (newBullet bults) $ concat . replicate 10 $ zip bm dm
+  mapM_ (newBullet bults) $ concat . replicate 10 $ zip am cm
             
-  mapM_ (enemy squid) $ zip am cm 
+  mapM_ (enemy squid) $ zip bm dm 
   newEntity ( Grid $ fromList [ (0, fromList [(0,())] ) ] )
     
   return ()

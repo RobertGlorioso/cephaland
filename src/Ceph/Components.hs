@@ -55,7 +55,7 @@ data Player = Player1 | Player2 | OtherPlayer deriving (Eq, Show)
 instance Component Player where
   type Storage Player = Unique Player
 
-data Linked = Linked Entity Entity deriving (Eq, Show, Ord)
+data Linked = Linked Entity Entity | WLinked Entity Entity Float deriving (Eq, Show, Ord)
 instance Component Linked where
   type Storage Linked = Map Linked
 
@@ -83,7 +83,7 @@ data Dummy = Dummy
 instance Component Dummy where
   type Storage Dummy = Unique Dummy
 
-data Behavior = Seek | Sing | Attack | Carry | Defend | Dead | Heal | Plant | NoBehavior deriving (Show,Eq)
+data Behavior = Seek | Sing | Attack | Carry | Defend | Dead | Heal | Plant | Swinging | NoBehavior deriving (Show,Eq)
 instance Component Behavior where
   type Storage Behavior = Map Behavior
 

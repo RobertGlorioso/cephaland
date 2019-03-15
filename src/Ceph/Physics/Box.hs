@@ -134,7 +134,7 @@ edgeMeasures (Box (V2 bx by, w2, h2)) (Box (V2 ax ay, w1, h1)) =
 touched :: Box -> Box -> Bool
 touched a b = all (<0) $ edgeMeasures a b
 
-friction = 1.03
+friction = 1.07
  
 collideProc' :: Box -> Maybe Gravity -> (Box, Velocity, Position, Actor, Behavior) -> (Box, Velocity, Position, Actor, Behavior)
 collideProc' b2 g c@(b1,  Velocity v@(V2 v1 v2), Position p, a, Plant) = c
@@ -168,20 +168,6 @@ collideProc (Angle alpha,b1) (b2, (Velocity v@(V2 v1 v2)), (Position p), otherEn
   let newb1 = (snd $ rotate_box_cw b2 (Angle alpha) (Position p,b1))
   otherEnt `modify` reflect_vel_box b1 (angle alpha) friction
 
-wallGrab :: [(Box, Angle, Wall, Scope, Entity)]
-         -> ( Target  ) -> System World ()
-wallGrab [] _ = return ()
-wallGrab ((b,n,_,_,eb):rest) (Target t) = do
-  
-  let new_a = (snd $ rotate_box_cw b n (Position t,Box (t, 0.5, 0.5)))
-  ls <- cfoldM (\a b -> return (b:a)) [] :: System World [(Linked, Entity)]
-  let (Linked prv tar,e) = maximumBy (comparing fst) ls
-  if not $ touched new_a b
-     then do
-        wallGrab rest (Target t)
-      else do
-        e `set` Linked prv eb
-  
 wallBounce ::
   [(Box, Angle, Wall, Scope)]
   -> (Box, Scope, Velocity, Position, Entity, Behavior, Actor)
