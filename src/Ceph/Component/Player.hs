@@ -15,18 +15,24 @@ import Ceph.Component.Weapon
 import Ceph.Component.Enemy
 import Euterpea
 import Graphics.Gloss
-import qualified Data.IntMap as M
-
-moveStuff :: V2 Float -> Entity -> Float -> System World ()
-moveStuff r e a = do
-  [o,p] <- liftIO $ fmap (\m -> signum m * a + m) <$> replicateM 2 (randomRIO (-1500,1500))
-  e `modify` (\(Box (_,x,y)) -> Box ( (r + V2 o p) , x, y))
-  e `set` (Velocity 0,Position (r + V2 o p))
 
 playerLoop :: (BodyPicture, Player, Dash, Velocity, Box, Behavior, Charge, Entity) -> System World ()
-playerLoop (_,Player1, _, v0, _, Swinging, _, e) = do
-  (chex,(p1,pn)) <- chainExtended
-  when chex $ e `set` (v0 + Velocity ((pure 0.02 * ) $  normalize $ pn - p1))
+playerLoop (_, Player1, _, v0@(Velocity vv@(V2 vx _)) , _, Moving v2, _, e) = do
+  cmap $ \(Target o) -> ( Target (o + vv), Position (o + vv))
+  set e $ if (norm vv < speedLimit) then (v0 + Velocity v2) else v0
+  cmapM_ $ \case
+    (b,Bullet) -> cmap (hurtPlayer b)
+    _ -> return ()
+    
+playerLoop (_, Player1, _, _, _, Swinging, _, e) = do
+  (chex,(p1,pn)) <- chainExtended 30
+  (chex2,(p1,pn)) <- chainExtended 50
+  if chex then
+    e `modify`
+      (\(Velocity v,_) ->
+        (Velocity $ v + ( (if chex2 then 0.02 else 0.002) * normalize  (pn - p1))
+        , Swinging))
+    else return ()
 playerLoop (BodyPicture bp,Player1, _, _, b@(Box (p1@(V2 x1 y1), _, _)), Attack, _, e) =
   cmapM_ $ \case
     (Sword, Box sb) -> do
@@ -38,8 +44,8 @@ playerLoop (BodyPicture bp,Player1, _, _, b@(Box (p1@(V2 x1 y1), _, _)), Attack,
 playerLoop
   (_, Player1, _, _, b@(Box (p1,_,_)), Carry, _, _) =
   conceIf
-  (\(p, a) -> aabb b p && a == Wall)
-  (\(Box (_,x,y)) -> (Box (p1, x, y), Position p1))
+    (\(p, a) -> aabb b p && a == Wall)
+    (\(Box (_,x,y)) -> (Box (p1, x, y), Position p1))
   --allows the player to pick up an enemy or other entity
       
       --e <- return . filter (\(p, _, a) -> aabb b p && a == Wall) =<< (getAll :: System World [(Box, Entity, Actor)])
@@ -48,52 +54,37 @@ playerLoop
         --carriedEnt `modify` (\(Box (_,x,y)) -> Box (p1, x, y))
         --carriedEnt `set` (Position p1)
 
-playerLoop (_,Player1, Dash dx, Velocity v, b@(Box (p1@(V2 x1 y1),_,_)), a, Charge cv chging, e) = do
+playerLoop (_,Player1, Dash dx, Velocity v, b@(Box (p1,_,_)), a, Charge cv chging, e) = do
       
   cmap $ \(Target o) -> ( Target (o + v), Position (o + v))
-  cmapM_ $ \(Grid is) -> do
-    let (floor -> gx) = (x1 / 2000) + (signum x1)
-        (floor -> gy) = (y1 / 2000) + (signum y1)
-        updateGrid g = cmap $ \(Grid _) -> Grid g
-        moveEnemyWalls =
-          cmapM_ $ \case
-          (Wall, Out, e) -> moveStuff p1 e 200
-          (Enemy, Out, e) -> moveStuff p1 e 200
-          (_,_,_) -> return ()
-                                    
-    if length is > 10 then updateGrid mempty else return ()
-    case M.lookup gx is of
-      Just ys -> if gy `elem` M.keys ys then return ()
-                 else updateGrid (M.insert gx (M.insert gy () ys) is) >> moveEnemyWalls
-      Nothing -> moveEnemyWalls >> updateGrid (M.insert gx mempty is)
-
-    Target tp <- get global
+  cmapM_ $ \case
+    (b,Bullet) -> cmap (hurtPlayer b)
+    _ -> return ()
+  Target tp <- get global
       
-    cmapM_ $ \case
-      (Weapon, In, b) -> cmap (hurtEnemy b)
-      (_, _, _) -> return () 
+  cmapM_ $ \case
+    (Weapon, In, b) -> cmap (hurtEnemy b)
+    (_, _, _) -> return () 
 
-    let chg
-          | chging = if cv < 10 then (Charge (cv + 0.1) True) else (Charge cv False)
-          | True   = Charge cv False
-    let dsh
-          | dx < 8.0 = Dash (dx + 0.3)
-          | True     = Dash dx
-
-    --[nv,nvv] <- liftIO $ replicateM 2 $ randomRIO (-0.05, 0.05)        
-    --let newV = if ( a /= Seek ) then v else v + V2 nv nvv                                                             
-    e `set` (Player, Angle (v2ToRad $ p1 - tp), chg, dsh, Velocity v )     
+  let chg
+        | chging = if cv < 10 then (Charge (cv + 0.1) True) else (Charge cv False)
+        | True   = Charge cv False
+  let dsh
+        | dx < 8.0 = Dash (dx + 0.3)
+        | True     = Dash dx
+                                     
+  e `set` (Player, Angle (v2ToRad $ p1 - tp), chg, dsh, Velocity v )     
       
 player :: Picture -> Music Pitch -> System World Entity
 player p m = newEntity (( Position (V2 0 50)
                         , 0 :: Velocity
-                        , BodyPicture $ Scale (1/6) (1/6) p 
-                        , Box (0, 1/3, 1/3))
+                        , BodyPicture $ Scale (0.05) (0.05) p 
+                        , Box (0, 0.1, 0.1))
                        , (ProjCount 30, Health 99, Dash 0)
                        , Song m
+                       , SFXResources [] []
                        , (Player1, Player)
                        , (NoBehavior, Charge 0.01 False))
-  
 
 playerShoot :: (Charge, Position, Velocity, ProjCount, Player, Entity) -> System World ()
 playerShoot o@(c, x, v, ProjCount arrowsLeft, Player1, e) = do
@@ -102,22 +93,16 @@ playerShoot o@(c, x, v, ProjCount arrowsLeft, Player1, e) = do
           shootArrow t x v c
           e `set` (Charge 1.0 False, ProjCount $ arrowsLeft - 1)
 
-
-speedLimit = 7
+speedLimit = 1
 movePlayer :: V2 Float -> (Player, Velocity, Behavior) -> (Player, Velocity, Behavior)
-movePlayer v c@(d, Velocity p, b :: Behavior) 
-  | norm p > speedLimit = c
-  | True = if b /= Plant then
-             (d, Velocity $ p + v, b ) else
-             (d, Velocity $ p + v, NoBehavior)
+movePlayer v c@(d, p, Swinging) = (d, p + Velocity (10*v), Swinging )  
+movePlayer v c@(d, Velocity p, b)
+  | norm p > speedLimit = (d, Velocity p,b)
+  | True = (d, Velocity p, Moving v)
 
-
-playerSwinging :: (Player, Behavior, Velocity,Entity) -> System World ()
-playerSwinging (Player1, Swinging, v0,_) = return ()
-playerSwinging (Player1, _, v0,e) = do
-  ls <- cfoldM (\a b -> return (b:a)) [] :: System World [(Linked,( Position, Entity))]
-  --let (Linked pl nxt,(Position p1, e)) = minimumBy (comparing fst) ls
-  --let (l,(Position pn, e_)) = maximumBy (comparing fst) ls
+playerSwinging :: System World ()
+playerSwinging = do
+  ls <- cfoldM (\a b -> return (b:a)) [] :: System World [(Linked, (Position, Entity))]
   [(Target t)] <- cfoldM (\a b -> return (b:a)) []
   conceIfM_
     (\case
@@ -125,20 +110,17 @@ playerSwinging (Player1, _, v0,e) = do
         (Wall1, In, n, c) -> let new_b = (snd $ rotate_box_cw c n (Position t,Box (t, 0.5, 0.5))) in touched new_b c
     )
     (\(Wall1) -> do
-        e `set` Swinging ) {--case l of
-          WLinked prv _ _ -> e_ `set` Linked prv tar
-          Linked prv _ -> do
-            
-            e_ `set` (WLinked prv eb 1.0)
+        cmap $ \(Player1) -> Swinging --return Swinging 
     )
-  ep `set` (Player1, Seek)  --}
+    
+playerDash :: Target -> (Player, Position, Velocity, Dash) -> (Player, Position, Velocity, Dash)
+playerDash (Target o) pp@(Player1, Position p,_, Dash w) = do
+  if w >= 2.0
+  then (Player1, Position p, Velocity $ normalize (o - p), Dash (-2.0))
+  else pp      
 
-playerDash :: (Player, Dash) -> System World ()
-playerDash (Player1, Dash w) =do
-  if w >= 8.0
-  then do
-    cmapM_ $ \(Target o) -> cmap $ \(Player1, Position p, _ :: Behavior) -> (NoBehavior, Velocity $ 2 *  normalize (o - p))
-    cmap $ \(Dash w) -> Dash (-8.0)
-  else return ()
-  cmap $ \(Player1) -> (Player1, Attack)
-               
+
+
+hurtPlayer  :: (Box,Projectile) -> (Box, Health, Player) -> Health
+hurtPlayer ((Box painBox),Bullet) (Box plBox, h, _)  = if (aabb (Box painBox) (Box plBox)) then (h - 10) else h
+hurtPlayer (_,_) (_, h, _)  = h

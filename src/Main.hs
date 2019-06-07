@@ -5,18 +5,20 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 module Main where
 import Ceph.Scene
+import Ceph.Util
 import Ceph.Components
 import Ceph.Physics
 import Ceph.Physics.Box
 import Ceph.Component.Enemy
-import Ceph.Component.Weapon
 import Ceph.Component.Player
 import Ceph.Component.Projectile
+import Ceph.Component.Levels
+import Ceph.Component.Weapon
 import Ceph.Handler
 import Ceph.Jams
-import Ceph.Util
 import Apecs
 import Data.List (zip4)
+import Data.Bool
 import Options.Applicative
 import Graphics.Gloss
 import Graphics.Gloss.Juicy
@@ -24,7 +26,6 @@ import Graphics.Gloss.Interface.IO.Game
 import Control.Monad
 import System.Random
 import Data.Monoid
-import Data.IntMap (fromList)
 import Linear (V2(..))
 import qualified SDL.Mixer as M
 import qualified SDL as S
@@ -43,7 +44,7 @@ main = do
   runSystem (initGame) w
   render o w
   stepper (1/60) w
-  playIO (InWindow "CEPH" (640,480) (100,100)) (mixColors 0.1 0.9 red black) 60 w (render o) (\e w -> runSystem (handle e) w >> return w) (stepper)
+  playIO (InWindow "CEPH" (640,480) (100,100)) (mixColors 0.5 0.5 black violet) 60 w (render o) (\e w -> runSystem (handle e) w >> return w) (stepper)
   M.closeAudio
   M.quit
   S.quit
@@ -54,10 +55,14 @@ parseopts = GameOpts <$> switch
 
 initGame :: System World ()
 initGame = do
-  set global ( Camera 0 3.3
-             , Gravity $ V2 0 (-0.01)
-             , Beat 15 0
-             , DebugMode 0)  
+  
+  set global ( Camera 0 8.0
+             , Gravity $ V2 0 (-0.0095)
+             , Beat 16 0
+             
+             , mempty :: Sequencer
+             , mempty :: SCoord
+             )  
   -- make some euterpea sounds
   let e1 = e 3 qn 
       e2 = fs 3 qn 
@@ -65,10 +70,10 @@ initGame = do
       m1 = transpose 7 $ e1
       m2 = transpose 7 $ e2
       m3 = transpose 7 $ e3
-      o1 = instrument HammondOrgan $ m1 :+: m2 :+: m3
+      o1 = instrument HammondOrgan $ m1 :=: m2 :=: m3
       o2 = transpose 2 o1
       o3 = transpose 5 o1
-      n1 = instrument HammondOrgan $ e3 :+: e2 :+: e1
+      n1 = instrument HammondOrgan $ e3 :=: e2 :=: e1
       n2 = transpose 2 n1
       n3 = transpose 5 n1
       j1 = [n1, n2]
@@ -81,8 +86,9 @@ initGame = do
       u2 = tempo 0.5 $ t1 14 ElectricGuitarJazz
       u3 = tempo 0.2 $ t1 2 OverdrivenGuitar
       u4 = tempo 0.1 $ t1 5 Banjo
-      am = fmap Euterpea.line [j1,j2,j3,l1,l2,l3] --Euterpea.chord <$> fpow ( take 36 $ cycle [j1,j2,j3,l1,l2,l3] ) 6 (take 6) (drop 6) -- [u1,u2,u3,u4]
-      
+      am = [o1,o2,o3,n1,n2,n3] -- Euterpea.chord <$> fpow ( take 36 $ cycle [j1,j2,j3,l1,l2,l3] ) 6 (take 6) (drop 6) -- [u1,u2,u3,u4]
+
+      b0 = rest sn
       b1 = perc HiMidTom sn
       b2 = perc HiBongo sn
       b3 = perc HighFloorTom sn
@@ -93,11 +99,14 @@ initGame = do
       b8 = perc LowFloorTom sn
       b9 = perc LowWoodBlock sn
       b10 = perc Cowbell sn
-      bm = [b1,b2,b3,b4,b5,b6,b7,b8,b9,b10]
-     
+      bm = let b = [b1,b2,b3,b4,b5,b6,b7,b8,b9,b10] in b ++ [a :=: a' | a<-take 5 b, a'<-drop 5 b]
+      
   cm <- mapM ( M.decode . makeByteMusic ) am :: System World [M.Chunk]
-  dm <- mapM ( M.decode . makeByteMusic ) bm :: System World [M.Chunk] 
+  dm <- mapM ( M.decode . makeByteMusic ) bm 
+
+
   --read in sprites
+  
   let handlePic = maybe
         (error "img not loading")
         return
@@ -107,56 +116,42 @@ initGame = do
   arw <- liftIO $ handlePic =<< loadJuicy "./resource/image/arrow.png"
   octo <- liftIO $ handlePic =<< loadJuicy "./resource/image/octo2.png"
   bults <- liftIO $ mapM (\b -> handlePic =<< loadJuicy b) ["./resource/image/bullet1.png","./resource/image/bullet2.png","./resource/image/bullet3.png"]
-  
-  
-  
 
-  targ <- newEntity (Target 0,Box (0,0,0),Angle 0,Position 0,BodyPicture . (color yellow) $ (Circle 1))
-  let bl (r,s,g,a) =
-        --if (g > 70 && a < 30) || ( g < 30 && a > 70) then
+  --moving target for grappling and shooting
+  targ <- newEntity (Target 0,Box (0,0,0),Angle 0,Position 0)
+  let bl (r,s,g,a) (d,o) = do
           newEntity ((Wall,Wall1)
                     , Position (V2 r s)
-                    , Angle ( (g + a) / 21 )
+                    , Angle ( if g > a then 2*pi - (g + a) / 3200 else (g + a) / 3200 )
                     , Velocity 0
-                    , box ( V2 r s ) (0.3*g) (0.3*a)
+                    , box (V2 r s) (0.3*g) (0.3*a)
+                    , SFXResources [d] []
+                    , Song o
                     , BodyPicture $ Scale (0.02 * g) (0.02 * a) plante
                     ) 
-          --else newEntity ()
           
-      ch = newEntity (Chain
-                     , Weapon
-                     , NoBehavior
-                     , Angle 0
-                     , Position 0
-                     , Velocity 0
-                     ,( box 0 0.05 0.05
-                     , Song (rest 0)
-                     , BodyPicture $ Pictures
-                       [Line [(0,0), (10,0)]
-                       ,Scale (0.03) (0.03) plante]
-                     ))
-      chains [] _ = return ()
-      chains (last2:last:[]) (d:ds) = last `set` (SFXResources [d] [], WLinked last targ 1.0 )
-      chains (prev:cur:next:rest) (d:ds) = do
-        cur `set` (SFXResources [d] [],Linked prev next)
-        chains (cur:next:rest) $ ds ++ [d]
-  blck3 <- liftIO  $
+  walls <- liftIO $
     zip4 <$>
-      randomDonutBox 1000 600 900
-      <*> randomDonutBox 1000 600 400
-      <*> replicateM 1000 (randomRIO (20,100 :: Float))
-      <*> replicateM 1000 (randomRIO (20,100 :: Float))
-  mapM_ bl blck3
+      randomDonutBox 200 600 900
+      <*> randomDonutBox 200 600 400
+      <*> replicateM 200 (randomRIO (20,100 :: Float))
+      <*> replicateM 200 (randomRIO (20,100 :: Float))
+  mapM_ (uncurry bl) $ zip walls (zip dm bm)
   
   pl <- player octo n3
-  chns <- replicateM 10 ch
-  chains (pl:chns) dm
+  chns <- replicateM 10 (chain plante)
+  chains (pl:chns) targ
 
   mapM_ (newArrow arw) $ concat . replicate 10 $ zip am cm
   mapM_ (newBullet bults) $ concat . replicate 10 $ zip am cm
             
-  mapM_ (enemy squid) $ zip bm dm 
-  newEntity ( Grid $ fromList [ (0, fromList [(0,())] ) ] )
-    
+  mapM_ (enemy squid) $ take 10 $ zip bm dm 
+
+  newEntity ( Grid mempty )
+
+  cmap (\bx -> bool Out In $ aabb bx (Box (0, 400, 400)))
+
+  randomizeGridCell 0  
+
   return ()
 

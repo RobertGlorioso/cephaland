@@ -22,17 +22,15 @@ module Ceph.Util where
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Reader hiding (forM_)
-import Data.Proxy
-import Fcf
-import GHC.TypeLits hiding (type (*),Nat)
-import Unsafe.Coerce
-import Data.Kind
---import Language.Haskell.TH
+--import Data.Proxy
+--import Fcf
+--import GHC.TypeLits hiding (type (*),Nat)
+--import Unsafe.Coerce
+--import Data.Kind
 import Linear
 import Apecs
 import Apecs.Core
 import qualified Data.Vector.Unboxed as U
-import qualified Data.Vector as V
 --import GHC.Prim
 
 v2ToRad :: (Floating a, Ord a) => V2 a -> a
@@ -68,14 +66,15 @@ cmapIf_ cond f = do
   sp :: Storage cp <- getStore
   sx :: Storage cx <- getStore
   sy :: Storage cy <- getStore
-  sl <- lift $ explMembers (sx,sp)
-  slf <- filter (\(_,p) -> cond p ) <$>  forM (U.toList sl)
-    (\e -> do
-        p <- lift $ explGet sp e
-        return (e,p)
-    )
+  lift $ do
+    sl <- explMembers (sx,sp)
+    slf <- filter (\(_,p) -> cond p ) <$>  forM (U.toList sl)
+      (\e -> do
+          p <- explGet sp e
+          return (e,p)
+      )
   
-  lift $ forM_ slf $ \(e,_) -> do 
+    forM_ slf $ \(e,_) -> do 
       x <- explGet sx e
       explSet sy e (f x)
 
@@ -98,19 +97,19 @@ cmapIfM_ cond f = do
         p <- lift $ explGet sp e
         return (e,p)
     )
-  liftIO . print $ length slf
   forM_ slf $ \(e,_) -> do 
       x <- lift $ explGet sx e
       f x
 
+{-# INLINE conceM_ #-} 
 conceM_ :: forall w m cx. (Alternative m,Get w m cx, Members w m cx) => (cx -> SystemT w m ()) -> SystemT w m ()
 conceM_ f =  do
   sx :: Storage cx <- getStore
-  sl <- lift $ explMembers sx
-  lift $ guard (U.null sl)
-  x <- lift . explGet sx . U.head $ sl 
+  x <- lift $ do
+    sl <- explMembers sx
+    explGet sx . U.head $ sl 
   f x
-
+  
 {-# INLINE conceIf #-} 
 conceIf :: forall w m cx cp cy.
   (Get w m cx
@@ -121,7 +120,7 @@ conceIf :: forall w m cx cp cy.
   => (cp -> Bool)
   -> (cx -> cy)
   -> SystemT w m ()
-conceIf cond f =  do
+conceIf cond f = do
   sx :: Storage cx <- getStore
   sp :: Storage cp <- getStore
   sy :: Storage cy <- getStore
@@ -132,39 +131,89 @@ conceIf cond f =  do
       e <- return $ U.head es
       explGet sx e >>=  explSet sy e . f
 
+{-# INLINE conceIfM #-} 
+conceIfM :: forall w m cx cp cy.
+  (Get w m cx
+  , Get w m cp
+  , Set w m cy
+  , Members w m cx
+  , Alternative m
+  , MonadIO m)
+  => (cp -> Bool)
+  -> (cx -> SystemT w m cy)
+  -> SystemT w m cy
+conceIfM cond f = do
+  sx :: Storage cx <- getStore
+  sp :: Storage cp <- getStore
+  sl <- lift $ explMembers (sx,sp)
+  es <- lift $ U.filterM (\n -> (explGet sp n) >>= return . cond) sl
+  e <- return $ U.head es
+  lift (explGet sx e) >>= f
 
+{-# INLINE conceIfM_ #-} 
 conceIfM_ :: forall w m cx cp.
   (Get w m cx
   , Get w m cp
   , Members w m cx
+  , Alternative m
   , MonadIO m)
   => (cp -> Bool)
   -> (cx -> SystemT w m ())
   -> SystemT w m ()
-conceIfM_ cond f =  do
+conceIfM_ cond f = do
   sx :: Storage cx <- getStore
   sp :: Storage cp <- getStore
   sl <- lift $ explMembers (sx,sp)
-  {--U.foldM_ (\b e -> do
+  U.foldM' (\b e -> do
                if b then do
                  p <- lift (explGet sp e)
                  if cond p then do
                    lift (explGet sx e) >>= f
                    return False
                    else return True
-                 else return True
+                 else return False
            )
     True sl
-  return ()--}
-  es <- filter (\(_,p) -> cond p) <$> forM (U.toList sl)
-    (\e -> do
-        p <- lift $ explGet sp e
-        return (e,p)
-    )
-  when ( not $ null es ) $ do
-    e <- lift $ explGet sx ( fst $ head es )
-    f e
+  return ()
 
+
+-- | Pseudocomponent that when written to, actually writes @c@ to its entity argument.
+--   Can be used to write to other entities in a 'cmap'.
+data Redirect c = Redirect Entity c deriving (Eq, Show)
+instance Component c => Component (Redirect c) where
+  type Storage (Redirect c) = RedirectStore (Storage c)
+
+newtype RedirectStore s = RedirectStore s
+type instance Elem (RedirectStore s) = Redirect (Elem s)
+
+instance Has w m c => Has w m (Redirect c) where
+  getStore = RedirectStore <$> getStore
+
+instance (ExplSet m s) => ExplSet m (RedirectStore s) where
+  explSet (RedirectStore s) _ (Redirect (Entity ety) c) = explSet s ety c
+
+
+-- | Pseudocomponent that can be read like any other component, but will only
+--   yield a single member when iterated over. Intended to be used as
+--   @cmap $ Head (...) -> ...@
+newtype Head c = Head c deriving (Eq, Show)
+instance Component c => Component (Head c) where
+  type Storage (Head c) = HeadStore (Storage c)
+
+newtype HeadStore s = HeadStore s
+type instance Elem (HeadStore s) = Head (Elem s)
+
+instance Has w m c => Has w m (Head c) where
+  getStore = HeadStore <$> getStore
+
+instance (ExplGet m s) => ExplGet m (HeadStore s) where
+  explExists (HeadStore s) ety = explExists s ety
+  explGet (HeadStore s) ety = Head <$> explGet s ety
+
+instance (ExplMembers m s) => ExplMembers m (HeadStore s) where
+  explMembers (HeadStore s) = U.take 1 <$> explMembers s
+
+{--
 data OpenSum (f :: k -> Type) (ts :: [k]) where
   UnsafeOpenSum :: Int -> f t -> OpenSum f ts
 
@@ -294,3 +343,4 @@ checkE _ e = do
   if b then (return .Just =<< get e) else (return Nothing)
   --cmap $ ((\(c) -> Debug (show c)) :: cx -> Debug)
   
+--}

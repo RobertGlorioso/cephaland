@@ -2,6 +2,7 @@
 module Ceph.Component.Weapon where
 
 import Ceph.Components
+import Ceph.Physics.Box
 import Ceph.Util
 
 import Graphics.Gloss
@@ -39,25 +40,58 @@ sword c = newEntity (BodyPicture (scale 0.1 0.1 c)
                     , Angle 0
                     , Box ((V2 (-1.05) 9.66), 0.04, 0.21)
                     , Sword)
-  
+
+laser :: Picture -> System World Entity
+laser c = newEntity (BodyPicture (scale 0.1 0.1 c)
+                    , Position (pure 2e7)
+                    , Velocity 0
+                    , Angle 0
+                    , Box ((pure 2e7), 0.04, 0.04)
+                    , Laser) 
+           
 harpoon :: Picture -> System World Entity
 harpoon c = newEntity (BodyPicture (scale 0.1 0.1 c)
                     , Position (V2 (-10.05) 9.66)
                     , Velocity 0
                     , Angle 0
                     , Box ((V2 (-1.05) 9.66), 0.04, 0.21)
-                    , Harpoon) 
-
+                    , Harpoon)
+  
 chain :: Picture -> System World Entity
-chain c = newEntity (BodyPicture (scale 0.06 0.06 c)
-                    , Position (V2 (-10.05) 9.66)
-                    , Velocity 0
-                    , Angle 0
-                    , Box ((V2 (-1.05) 9.66), 0.04, 0.21)
-                    , Chain)
-
-chainExtended = do
+chain pic = newEntity (Chain
+                     , Weapon
+                     , NoBehavior
+                     , Angle 0
+                     , Position 0
+                     , Velocity 0
+                     , ( box 0 0.05 0.05
+                       , BodyPicture $ Pictures
+                         [Line [(0,0), (10,0)]
+                         ,Scale (0.03) (0.03) pic]
+                       )
+                     )
+  
+chains :: [Entity] -> Entity -> System World ()
+chains [] targ = return ()
+chains (_:lst:[]) targ = lst `set` (WLinked lst targ 1.0 )
+chains (prev:cur:nxt:rst) t = do
+  cur `set` (Linked prev nxt)
+  chains (cur:nxt:rst) t
+  
+chainExtended ::
+  Float -> System World (Bool, (V2 Float, V2 Float))
+chainExtended r = do
   ls <- cfoldM (\a b -> return (b:a)) [] :: System World [(Linked, Position)]
   let (_, Position p1) = minimumBy (comparing fst) ls
   let (_, Position pn) = maximumBy (comparing fst) ls
-  if norm ( p1 - pn ) > 50 then return (True,(p1,pn)) else return (False, (p1,pn)) 
+  if norm ( p1 - pn ) > r then return (True,(p1,pn)) else return (False, (p1,pn)) 
+
+moveChains :: (Linked, Weapon) -> System World (Angle, Position)
+moveChains (Linked e f, Chain) = do
+          (Position p1) <- get e
+          (Position p0) <- get f
+          return $ (Angle $ v2ToRad (p0 - p1), Position $ (p0 + p1) / 2)
+moveChains (WLinked e f m, Chain) = do
+          (Position p0) <- get e
+          (Position p1) <- get f
+          return $ (Angle $ v2ToRad (p0 - p1), Position $ (pure (1-m) * p0 + (pure m * p1)))

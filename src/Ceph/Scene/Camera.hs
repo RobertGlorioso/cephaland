@@ -10,8 +10,8 @@ import Linear
 import Graphics.Gloss
 import Graphics.Gloss.Geometry.Angle        (radToDeg)
 
-entsToPics :: (Box, Position, Angle, BodyPicture) -> System World Picture
-entsToPics (Box ((V2 x0 y0), _ , _), Position (V2 x y), Angle theta, BodyPicture pic) = return . Translate (realToFrac x) (realToFrac y) . Rotate (negate . radToDeg . realToFrac $ theta) $ pic
+entsToPics :: (Scope, Position, Angle, BodyPicture) -> System World Picture
+entsToPics (_, Position (V2 x y), Angle theta, BodyPicture pic) = return . Translate (realToFrac x) (realToFrac y) . Rotate (negate . radToDeg . realToFrac $ theta) $ pic
 
 applyView :: Camera -> Picture -> Picture
 applyView (Camera (V2 (realToFrac -> x) (realToFrac -> y)) (realToFrac -> scale)) = Scale scale scale . Translate (negate x) (negate y)

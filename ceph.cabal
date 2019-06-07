@@ -28,6 +28,7 @@ source-repository head
 
 library
   exposed-modules:
+      Ceph.Component.Levels
       Ceph.Component.Enemy
       Ceph.Component.Projectile
       Ceph.Component.Weapon
@@ -50,6 +51,7 @@ library
   build-depends: Euterpea >=2.0.5
                , HCodecs
                , StateVar
+               , adjunctions
                , aeson
                , apecs >= 0.7.1
                --, apecs-stm >= 0.1.1
@@ -57,6 +59,8 @@ library
                , bytestring
                , containers
                , contravariant >= 1.4
+               --, csound-expression
+               , distributive
                , first-class-families
                , directory
                , gloss
@@ -84,7 +88,8 @@ library
 
 executable ceph
   main-is: Main.hs
-  other-modules: Ceph.Component.Enemy
+  other-modules: Ceph.Component.Levels
+                 Ceph.Component.Enemy
                  Ceph.Component.Projectile
                  Ceph.Component.Player
                  Ceph.Component.Weapon
@@ -94,6 +99,7 @@ executable ceph
                  Ceph.Physics
                  Ceph.Physics.Box
                  Ceph.Scene
+                 Ceph.Scene.Board
                  Ceph.Scene.Camera
                  Ceph.Scene.HUD
                  Ceph.Util
@@ -106,12 +112,16 @@ executable ceph
                 Euterpea >=2.0.5
               , HCodecs
               , StateVar
+              , adjunctions
+              
               , aeson
-              , apecs >=0.7.0
-              , base >=4.7 && <5
+              , apecs >= 0.7.0
+              , base >= 4.7 && <5
               , bytestring
               , containers
+              --, csound-expression
               , directory
+              , distributive
               , first-class-families
               , gloss
               , gloss-juicy

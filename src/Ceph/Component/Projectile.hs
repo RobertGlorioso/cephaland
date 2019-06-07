@@ -6,10 +6,9 @@ import Ceph.Components
 import Ceph.Util
 import Ceph.Physics.Box
 import Ceph.Scene
-import Ceph.Jams
 
 import Apecs
-import Euterpea
+import Euterpea hiding (Head)
 import Graphics.Gloss.Interface.IO.Game
 import Linear
 import qualified SDL.Mixer as M
@@ -23,27 +22,25 @@ newArrow p (am,cm) =
              , NoBehavior
              , ( Projectile
                , Arrow
-               , BodyPicture $ Scale 0.4 0.4 p
-               , Box (2e7, 1, 0.7)
+               , BodyPicture $ Scale 0.1 0.1 p
+               , Box (2e7, 0.1, 0.07)
                , SFXResources [] [cm]
                , Song am
                )
              )
 
-
-newBullet :: [Picture] -> (Music Pitch, M.Chunk)
-  -> System World Entity
+newBullet :: [Picture] -> (Music Pitch, M.Chunk) -> System World Entity
 newBullet ps (am,cm) =
   newEntity ( Position 2e7
             , Velocity 0 
             , Angle 0
             , Seek
             , ( Bullet, Projectile )
-            , ( Box (2e7, 0.3, 0.3)
+            , ( Box (2e7, 0.75, 0.2)
               , Song am
-              , Sprite (fmap ( Scale 0.1 0.1 ) ps)
+              , Sprites (fmap ( Scale 0.05 0.02 ) ps)
               , SFXResources [] [cm]
-              , BodyPicture $ Pictures $ fmap ( Scale 0.1 0.1 ) ps
+              , BodyPicture $ Pictures $ fmap ( Scale 0.05 0.02 ) ps
               )
             )
 
@@ -52,10 +49,11 @@ removeProjectile  (_, Position p, Box pBox, e) = e `destroy` (Proxy :: Proxy Box
 {--do
   cmap $ \(Box otherBox, Velocity v, Position p2) -> if aabb (Box otherBox) (Box pBox) then  Velocity ( v + (0.5 * normalize (p2 - p)) ) else Velocity v
   e `set` Position (pure 20000)
-  --} 
-animateProj :: (Box,Velocity,BodyPicture, Sprite, Projectile) -> (BodyPicture, Sprite)
+  --}
+  
+animateProj :: (Box,Velocity,BodyPicture, Sprites, Projectile) -> (BodyPicture, Sprites)
 animateProj (_, _, bp, r, Arrow) = (bp,r)
-animateProj (_, v, pics, Sprite (p:ps), Bullet) = ((addTrailPics p v pics), Sprite ( ps ++ [ p ]))
+animateProj (_, v, pics, Sprites (p:ps), Bullet) = ((addTrailPics p v pics), Sprites ( ps ++ [ p ]))
 
 shootBullet :: Target -> Position -> Velocity -> Charge -> System World ()
 shootBullet (Target at) (Position from) (Velocity v_init) (Charge c _) = conceIf isInScopeBullet updateMotion
@@ -78,3 +76,4 @@ shootArrow (Target at) (Position from) (Velocity v_init) (Charge c _) = conceIf 
     , Angle 0
     )
   
+

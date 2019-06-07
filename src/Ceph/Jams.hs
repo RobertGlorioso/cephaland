@@ -17,14 +17,16 @@ import qualified Data.ByteString as Byte
 importSong :: String -> IO ( M.Chunk)
 importSong f = either (error) (M.decode . makeFile) =<< importFile f
 
+crds :: [SCoord]
+crds = [SCoordF x y () | x<-(toEnum <$> [0..3]),y<-(toEnum <$> [0..3])]
+
 incrementBeat :: World -> SystemT World IO ()
 incrementBeat w = do
       Beat m i <- get global
       -- plays sound effects on beat
-      -- maybe do other stuff on beat like animations?
-      if (m == i) then (global `set` Beat m 0) >> cmapM_ ( \case
-        (Sing, Song i, a :: Actor, e) ->  e `set` (Debug . show $ (a, Song i)) >> playSong w e >> if ( a == Weapon ) then ( e `set` Seek ) else e `set` NoBehavior
-        _ -> return () 
+      if (m == i) then (global `set` Beat m 0) >> (global `modify` (\s  -> succ s :: SCoord)) >> cmapM_ ( \case
+        (Sing, Song _, a :: Actor, e) -> playSong e >> if ( a == Weapon ) then ( e `set` Seek ) else e `set` NoBehavior
+        _ -> return ()
         )
         else global `set` Beat m (i+1) 
       {--liftIO . print =<< flip cfoldM (Song (rest 0)) (\s@(Song i) ->
@@ -33,30 +35,34 @@ incrementBeat w = do
                     _ -> return (Song i)
                 )
               )
-      --}
-    
+      -- e `set` (Debug . show $ (a, Song i)) >>
+    --}
 
 --this function assigns a sound to the first open channel it finds
-playSong :: World -> Entity -> System World ()
-playSong w ent = do
+playSong :: Entity -> System World ()
+playSong ent = do
+  
   (SFXResources p s) <- get ent
-  when (s /= []) $ melodyPlay 4 (head s)
+  
+  when (s /= []) $ melodyPlay 6 (head s)
   when (p /= []) $ percPlay 0 (head p)
+ -- return ()
   where
     percPlay i mzk
-        | i <= 3 && i >= 0 = do
+        | i <= 5 && i >= 0 = do
             isP <- M.playing i
             if not isP then do
-              M.playOn i M.Once mzk >> return ()
-              M.whenChannelFinished (\_ -> runWith w ( ent `set` (NoBehavior) >> ent `destroy` (Proxy :: Proxy Debug))) -- this doesnt always proc for some reason
-            else percPlay (i+1) mzk
+              M.playOn i M.Once mzk 
+              --M.whenChannelFinished (\_ -> runWith w ( ent `set` (NoBehavior) )) -- >> ent `destroy` (Proxy :: Proxy Debug))) -- this doesnt always proc for some reason
+              return ()
+            else when (i == 5) (liftIO $ print "skipped beat") >> percPlay (i+1) mzk
         | True = return ()
     melodyPlay i mzk
-        | i <= 7 && i > 3 = do
+        | i <= 7 && i > 5 = do
             isP <- M.playing i
             if not isP then do
               M.playOn i M.Once mzk >> return ()
-              M.whenChannelFinished (\_ -> runWith w ( ent `set` (NoBehavior) >> ent `destroy` (Proxy :: Proxy Debug))) -- this doesnt always proc for some reason
+              --M.whenChannelFinished (\_ -> runWith w ( ent `set` (NoBehavior))) -- >> ent `destroy` (Proxy :: Proxy Debug))) -- this doesnt always proc for some reason
             else melodyPlay (i+1) mzk
         | True = return ()
   

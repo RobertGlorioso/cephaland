@@ -18,11 +18,19 @@ addTrailPics p (Velocity (V2 x y)) (BodyPicture (Pictures ps)) =
     --p0 -> p0
     ))
 
+nextFrame :: (Animated,BodyPicture,Sprites) -> (Animated,BodyPicture,Sprites)
+nextFrame (Loop,BodyPicture _,Sprites (p:ps)) = (Loop,BodyPicture p, Sprites (ps ++ [p]))
+nextFrame (Animate 0,BodyPicture _,Sprites (p:ps)) = (Still, BodyPicture p, Sprites (ps ++ [p]))
+nextFrame (Animate n,BodyPicture _,Sprites (p:ps)) = (Animate (n-1),BodyPicture p, Sprites (ps ++ [p]))
+nextFrame (Still,b,s) = (Still,b,s)
+nextFrame i@(_,_,Sprites []) = i
+
 render :: GameOpts -> World -> IO Picture
 render (GameOpts g) w = runWith w $ do
         cmapM_ cameraFollowPlayer
+        cmap nextFrame
         view@(Camera cam scale) <- get global :: System World Camera
-        movableEnts <- return . filter (\((b, _, _, _)) -> aabb b (Box (cam, 680, 680))) =<< (cfoldM (\a b -> return (b:a) ) [] :: System World [(Box, Position, Angle, BodyPicture)])
+        movableEnts <- return . filter (\((b, _, _, _)) -> b == In) =<< (cfoldM (\a b -> return (b:a) ) [] :: System World [(Scope, Position, Angle, BodyPicture)])
         pics <- mapM entsToPics movableEnts        
         newWorld <- return . applyView view . mconcat $ pics        
         --make the scene by combining the HUD and the current world
