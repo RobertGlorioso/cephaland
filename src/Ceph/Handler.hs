@@ -90,13 +90,13 @@ handle (EventKey press downup modifiers mscreen) = do
     (e, f) -> return ()
     
   case (press, downup, modifiers) of
-    (MouseButton LeftButton,Down,Modifiers Down Up Up) -> cmapM_ removeProjectile
+    (MouseButton LeftButton,Up,Modifiers Down Up Up) -> cmapM_ playerShootChain
     (MouseButton LeftButton,Down,Modifiers _ _ _) -> cmap $ \case
       (Player1, Charge c _) -> (Player1, Charge c True)
       a -> a
    
     (MouseButton LeftButton,Up,Modifiers _ _ _) -> do
-      cmapM_ playerShoot 
+      cmapM_ playerShootArrow
     (MouseButton RightButton, Down, Modifiers _ _ _) -> do
       cmapM_ $ \case
         (Player1, Swinging) -> cmap $ \Player1 -> NoBehavior

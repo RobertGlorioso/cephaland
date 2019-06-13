@@ -86,12 +86,18 @@ player p m = newEntity (( Position (V2 0 50)
                        , (Player1, Player)
                        , (NoBehavior, Charge 0.01 False))
 
-playerShoot :: (Charge, Position, Velocity, ProjCount, Player, Entity) -> System World ()
-playerShoot o@(c, x, v, ProjCount arrowsLeft, Player1, e) = do
+playerShootArrow :: (Charge, Position, Velocity, ProjCount, Player, Entity) -> System World ()
+playerShootArrow o@(c, x, v, ProjCount arrowsLeft, Player1, e) = do
         t <- get global 
         when (arrowsLeft >= 1) $ do
           shootArrow t x v c
           e `set` (Charge 1.0 False, ProjCount $ arrowsLeft - 1)
+
+playerShootChain :: (Charge, Position, Velocity, Player, Entity) -> System World ()
+playerShootChain o@(c, x, v, Player1, e) = do
+        t <- get global 
+        shootChains t x v c
+        e `set` (Charge 1.0 False)
 
 speedLimit = 1
 movePlayer :: V2 Float -> (Player, Velocity, Behavior) -> (Player, Velocity, Behavior)

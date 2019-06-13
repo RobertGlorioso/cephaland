@@ -72,7 +72,7 @@ chain pic = newEntity (Chain
                      )
   
 chains :: [Entity] -> Entity -> System World ()
-chains [] targ = return ()
+chains [] _ = return ()
 chains (_:lst:[]) targ = lst `set` (WLinked lst targ 1.0 )
 chains (prev:cur:nxt:rst) t = do
   cur `set` (Linked prev nxt)
@@ -85,6 +85,8 @@ chainExtended r = do
   let (_, Position p1) = minimumBy (comparing fst) ls
   let (_, Position pn) = maximumBy (comparing fst) ls
   if norm ( p1 - pn ) > r then return (True,(p1,pn)) else return (False, (p1,pn)) 
+
+
 
 moveChains :: (Linked, Weapon) -> System World (Angle, Position)
 moveChains (Linked e f, Chain) = do

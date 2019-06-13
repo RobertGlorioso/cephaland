@@ -3,6 +3,7 @@
 module Ceph.Component.Projectile where
 
 import Ceph.Components
+import Ceph.Component.Weapon
 import Ceph.Util
 import Ceph.Physics.Box
 import Ceph.Scene
@@ -75,5 +76,17 @@ shootArrow (Target at) (Position from) (Velocity v_init) (Charge c _) = conceIf 
     , Velocity $ v_init + (pure c) * normalize (at - from)
     , Angle 0
     )
-  
+
+shootChains :: Target -> Position -> Velocity -> Charge -> System World ()
+shootChains (Target at) (Position from) (Velocity v_init) (Charge c _) = conceIfM_ isInScopeArrow updateMotion where
+  isInScopeArrow (ba,bbox) = ba == Arrow && not (aabb (box from 1000 600) bbox)
+  updateMotion (Arrow,e) = do
+    e `set` ( Position from
+            , Velocity $ v_init + (pure c) * normalize (at - from)
+            , Angle 0
+            )
+    chns <- cfoldM (\es (Chain,e) -> return $ e:es) [] :: System World [Entity]
+    [pl] <- cfoldM (\pls (Player1,e) -> return $ e:pls) [] :: System World [Entity]
+    chains (pl:chns) e
+    return ()
 
