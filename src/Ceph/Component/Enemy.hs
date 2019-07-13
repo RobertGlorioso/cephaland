@@ -64,7 +64,6 @@ enemy s (am,cm) = do
     , ( ProjCount 3,
       Attack,
       Health 1,
-      SFXResources [] [],
-      Song am)
+      SFXResources [cm] am)
     )
   return ()

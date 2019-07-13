@@ -59,7 +59,6 @@ initGame = do
   set global ( Camera 0 8.0
              , Gravity $ V2 0 (-0.0095)
              , Beat 16 0
-             
              , mempty :: Sequencer
              , mempty :: SCoord
              )  
@@ -99,9 +98,9 @@ initGame = do
       b8 = perc LowFloorTom sn
       b9 = perc LowWoodBlock sn
       b10 = perc Cowbell sn
-      bm = let b = [b1,b2,b3,b4,b5,b6,b7,b8,b9,b10] in b ++ [a :=: a' | a<-take 5 b, a'<-drop 5 b]
+      bm = let b = [b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,b10] in b ++ [a :=: a' | a<-take 3 b, a'<-drop 7 b]
       
-  cm <- mapM ( M.decode . makeByteMusic ) am :: System World [M.Chunk]
+  cm <- mapM ( M.decode . makeByteMusic ) $ [a :=: b | b <- bm , a <- am]
   dm <- mapM ( M.decode . makeByteMusic ) bm 
 
 
@@ -122,11 +121,10 @@ initGame = do
   let bl (r,s,g,a) (d,o) = do
           newEntity ((Wall,Wall1)
                     , Position (V2 r s)
-                    , Angle ( if g > a then 2*pi - (g + a) / 3200 else (g + a) / 3200 )
+                    , Angle ( if g > a then 2*pi - (g + a) / 1300 else (g + a) / 1300 )
                     , Velocity 0
                     , box (V2 r s) (0.3*g) (0.3*a)
-                    , SFXResources [d] []
-                    , Song o
+                    , SFXResources [d] o
                     , BodyPicture $ Scale (0.02 * g) (0.02 * a) plante
                     ) 
           

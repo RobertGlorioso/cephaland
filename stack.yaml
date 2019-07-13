@@ -1,4 +1,4 @@
-#resolver: lts-13.12
+#resolver: lts-13.27
 resolver: lts-9.14 # for sdl2
 require-stack-version: ">= 1.7.1"
 packages:
@@ -15,8 +15,8 @@ extra-deps:
 #  - hosc-0.16
 #  - tidal-0.9.10
 #  - streamly-0.4.1
-  - Euterpea-2.0.5
-  - PortMidi-0.1.6.1
+  - Euterpea-2.0.7
+  - PortMidi-0.2.0.0
   - arrows-0.4.4.2
   - Stream-0.4.7.2
   - lazysmallcheck-0.6
@@ -24,11 +24,16 @@ extra-deps:
 #  - hamilton-0.1.0.3
 #  - hmatrix-vector-sized-0.1.1.0
 #  - lockfree-queue-0.2.3.1
-  -  sdl2-mixer-1.1.0
-  -  sdl2-ttf-2.0.2
+  - sdl2-2.4.1.0
+#  -  sdl2-mixer-1.1.0
+#  -  sdl2-ttf-2.0.2
+  - containers-0.5.11.0
+  - stm-2.4.5.1  # 2.5.0.0
 #  - vector-sized-1.0.4.0
 #  - indexed-list-literals-0.2.1.1
+#  - csound-expression-5.3.2
 
+  - binary-0.8.7.0
 
 flags: {}
 extra-package-dbs: []

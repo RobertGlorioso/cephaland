@@ -8,6 +8,11 @@ import Euterpea
 import Data.List hiding (transpose)
 import Codec.Midi
 import System.Random
+
+
+
+
+
 import Control.Monad
 import Numeric
 import Data.Char
@@ -17,15 +22,15 @@ import qualified Data.ByteString as Byte
 importSong :: String -> IO ( M.Chunk)
 importSong f = either (error) (M.decode . makeFile) =<< importFile f
 
-crds :: [SCoord]
-crds = [SCoordF x y () | x<-(toEnum <$> [0..3]),y<-(toEnum <$> [0..3])]
+--crds :: [SCoord]
+--crds = [(\px py -> SCoordF x y px py ()) |  x<-(toEnum <$> [0..3]), y<-(toEnum <$> [0..3])] <*> [(-30),(-10),10,30] <*> [(-30),(-10),10,30]
 
-incrementBeat :: World -> SystemT World IO ()
+incrementBeat :: World -> System World ()
 incrementBeat w = do
       Beat m i <- get global
       -- plays sound effects on beat
       if (m == i) then (global `set` Beat m 0) >> (global `modify` (\s  -> succ s :: SCoord)) >> cmapM_ ( \case
-        (Sing, Song _, a :: Actor, e) -> playSong e >> if ( a == Weapon ) then ( e `set` Seek ) else e `set` NoBehavior
+        (Sing, a :: Actor, e) -> liftIO ( print (a)) >> playSong e >> if ( a == Weapon ) then ( e `set` Seek ) else e `set` NoBehavior
         _ -> return ()
         )
         else global `set` Beat m (i+1) 
@@ -42,10 +47,10 @@ incrementBeat w = do
 playSong :: Entity -> System World ()
 playSong ent = do
   
-  (SFXResources p s) <- get ent
-  
-  when (s /= []) $ melodyPlay 6 (head s)
-  when (p /= []) $ percPlay 0 (head p)
+  (SFXResources p _) <- get ent
+  when (p /= []) $ M.play $ head p
+  --when (s /= []) $ melodyPlay 6 (head s)
+  --when (p /= []) $ percPlay 0 (head p)
  -- return ()
   where
     percPlay i mzk

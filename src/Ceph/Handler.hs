@@ -2,6 +2,7 @@
 module Ceph.Handler where
 
 import Ceph.Components
+import Ceph.Scene.Board
 import Ceph.Component.Projectile
 import Ceph.Component.Player
 
@@ -18,8 +19,7 @@ handle (EventResize (m1, m2)) = do
   modify global $ \(SB _) -> SB (V2 m1 m2)
 handle (EventMotion mscreen) = do
   mpos <- mouseToWorld mscreen <$> get global
-  cmap $ \(Target _) -> Target (mpos)
-  
+  cmap $ \(Target _) -> Target (mpos)  
 handle (EventKey press downup modifiers mscreen) = do
   case (press, downup) of
     (SpecialKey KeyRight, Down) -> 
@@ -90,20 +90,17 @@ handle (EventKey press downup modifiers mscreen) = do
     (e, f) -> return ()
     
   case (press, downup, modifiers) of
-    (MouseButton LeftButton,Up,Modifiers Down Up Up) -> cmapM_ playerShootChain
+    (Char 's',Up,Modifiers Down Up Up) -> (get global :: Sequencer) >>= saveBoard
+    (MouseButton LeftButton,Up,Modifiers Down Up Up) -> cmapM playerShootChain
     (MouseButton LeftButton,Down,Modifiers _ _ _) -> cmap $ \case
       (Player1, Charge c _) -> (Player1, Charge c True)
       a -> a
    
-    (MouseButton LeftButton,Up,Modifiers _ _ _) -> do
-      cmapM_ playerShootArrow
-    (MouseButton RightButton, Down, Modifiers _ _ _) -> do
-      cmapM_ $ \case
+    (MouseButton LeftButton,Up,Modifiers _ _ _) -> cmapM_ playerShootArrow
+    (MouseButton RightButton, Down, Modifiers _ _ _) -> cmapM_ $ \case
         (Player1, Swinging) -> cmap $ \Player1 -> NoBehavior
-        (Player1, _) -> playerSwinging
-            
+        (Player1, _) -> playerSwinging      
     (_,_,_) -> return ()
-            
 handle e = do
   liftIO $ print e
         

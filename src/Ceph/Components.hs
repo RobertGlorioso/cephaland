@@ -118,17 +118,19 @@ data SBoard a = SBoard
 
 data SRow = S1 | S2 | S3 | S4
   deriving (Show, Eq, Enum, Ord)
+           
 data SColumn = SI | SII | SIII | SIV
   deriving (Show, Eq, Enum, Ord)
 
 --so this is like a sequencer          
-data SCoordF a = SCoordF SRow SColumn (a)
+data SCoordF a = SCoordF SRow SColumn a
   deriving (Show, Eq, Functor)
 type SCoord = SCoordF ()
 
+--its going to loop when set up this way, with the last index sent to the first
 instance Enum (SCoord) where
-  succ (SCoordF S4 SIV _) = SCoordF S1 SI ()
-  succ (SCoordF i SIV _) = SCoordF (succ i) SI ()
+  succ (SCoordF S4 SIV  _) = SCoordF S1 SI ()
+  succ (SCoordF i SIV  _) = SCoordF (succ i) SI ()
   succ (SCoordF i j _) = SCoordF i (succ j) ()
 
 instance Monoid (SCoordF ()) where
@@ -136,6 +138,7 @@ instance Monoid (SCoordF ()) where
   
 instance Component (SCoordF ()) where
   type Storage (SCoordF ()) = Global (SCoordF ())
+
 
 type Sequencer = SBoard Entity --(Music Pitch, Picture)
 instance Component (Sequencer) where
@@ -155,7 +158,7 @@ type MCoord = MCoordF ()
 
 data IBoard a = IBoard
   a a a a a a a a a a a a
-  deriving (Eq,Functor)
+  deriving (Show,Eq,Functor)
 
 --this would be like an Instrument 
 data ICoordF a = ICoordF Pitch Dur (a)
@@ -166,7 +169,7 @@ data Sprites = Sprites [Picture]
 instance Component Sprites where
   type Storage Sprites = Map Sprites
   
-data SFXResources = SFXResources { percussion :: [M.Chunk] , melody :: [M.Chunk] } deriving (Show,Eq)
+data SFXResources = SFXResources { sound :: [M.Chunk] , song :: Music Pitch } deriving (Show,Eq)
 instance Component SFXResources where
   type Storage SFXResources = Map SFXResources
 
@@ -177,10 +180,10 @@ instance Component Box where
 newtype Grid = Grid (IntMap (IntMap ())) deriving Show
 instance Component Grid where type Storage Grid = Unique Grid
 
-newtype Position = Position (V2 Float) deriving (Num, Show)
+newtype Position = Position (V2 Float) deriving (Num, Eq, Show)
 instance Component Position where type Storage Position = Cache 100 (Map Position)
 
-newtype Velocity = Velocity (V2 Float) deriving (Num, Show)
+newtype Velocity = Velocity (V2 Float) deriving (Num, Eq, Show)
 instance Component Velocity where type Storage Velocity = Cache 100 (Map Velocity)
 
 newtype Gravity = Gravity (V2 Float) deriving Show
@@ -233,9 +236,7 @@ makeWorld "World" [''Sequencer, ''SCoord, ''Camera, ''Scope, ''BodyPicture, ''Pl
 
 type Physics = (Position, Velocity, Angle, Box, Actor)
 
-type Sound = (SFXResources, Song)
-
-type Meta = (BodyPicture, Scope, Behavior)
+type Bnce = (SFXResources, Scope, Behavior,Projectile)
 
 {--keyActor = Key @"Actor"
 

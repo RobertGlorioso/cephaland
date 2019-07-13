@@ -59,7 +59,8 @@ library
                , bytestring
                , containers
                , contravariant >= 1.4
-               --, csound-expression
+
+             --, csound-expression
                , distributive
                , first-class-families
                , directory
@@ -133,7 +134,7 @@ executable ceph
               , random
               , safe
               , safe-exceptions
-              , sdl2
+              , sdl2 >= 2.4.1.0
               , sdl2-image
               , sdl2-mixer
               , sdl2-ttf

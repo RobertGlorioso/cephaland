@@ -21,6 +21,7 @@ import Ceph.Scene
 import Ceph.Components
 import Ceph.Component.Player
 import Ceph.Component.Enemy
+import Ceph.Component.Levels
 import Ceph.Physics.Box
 import Apecs
 import Linear
@@ -28,12 +29,16 @@ import Data.Bool
           
 stepper :: Float -> World -> IO World
 stepper _ !w = runWith w $ do
+  
   incrementBeat w
-  [(Player1, Position p)] <- cfoldM (\a b -> return (b:a) ) []
+  
   cmap $ \(Player1,b :: Behavior) -> (Player1, Debug (show b))
+
   cmapM playerLoop
   cmap nextFrame
   
+  [(Player1, Position p)] <- cfoldM (\a b -> return (b:a) ) []
+  randomizeGridCell (Position p)
   enemyLoop p
   motion
   return w
@@ -44,6 +49,7 @@ stepper _ !w = runWith w $ do
         c@( b, p, _, Plant, f) -> (b,p,0,Plant,f)
         (Box (_,w,h), Position p, Velocity v, s, Weapon) -> (Box (p+v,w,h), Position $ p + v, Velocity v, s, Weapon)
         (Box (_,w,h), Position p, Velocity v, Seek, f) -> (Box (p+v,w,h), Position $ p + v, Velocity v, Seek, f)
+        (Box (_,w,h), Position p, Velocity v, s, Projectile) -> (Box (p+v,w,h), Position $ p + v, Velocity $ 0.1 * g + v, s, Projectile)
         (Box (_,w,h), Position p, Velocity v, Moving v2, f) -> (Box (p+v,w,h), Position $ p + v, if norm v < speedLimit then Velocity $ v + v2 + g else Velocity $ pure (0.9*speedLimit) * normalize v, Moving v2, f)
         (Box (_,w,h), Position p, Velocity v, e, Player) -> (Box (p+v,w,h), Position $ p + v, if norm v < speedLimit then Velocity $ v + g else Velocity $ pure speedLimit * normalize v, e, Player)
         (Box (_,w,h), Position p, Velocity v, e, f) -> (Box (p+v,w,h), Position $ p + v, Velocity $ v + g, e, f)

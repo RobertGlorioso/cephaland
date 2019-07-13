@@ -72,17 +72,17 @@ playerLoop (_,Player1, Dash dx, Velocity v, b@(Box (p1,_,_)), a, Charge cv chgin
   let dsh
         | dx < 8.0 = Dash (dx + 0.3)
         | True     = Dash dx
-                                     
+                                       
   e `set` (Player, Angle (v2ToRad $ p1 - tp), chg, dsh, Velocity v )     
-      
+
+
 player :: Picture -> Music Pitch -> System World Entity
 player p m = newEntity (( Position (V2 0 50)
                         , 0 :: Velocity
                         , BodyPicture $ Scale (0.05) (0.05) p 
                         , Box (0, 0.1, 0.1))
                        , (ProjCount 30, Health 99, Dash 0)
-                       , Song m
-                       , SFXResources [] []
+                       , SFXResources [] m
                        , (Player1, Player)
                        , (NoBehavior, Charge 0.01 False))
 
@@ -93,11 +93,11 @@ playerShootArrow o@(c, x, v, ProjCount arrowsLeft, Player1, e) = do
           shootArrow t x v c
           e `set` (Charge 1.0 False, ProjCount $ arrowsLeft - 1)
 
-playerShootChain :: (Charge, Position, Velocity, Player, Entity) -> System World ()
-playerShootChain o@(c, x, v, Player1, e) = do
+playerShootChain :: (Charge, Position, Velocity, Player) -> System World (Charge, Behavior)
+playerShootChain o@(c, x, v, Player1) = do
         t <- get global 
         shootChains t x v c
-        e `set` (Charge 1.0 False)
+        return (Charge 1.0 False,Swinging)
 
 speedLimit = 1
 movePlayer :: V2 Float -> (Player, Velocity, Behavior) -> (Player, Velocity, Behavior)
@@ -113,7 +113,7 @@ playerSwinging = do
   conceIfM_
     (\case
         (_, Out, _, _) -> False
-        (Wall1, In, n, c) -> let new_b = (snd $ rotate_box_cw c n (Position t,Box (t, 0.5, 0.5))) in touched new_b c
+        (Wall1, In, n, c) -> let new_b = (snd $ rotate_box_cw c (Position t,Box (t, 0.5, 0.5) ) n) in touched new_b c
     )
     (\(Wall1) -> do
         cmap $ \(Player1) -> Swinging --return Swinging 

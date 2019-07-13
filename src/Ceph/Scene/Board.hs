@@ -75,7 +75,6 @@ instance Adjunction ICoordF IBoard where
   unit a = tabulate (\(ICoordF row col _ ) -> ICoordF row col a)
   counit (ICoordF row col board) = index board (ICoordF row col ())
 
---i think music is too ethereal to be represented!
 instance Distributive Music where
   distribute = distributeRep
 
@@ -98,6 +97,11 @@ instance (Show a) => Show (SBoard a) where
 instance Distributive SBoard where
   distribute = distributeRep
   
+instance Adjunction SCoordF SBoard where
+  --unit :: a -> SBoard (SCoordF a)
+  unit a = tabulate (\(SCoordF row col _ ) -> SCoordF row col a)
+  counit (SCoordF row col board) = index board (SCoordF row col ())
+
 instance Representable SBoard where
   -- We index into our functor using Coord
   type Rep SBoard = SCoord
@@ -126,11 +130,6 @@ instance Representable SBoard where
       (desc (SCoordF S3 SI ()), desc (SCoordF S3 SII ()), desc (SCoordF S3 SIII ()), desc (SCoordF S3 SIV ()))
       (desc (SCoordF S4 SI ()), desc (SCoordF S4 SII ()), desc (SCoordF S4 SIII ()), desc (SCoordF S4 SIV ()))
 
-instance Adjunction SCoordF SBoard where
-  --unit :: a -> SBoard (SCoordF a)
-  unit a = tabulate (\(SCoordF row col _ ) -> SCoordF row col a)
-  counit (SCoordF row col board) = index board (SCoordF row col ())
-
 defineSB :: SCoord -> SCoord -> (Picture)
 defineSB  s s'@(SCoordF S1 SI _) = Translate (-30) 30 $ circ s s'
 defineSB  s s'@(SCoordF S1 SII _) = Translate (-10) 30 $ circ s s'
@@ -158,7 +157,6 @@ updateBoard ::
   (Eq (f ()), Adjunction f g) => g b -> f () -> b -> g b
 updateBoard b s a = leftAdjunct (updateB b s a) ()
   where updateB board ixToChange update anyIx = if ixToChange == anyIx then update else rightAdjunct (const board) anyIx
-
         
 bdSing :: SCoord -> SCoord -> Bool
 bdSing s s' 
@@ -171,19 +169,34 @@ bset bd cd = zapWithAdjunction (\e c -> e `set` c) bd cd
 bget :: (Get w m c) => SBoard Entity -> SCoordF c -> SystemT w m c
 bget bd cd = zapWithAdjunction (\e _ -> get e) bd cd  
 
+saveBoard :: Sequencer -> System World ()
+saveBoard s = do
+  ms <- mapM getMusic s
+  liftIO (writeMidi "ceph.mid" $ Euterpea.line $ toList ms)
+
+toList = foldl (\b a -> a : b) []
+
+getPic e = do 
+  (BodyPicture p) <- get e
+  return (Scale 0.2 0.2 p)
+
+getMusic e = do 
+  (Song p) <- get e
+  return p
+
 soundBoard :: Sequencer -> SCoord -> System World Picture
 soundBoard bd s = do
-  sbp <- mapM (getPic) bd
-  
+  sbp <- mapM (getPic) bd --gets the pictures out of the entities in the board
+
+  --combine the entity picture with the indicator of the board's current coordinate
   picBoard <- return $ (\(b,Translate x y a) -> Translate x y $ Pictures [a,b]) <$> zipR (sbp, tabulate (defineSB s))
-  e <- return $ rightAdjunct (const bd) s
+
+  e <- return $ rightAdjunct (const bd) s --extracts the entity that matches the coordinate in the board
+  --play the entity sound on beat
   Beat m i <- get global
   when (m == i) $ do
-    (\d -> (Entity 1) `set` (In, Debug $ show d)) =<< bget bd (fmap (const $ Song $ rest qn) s)
+    (\d -> (Entity 1) `set` (In, Debug $ show d)) =<< bget bd (fmap (const $ SFXResources [] $ rest qn) s)
     playSong e
 
   return . Pictures . toList $ picBoard
-  where toList = foldl (\b a -> a : b) []
-        getPic e = do
-          (BodyPicture p) <- get e
-          return (Scale 0.2 0.2 p)
+ 

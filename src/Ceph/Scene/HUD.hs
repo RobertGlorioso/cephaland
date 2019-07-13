@@ -14,14 +14,6 @@ import Graphics.Gloss
 import Linear (V2(..))
 import Apecs
 
-getDebugs :: System World ()
-getDebugs = do
-  DebugMode i <- get global
-  if i == 0 then 
-    cmap $ ((\c -> Debug $ show c) :: Physics -> Debug)
-    else if i == 1 then
-      cmap $ ((\c -> Debug $ show c) :: Meta -> Debug)
-      else return ()
 
 debugToPic :: ScreenBounds -> [Debug] -> [Picture]
 debugToPic (SB (fmap fromIntegral ->  (V2 w h))) d = zipWith (\z (Debug str) -> Translate (-(w/2)) z $ Scale 0.07 0.07 $ color yellow $ Text str) [h/2 - 20,h/2 - 40..] d

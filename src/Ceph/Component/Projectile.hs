@@ -25,8 +25,7 @@ newArrow p (am,cm) =
                , Arrow
                , BodyPicture $ Scale 0.1 0.1 p
                , Box (2e7, 0.1, 0.07)
-               , SFXResources [] [cm]
-               , Song am
+               , SFXResources [cm] am
                )
              )
 
@@ -38,9 +37,8 @@ newBullet ps (am,cm) =
             , Seek
             , ( Bullet, Projectile )
             , ( Box (2e7, 0.75, 0.2)
-              , Song am
               , Sprites (fmap ( Scale 0.05 0.02 ) ps)
-              , SFXResources [] [cm]
+              , SFXResources [cm] am
               , BodyPicture $ Pictures $ fmap ( Scale 0.05 0.02 ) ps
               )
             )
