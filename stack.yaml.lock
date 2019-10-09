@@ -12,33 +12,19 @@ packages:
   original:
     hackage: apecs-0.7.1
 - completed:
+    hackage: astar-monad-0.3.0.0@sha256:8871d04a65f0b59ffb51560fd03c79353cb196b62a055c8ae93746b9a97415d8,1463
+    pantry-tree:
+      size: 448
+      sha256: 2d56b056abc21a495c25528c4dc349b89fad6f497d192edd26ef2a97060bb992
+  original:
+    hackage: astar-monad-0.3.0.0
+- completed:
     hackage: first-class-families-0.5.0.0@sha256:6e1488c502d5b1e780739a53edab65a307c6bf94d4232fab70e696e87f0fa087,1290
     pantry-tree:
       size: 847
       sha256: 9289ea3bef39f4aae774cfe466810ee55989b1ef58de33a7c9668df8b0657b1d
   original:
     hackage: first-class-families-0.5.0.0
-- completed:
-    hackage: gloss-juicy-0.2.3@sha256:0c3bca95237cbf91f8b3b1936a0661f1e0457acd80502276d54d6c5210f88b25,1618
-    pantry-tree:
-      size: 273
-      sha256: 914c08509bc3da4707d90e542b44833ca1a62abc83c2848f87df3d7a7a1d7e03
-  original:
-    hackage: gloss-juicy-0.2.3
-- completed:
-    hackage: gloss-1.13.0.1@sha256:3015998c5a46fbd2ca8702be6fb97d4bec8e75108ce07f88f1935a168918cfdb,4197
-    pantry-tree:
-      size: 3807
-      sha256: f061550d18801f8ef70c518f5f757ec07f0e58e5a9e12ef8fba151a52bae39f8
-  original:
-    hackage: gloss-1.13.0.1
-- completed:
-    hackage: gloss-rendering-1.13.0.2@sha256:30e26a42cf1cd8d96ae605fd51e533d20e0a53c09536d63c59f2759f11fba764,1718
-    pantry-tree:
-      size: 895
-      sha256: 450697cac1ade79819878f0f58adca1bea1481982d1c0416f44e03748ffbbb51
-  original:
-    hackage: gloss-rendering-1.13.0.2
 - completed:
     hackage: Euterpea-2.0.7@sha256:81d583a47d483bf83ac07df7b764138f1aa52a56db4e7c7f685d070dbac4b388,2661
     pantry-tree:
@@ -68,6 +54,20 @@ packages:
   original:
     hackage: Stream-0.4.7.2
 - completed:
+    hackage: StateVar-1.1.1.1@sha256:cd3b516a49faf0627ea31885e012611e63600824976dcb276bcb2e92cdb0790f,1417
+    pantry-tree:
+      size: 314
+      sha256: d2b673886d4d8866aecb9b7f32ec6719fa9a8f8d2ccccea059edc3c45db4e1f0
+  original:
+    hackage: StateVar-1.1.1.1
+- completed:
+    hackage: text-1.2.3.1@sha256:ceb05f2a77b82bffe58c9ce8d8ad447191e4509bd28c14bf3da610bd6b82a62b,8560
+    pantry-tree:
+      size: 7456
+      sha256: c9b38b60593401bb378b694a42b085d46f74f97d86d39edeb01a616965f2b581
+  original:
+    hackage: text-1.2.3.1
+- completed:
     hackage: lazysmallcheck-0.6@sha256:dac7a1e4877681f1260309e863e896674dd6efc1159897b7945893e693f2a6bc,1696
     pantry-tree:
       size: 2008
@@ -89,19 +89,19 @@ packages:
   original:
     hackage: sdl2-2.4.1.0
 - completed:
+    hackage: sdl2-mixer-1.1.0@sha256:c809aecd91ebf9c759af66eebaa4f45f766f2603c13a73412abfd0bd1e02071a,3067
+    pantry-tree:
+      size: 686
+      sha256: 8714da5931e9420398b2845632a6977b1f5760ad01103769e5daa3708c529086
+  original:
+    hackage: sdl2-mixer-1.1.0
+- completed:
     hackage: containers-0.5.11.0@sha256:28ad7337057442f75bc689315ab4ec7bdf5e6b2c39668f306672cecd82c02798,16685
     pantry-tree:
       size: 4849
       sha256: faa4e75922a28f7cfe9920c1d7ab3866b792cefcd29bf79f54cfe3b6b5f57cbf
   original:
     hackage: containers-0.5.11.0
-- completed:
-    hackage: stm-2.4.5.1@sha256:58277444d1abca90ea947cd04a4a5d219eb5013cdba4178d168659b56294c3d8,2076
-    pantry-tree:
-      size: 898
-      sha256: 6eb4e823293fc1f53459135269fb38d9926234ef589526e5ab57f9380aa4d29f
-  original:
-    hackage: stm-2.4.5.1
 - completed:
     hackage: binary-0.8.7.0@sha256:ae3e6cca723ac55c54bbb3fa771bcf18142bc727afd57818e66d6ee6c8044f12,7705
     pantry-tree:
@@ -111,7 +111,7 @@ packages:
     hackage: binary-0.8.7.0
 snapshots:
 - completed:
-    size: 536352
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/9/14.yaml
-    sha256: 9e880f85f76b7f35a2b6edd1af333ce7f7845d47e897c3509ddd18eaa2763779
-  original: lts-9.14
+    size: 524104
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/14/5.yaml
+    sha256: 3c146eebc1b383211ea49d5422fb3d63d699da12307b4bc989107300eb579d60
+  original: lts-14.5

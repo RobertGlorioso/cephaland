@@ -10,8 +10,8 @@ version:        0.0.1
 synopsis:       platformer game 
 description:    platformer game 
 category:       Game
-homepage:       https://github.com/grousebert/cephaland#readme
-bug-reports:    https://github.com/grousebert/cephaland/issues
+homepage:       --
+bug-reports:    --
 maintainer:     Robert
 copyright:      2018 Robert
 license:        BSD3
@@ -24,24 +24,24 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/grousebert/cephaland
+  location: 
 
 library
   exposed-modules:
-      Ceph.Component.Levels
-      Ceph.Component.Enemy
-      Ceph.Component.Projectile
-      Ceph.Component.Weapon
-      Ceph.Components
-      Ceph.Handler
-      Ceph.Jams
-      Ceph.Physics
-      Ceph.Physics.Box
-      Ceph.Scene
-      Ceph.Scene.Camera
-      Ceph.Scene.HUD
-      Ceph.Util
-      Main
+        Ceph.Component.Levels
+        Ceph.Component.Enemy
+        Ceph.Component.Projectile
+        Ceph.Component.Weapon
+        Ceph.Components
+        Ceph.Handler
+        Ceph.Jams
+        Ceph.Physics
+        Ceph.Physics.Box
+        Ceph.Scene
+        Ceph.Scene.Camera
+        Ceph.Scene.HUD
+        Ceph.Util
+        Main
   other-modules:
       Paths_ceph
   hs-source-dirs:
@@ -54,33 +54,33 @@ library
                , adjunctions
                , aeson
                , apecs >= 0.7.1
+               , astar-monad
                --, apecs-stm >= 0.1.1
                , base >=4.7 && <5
                , bytestring
                , containers
                , contravariant >= 1.4
-
              --, csound-expression
                , distributive
                , first-class-families
                , directory
                , gloss
-               , gloss-juicy
+               --, gloss-juicy
                , groups
                , lens
                , linear
                , mtl
                , optparse-applicative
+               , polysemy
                , random
                , safe
                , safe-exceptions
                , sdl2
-               , sdl2-image
+               --, sdl2-image
                , sdl2-mixer
                , sdl2-ttf
                , singletons
                , template-haskell
-               
                , text
                , text-conversions
                , time
@@ -89,22 +89,23 @@ library
 
 executable ceph
   main-is: Main.hs
-  other-modules: Ceph.Component.Levels
-                 Ceph.Component.Enemy
-                 Ceph.Component.Projectile
-                 Ceph.Component.Player
-                 Ceph.Component.Weapon
-                 Ceph.Components
-                 Ceph.Handler
-                 Ceph.Jams
-                 Ceph.Physics
-                 Ceph.Physics.Box
-                 Ceph.Scene
-                 Ceph.Scene.Board
-                 Ceph.Scene.Camera
-                 Ceph.Scene.HUD
-                 Ceph.Util
-                 Paths_ceph
+  other-modules:
+      Ceph.Component.Levels
+        Ceph.Component.Enemy
+        Ceph.Component.Projectile
+        Ceph.Component.Player
+        Ceph.Component.Weapon
+      Ceph.Components
+        Ceph.Handler
+        Ceph.Jams
+        Ceph.Physics
+        Ceph.Physics.Box
+        Ceph.Scene
+        Ceph.Scene.Board
+        Ceph.Scene.Camera
+        Ceph.Scene.HUD
+        Ceph.Util
+          Paths_ceph
   hs-source-dirs:
       src
   default-extensions: DuplicateRecordFields FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving LambdaCase NamedFieldPuns ScopedTypeVariables OverloadedStrings
@@ -117,6 +118,7 @@ executable ceph
               
               , aeson
               , apecs >= 0.7.0
+              , astar-monad
               , base >= 4.7 && <5
               , bytestring
               , containers
@@ -125,17 +127,18 @@ executable ceph
               , distributive
               , first-class-families
               , gloss
-              , gloss-juicy
+              --, gloss-juicy
               , groups
               , lens
               , linear
               , mtl
               , optparse-applicative
+              , polysemy
               , random
               , safe
               , safe-exceptions
               , sdl2 >= 2.4.1.0
-              , sdl2-image
+              --, sdl2-image
               , sdl2-mixer
               , sdl2-ttf
               , singletons

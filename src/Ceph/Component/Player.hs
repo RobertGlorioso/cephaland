@@ -15,6 +15,8 @@ import Ceph.Component.Weapon
 import Ceph.Component.Enemy
 import Euterpea
 import Graphics.Gloss
+import Foreign.C.Types
+import qualified SDL as S
 
 playerLoop :: (BodyPicture, Player, Dash, Velocity, Box, Behavior, Charge, Entity) -> System World ()
 playerLoop (_, Player1, _, v0@(Velocity vv@(V2 vx _)) , _, Moving v2, _, e) = do
@@ -76,15 +78,15 @@ playerLoop (_,Player1, Dash dx, Velocity v, b@(Box (p1,_,_)), a, Charge cv chgin
   e `set` (Player, Angle (v2ToRad $ p1 - tp), chg, dsh, Velocity v )     
 
 
-player :: Picture -> Music Pitch -> System World Entity
-player p m = newEntity (( Position (V2 0 50)
+player :: Txtr -> System World Entity
+player p = newEntity (( Position (V2 0 50)
                         , 0 :: Velocity
-                        , BodyPicture $ Scale (0.05) (0.05) p 
-                        , Box (0, 0.1, 0.1))
+                        , Gravity (V2 0 (0.1))
+                        , BodyPicture p
+                        , Box (0, 1, 1))
                        , (ProjCount 30, Health 99, Dash 0)
-                       , SFXResources [] m
                        , (Player1, Player)
-                       , (NoBehavior, Charge 0.01 False))
+                       , (NoBehavior, Charge 0.01 False, SFXResources [] []))
 
 playerShootArrow :: (Charge, Position, Velocity, ProjCount, Player, Entity) -> System World ()
 playerShootArrow o@(c, x, v, ProjCount arrowsLeft, Player1, e) = do
@@ -99,8 +101,10 @@ playerShootChain o@(c, x, v, Player1) = do
         shootChains t x v c
         return (Charge 1.0 False,Swinging)
 
-speedLimit = 1
-movePlayer :: V2 Float -> (Player, Velocity, Behavior) -> (Player, Velocity, Behavior)
+speedLimit :: CDouble
+speedLimit = 4
+
+movePlayer :: V2 CDouble -> (Player, Velocity, Behavior) -> (Player, Velocity, Behavior)
 movePlayer v c@(d, p, Swinging) = (d, p + Velocity (10*v), Swinging )  
 movePlayer v c@(d, Velocity p, b)
   | norm p > speedLimit = (d, Velocity p,b)
@@ -109,7 +113,8 @@ movePlayer v c@(d, Velocity p, b)
 playerSwinging :: System World ()
 playerSwinging = do
   ls <- cfoldM (\a b -> return (b:a)) [] :: System World [(Linked, (Position, Entity))]
-  [(Target t)] <- cfoldM (\a b -> return (b:a)) []
+  tt <- cfoldM (\a b -> return (b:a)) []
+  let [(Target t)] = tt 
   conceIfM_
     (\case
         (_, Out, _, _) -> False
@@ -124,8 +129,6 @@ playerDash (Target o) pp@(Player1, Position p,_, Dash w) = do
   if w >= 2.0
   then (Player1, Position p, Velocity $ normalize (o - p), Dash (-2.0))
   else pp      
-
-
 
 hurtPlayer  :: (Box,Projectile) -> (Box, Health, Player) -> Health
 hurtPlayer ((Box painBox),Bullet) (Box plBox, h, _)  = if (aabb (Box painBox) (Box plBox)) then (h - 10) else h

@@ -17,139 +17,125 @@ import Ceph.Component.Weapon
 import Ceph.Handler
 import Ceph.Jams
 import Apecs
-import Data.List (zip4)
+import Data.List (isInfixOf,isPrefixOf,zip4)
 import Data.Bool
+import Data.Time.Clock
 import Options.Applicative
-import Graphics.Gloss
-import Graphics.Gloss.Juicy
-import Graphics.Gloss.Interface.IO.Game
 import Control.Monad
+import Control.Concurrent
 import System.Random
+import System.Directory
 import Data.Monoid
 import Linear (V2(..))
-import qualified SDL.Mixer as M
+import qualified SDL.Mixer as M 
+--import qualified SDL.Image as I
+import qualified SDL.Font as F
+import qualified Data.Text as T
 import qualified SDL as S
+import SDL.Input
+import Foreign.C.Types
 import Euterpea
+
+main' :: IO ()
+main' = do
+  t1 <- getCurrentTime
+  threadDelay 10000000
+  t2 <- getCurrentTime
+  writeFile "time.txt" (show . round $ 100000 * diffUTCTime t2 t1)
 
 main :: IO ()
 main = do
-  S.initialize [S.InitAudio]
+  S.initialize [S.InitVideo, S.InitAudio]
+  M.initialize []
   M.openAudio M.defaultAudio 256
+  window <- S.createWindow "My SDL Application" S.defaultWindow
+  S.showWindow window
+  renderer <- S.createRenderer window (-1) S.defaultRenderer
   w <- initWorld
+  runSystem (initGame renderer) w
   let opts = info (parseopts <**> helper)
         $ fullDesc
           <> progDesc "The Ceph Game"
-          <> header "--debug turns on debugging" 
+          <> header "--debug turns on debugging logs" 
   o <- liftIO (execParser opts)
-  runSystem (initGame) w
-  render o w
-  stepper (1/60) w
-  playIO (InWindow "CEPH" (640,480) (100,100)) (mixColors 0.5 0.5 black violet) 60 w (render o) (\e w -> runSystem (handle e) w >> return w) (stepper)
-  M.closeAudio
-  M.quit
+  mainLoop w renderer
+  S.destroyRenderer renderer
+  S.destroyWindow window
   S.quit
+  where 
+    initGame r = do
+          beatsFiles <- liftIO $ getDirectoryContents "./resource/sfx"
+                        >>= return . filter ((&&) <$> isInfixOf ".wav"  <*> ( flip elem ['A'..'Z'] . head ))
+          pianosFiles <- liftIO $ getDirectoryContents "./resource/sfx"
+                        >>= return . filter ((&&) <$> isInfixOf ".wav"  <*> ( flip elem ['a'..'z'] . head ))
+          bcs <- liftIO $ mapM (\f -> M.load $ "./resource/sfx/" ++ f) beatsFiles :: System World [M.Chunk]
+          pfs <- liftIO $ mapM (\f -> M.load $ "./resource/sfx/" ++ f) pianosFiles :: System World [M.Chunk]
+          set global ( Camera 0 1.0
+                , SDLRenderer r
+                , Beat 30 0
+                , mempty :: Sequencer
+                , mempty :: SCoord
+                )
+          let enemyFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/squid1.bmp" 
+          let chainFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/chain2.bmp"
+          let wallFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/coral1.bmp"
+          let octoFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/octo2.bmp"
+          
+          chnTexture <- liftIO $ loadTxtr r chainFile
+          wallTexture <- liftIO $ loadTxtr r wallFile
+          octoTexture <- liftIO $ loadTxtr r octoFile
+          enmTexture <- liftIO $ loadTxtr r enemyFile
+          targ <- newEntity (Target 0,Box (0,0,0),Angle 0,Position 0)
+          let bl (r,s,g,a) (d,o) = do
+                    newEntity ((Wall,Wall1)
+                              , Position (V2 r s)
+                              , Angle ( if g > a then 2*pi - (g + a) / 10 else (g + a) / 10 )
+                              , Velocity 0
+                              , box (V2 r s) (g) (a)
+                              , SFXResources [d,o] []
+                              , BodyPicture $ wallTexture -- (\(Txtr t size) -> Txtr t (S.Rectangle 0 $ S.V2 (round $ 2 * g) (round $ 2 * a))) wallTexture
+                              ) 
+                    
+          walls <- liftIO $
+            zip4 <$>
+              randomDonutBox 200 600 900
+              <*> randomDonutBox 200 600 400
+              <*> replicateM 100 (randomRIO (20,50 :: CDouble))
+              <*> replicateM 100 (randomRIO (20,50 :: CDouble))
+          mapM_ (\(w, b) -> bl w b) $ zip walls (zip bcs pfs )
+            
+          pl <- player octoTexture
+          chns <- replicateM 10 (chain chnTexture)
+          chains (pl:chns) targ
+          
+          --mapM_ (newArrow (polygon [(0,0),(1,0),(1,2)])) $ concat . replicate 10 $ zip am cm
+          --mapM_ (newBullet bults) $ concat . replicate 10 $ zip am cm
+                      
+          --replicateM_ 10 $ enemy enmTexture
+          
+          newEntity ( Grid mempty )
+          
+          cmap (\bx -> bool Out In $ aabb bx (Box (0, 600, 600)))
+    
+          randomizeGridCell 0  
+    
+    
+
+mainLoop :: World -> S.Renderer -> IO ()
+mainLoop w renderer = do
+  events <- S.pollEvents
+  t1 <- getCurrentTime
+  let quit = elem S.QuitEvent $ map S.eventPayload events
+  S.clear renderer
+  S.rendererDrawColor renderer S.$= S.V4 190 190 190 255
+  render w
+  S.present renderer
+  physicsStep w
+  t2 <- getCurrentTime
+  let d = round $ (100000) * (diffUTCTime t2 t1)
+  when (d < 16000) $ threadDelay (16000 - d)
+  unless (quit) (mainLoop w renderer )
 
 parseopts = GameOpts <$> switch
   ( long "debug"
     <> help "Turn on in-game debug hud" )
-
-initGame :: System World ()
-initGame = do
-  
-  set global ( Camera 0 8.0
-             , Gravity $ V2 0 (-0.0095)
-             , Beat 16 0
-             , mempty :: Sequencer
-             , mempty :: SCoord
-             )  
-  -- make some euterpea sounds
-  let e1 = e 3 qn 
-      e2 = fs 3 qn 
-      e3 = gs 3 qn
-      m1 = transpose 7 $ e1
-      m2 = transpose 7 $ e2
-      m3 = transpose 7 $ e3
-      o1 = instrument HammondOrgan $ m1 :=: m2 :=: m3
-      o2 = transpose 2 o1
-      o3 = transpose 5 o1
-      n1 = instrument HammondOrgan $ e3 :=: e2 :=: e1
-      n2 = transpose 2 n1
-      n3 = transpose 5 n1
-      j1 = [n1, n2]
-      j2 = [n3, n2]
-      j3 = [n3, n1]
-      l1 = [o2, o1]
-      l2 = [o2, o3]
-      l3 = [o1, o3]
-      u1 = tempo 0.1 $ t1 42 AcousticGrandPiano
-      u2 = tempo 0.5 $ t1 14 ElectricGuitarJazz
-      u3 = tempo 0.2 $ t1 2 OverdrivenGuitar
-      u4 = tempo 0.1 $ t1 5 Banjo
-      am = [o1,o2,o3,n1,n2,n3] -- Euterpea.chord <$> fpow ( take 36 $ cycle [j1,j2,j3,l1,l2,l3] ) 6 (take 6) (drop 6) -- [u1,u2,u3,u4]
-
-      b0 = rest sn
-      b1 = perc HiMidTom sn
-      b2 = perc HiBongo sn
-      b3 = perc HighFloorTom sn
-      b4 = perc HiWoodBlock sn
-      b5 = perc BassDrum1 sn
-      b6 = perc LowMidTom sn
-      b7 = perc LowBongo sn
-      b8 = perc LowFloorTom sn
-      b9 = perc LowWoodBlock sn
-      b10 = perc Cowbell sn
-      bm = let b = [b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,b10] in b ++ [a :=: a' | a<-take 3 b, a'<-drop 7 b]
-      
-  cm <- mapM ( M.decode . makeByteMusic ) $ [a :=: b | b <- bm , a <- am]
-  dm <- mapM ( M.decode . makeByteMusic ) bm 
-
-
-  --read in sprites
-  
-  let handlePic = maybe
-        (error "img not loading")
-        return
-  
-  plante <- liftIO $ handlePic =<< loadJuicy "./resource/image/coral1.png" 
-  squid <- liftIO $ handlePic =<< loadJuicy "./resource/image/squid1.png"
-  arw <- liftIO $ handlePic =<< loadJuicy "./resource/image/arrow.png"
-  octo <- liftIO $ handlePic =<< loadJuicy "./resource/image/octo2.png"
-  bults <- liftIO $ mapM (\b -> handlePic =<< loadJuicy b) ["./resource/image/bullet1.png","./resource/image/bullet2.png","./resource/image/bullet3.png"]
-
-  --moving target for grappling and shooting
-  targ <- newEntity (Target 0,Box (0,0,0),Angle 0,Position 0)
-  let bl (r,s,g,a) (d,o) = do
-          newEntity ((Wall,Wall1)
-                    , Position (V2 r s)
-                    , Angle ( if g > a then 2*pi - (g + a) / 1300 else (g + a) / 1300 )
-                    , Velocity 0
-                    , box (V2 r s) (0.3*g) (0.3*a)
-                    , SFXResources [d] o
-                    , BodyPicture $ Scale (0.02 * g) (0.02 * a) plante
-                    ) 
-          
-  walls <- liftIO $
-    zip4 <$>
-      randomDonutBox 200 600 900
-      <*> randomDonutBox 200 600 400
-      <*> replicateM 200 (randomRIO (20,100 :: Float))
-      <*> replicateM 200 (randomRIO (20,100 :: Float))
-  mapM_ (uncurry bl) $ zip walls (zip dm bm)
-  
-  pl <- player octo n3
-  chns <- replicateM 10 (chain plante)
-  chains (pl:chns) targ
-
-  mapM_ (newArrow arw) $ concat . replicate 10 $ zip am cm
-  mapM_ (newBullet bults) $ concat . replicate 10 $ zip am cm
-            
-  mapM_ (enemy squid) $ take 10 $ zip bm dm 
-
-  newEntity ( Grid mempty )
-
-  cmap (\bx -> bool Out In $ aabb bx (Box (0, 400, 400)))
-
-  randomizeGridCell 0  
-
-  return ()
-

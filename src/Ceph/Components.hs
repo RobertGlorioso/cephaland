@@ -22,6 +22,8 @@ import Data.IntMap hiding (insert)
 import Graphics.Gloss.Interface.IO.Game
 import Data.Time.Clock
 import qualified SDL.Mixer as M
+import qualified SDL as S
+import Foreign.C.Types
 
 data GameOpts = GameOpts { debugOn :: Bool }
 
@@ -35,7 +37,9 @@ instance Component DebugMode where
 
 instance Monoid DebugMode where
   mempty = DebugMode 0
-
+instance Semigroup DebugMode where
+  (<>) = const
+  
 --these are the guys in the game. if we want to use all these guys in the game loop we use this type.
 --`cmap :: Actor -> ...` will loop in everything where `cmap :: Wall -> ...` will loop in just walls
 data Actor = Player | Enemy | Wall | Weapon | Projectile deriving (Show,Eq)
@@ -68,7 +72,7 @@ instance Component Projectile where
   type Storage Projectile = Map Projectile
 
 --links between two entities and weighted links to add some variance
-data Linked = Linked Entity Entity | WLinked Entity Entity Float deriving (Eq, Show, Ord)
+data Linked = Linked Entity Entity | WLinked Entity Entity CDouble deriving (Eq, Show, Ord)
 instance Component Linked where
   type Storage Linked = Map Linked
 
@@ -76,11 +80,11 @@ data ProjCount = ProjCount Int deriving Show
 instance Component ProjCount where
   type Storage ProjCount = Map ProjCount
 
-data Charge = Charge { chgAmt :: Float, charging :: Bool } 
+data Charge = Charge { chgAmt :: CDouble, charging :: Bool } 
 instance Component Charge where
   type Storage Charge = Map Charge
 
-data Target = Target (V2 Float) deriving (Eq, Show)
+data Target = Target (V2 CDouble) deriving (Eq, Show)
 instance Component Target where
   type Storage Target = Unique Target
 
@@ -96,7 +100,7 @@ data Animated = Animate Int | Loop | Still
 instance Component Animated where
   type Storage Animated = Map Animated
 
-data Behavior = Seek | Sing | Attack | Carry | Defend | Dead | Heal | Plant | Swinging | NoBehavior | Moving (V2 Float) deriving (Show,Eq)
+data Behavior = Seek | Sing | Attack | Carry | Defend | Dead | Heal | Plant | Swinging | NoBehavior | Moving (V2 CDouble) deriving (Show,Eq)
 instance Component Behavior where
   type Storage Behavior = Map Behavior
 
@@ -135,7 +139,9 @@ instance Enum (SCoord) where
 
 instance Monoid (SCoordF ()) where
   mempty = SCoordF S1 SI ()
-  
+instance Semigroup (SCoordF ()) where
+  (<>) = const
+    
 instance Component (SCoordF ()) where
   type Storage (SCoordF ()) = Global (SCoordF ())
 
@@ -145,6 +151,11 @@ instance Component (Sequencer) where
   type Storage (Sequencer) = Global (Sequencer)
 instance Monoid (Sequencer) where
   mempty = SBoard (1,2,3,4) (5,6,7,8) (9,10,11,12) (13,14,15,16)
+  mappend = const
+
+instance Semigroup Sequencer where
+  (<>) = const
+  
 
 --different Functor types can make different interfaces
 --this would be like an synthesizer 
@@ -168,48 +179,68 @@ type ICoord = ICoordF ()
 data Sprites = Sprites [Picture]
 instance Component Sprites where
   type Storage Sprites = Map Sprites
-  
-data SFXResources = SFXResources { sound :: [M.Chunk] , song :: Music Pitch } deriving (Show,Eq)
+
+data SDLRenderer = SDLRenderer S.Renderer
+instance Component SDLRenderer where
+  type Storage SDLRenderer = Unique SDLRenderer  
+
+data SFXResources = SFXResources { sound :: [M.Chunk] , song :: [Music Pitch] } deriving (Show,Eq)
 instance Component SFXResources where
   type Storage SFXResources = Map SFXResources
 
-data Box = Box (V2 Float, Float, Float) deriving (Show)
+data Box = Box (V2 CDouble, CDouble, CDouble) deriving (Show)
 instance Component Box where
   type Storage Box = Map Box
+
+data Phys = Phys { pos :: Position, vel :: Velocity, ang :: Angle, grav :: Gravity } deriving (Eq, Show)
+instance Component Phys where type Storage Phys = Map Phys
 
 newtype Grid = Grid (IntMap (IntMap ())) deriving Show
 instance Component Grid where type Storage Grid = Unique Grid
 
-newtype Position = Position (V2 Float) deriving (Num, Eq, Show)
+newtype Position = Position (V2 CDouble) deriving (Num, Eq, Show)
 instance Component Position where type Storage Position = Cache 100 (Map Position)
+instance Semigroup Position where
+  ((<>)) (Position a) (Position b) = Position $ a + b 
+instance Monoid Position where
+  mempty = Position 0
 
-newtype Velocity = Velocity (V2 Float) deriving (Num, Eq, Show)
+newtype Velocity = Velocity (V2 CDouble) deriving (Num, Eq, Show)
 instance Component Velocity where type Storage Velocity = Cache 100 (Map Velocity)
 
-newtype Gravity = Gravity (V2 Float) deriving Show
+newtype Gravity = Gravity (V2 CDouble) deriving (Eq, Show)
 instance Semigroup Gravity where
   ((<>)) (Gravity a) (Gravity b) = Gravity $ a + b 
 instance Monoid Gravity where
   mempty = Gravity 0
-instance Component Gravity where type Storage Gravity = Global Gravity
+instance Component Gravity where type Storage Gravity = Map Gravity
 
-newtype Angle = Angle {unAngle :: Float} deriving (Show,Eq,Num)
+newtype Angle = Angle {unAngle :: CDouble} deriving (Show,Eq,Num)
 instance Component Angle where type Storage Angle = Map Angle
 
-newtype BodyPicture = BodyPicture Picture deriving (Show, Eq)
+data Txtr = Txtr S.Texture (S.Rectangle CInt) deriving Eq
+instance Component Txtr where type Storage Txtr = Map Txtr
+
+newtype BodyPicture = BodyPicture Txtr deriving (Eq)
 instance Component BodyPicture where
   type Storage BodyPicture = Map BodyPicture
 
-data Beat = Beat Int Int
-instance Component Beat where type Storage Beat = Global Beat
-instance Monoid Beat where mempty = Beat 16 0
+data Beat = Beat Int Int deriving Show
+instance Component Beat where 
+  type Storage Beat = Global Beat
+instance Monoid Beat where 
+  mempty = Beat 16 0
+  mappend = const
 
+instance Semigroup Beat where
+  (<>) = const
+  
 data Scope = In | Out deriving (Eq,Show)
 instance Component Scope where type Storage Scope = Map Scope
 
 data Camera = Camera
-  { cameraOffset :: V2 Float
-  , cameraScale  :: Float
+  { cameraOffset :: V2 CDouble
+  , cameraScale  :: CDouble
   }
 
 instance Monoid Camera where
@@ -226,17 +257,17 @@ newtype ScreenBounds = SB (V2 Int) deriving (Eq, Show)
 instance Monoid ScreenBounds where
   mempty = SB (V2 600 480)
   mappend = const
+
+instance Semigroup ScreenBounds where
+  (<>) = const
+  
 instance Component ScreenBounds where
   type Storage ScreenBounds = Global ScreenBounds
   
 newtype Song = Song (Music Pitch) deriving Show
 instance Component Song where type Storage Song = Map Song
 
-makeWorld "World" [''Sequencer, ''SCoord, ''Camera, ''Scope, ''BodyPicture, ''Player, ''Enemy, ''Dummy, ''Wall, ''Projectile, ''Actor, ''Position, ''Linked, ''Velocity, ''Gravity, ''Angle, ''Target, ''Weapon, ''Charge, ''Dash, ''ProjCount, ''Song, ''Health, ''Box, ''Sprites, ''SFXResources, ''Beat, ''Debug, ''DebugMode, ''Behavior, ''Grid, ''ScreenBounds, ''Animated]
-
-type Physics = (Position, Velocity, Angle, Box, Actor)
-
-type Bnce = (SFXResources, Scope, Behavior,Projectile)
+makeWorld "World" [''SDLRenderer, ''Sequencer, ''SCoord, ''Camera, ''Scope, ''BodyPicture, ''Player, ''Enemy, ''Dummy, ''Wall, ''Projectile, ''Actor, ''Position, ''Linked, ''Velocity, ''Gravity, ''Angle, ''Target, ''Weapon, ''Charge, ''Dash, ''ProjCount, ''Song, ''Health, ''Box, ''Sprites, ''SFXResources, ''Beat, ''Debug, ''DebugMode, ''Behavior, ''Grid, ''ScreenBounds, ''Animated]
 
 {--keyActor = Key @"Actor"
 

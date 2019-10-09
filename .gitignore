@@ -24,6 +24,7 @@ cabal.sandbox.config
 *.aux
 *.hp
 *.eventlog
+*.txt
 .stack-work/
 cabal.project.local
 .HTF/

@@ -6,8 +6,9 @@ module Ceph.Scene.Board where
 import Apecs
 import Ceph.Components
 import Ceph.Jams
-import Graphics.Gloss
-
+--import Graphics.Gloss
+import qualified SDL as S
+--import Linear
 import Euterpea hiding (Text)
 import Data.Functor.Rep
 import Data.Functor.Adjunction
@@ -74,7 +75,7 @@ instance Representable IBoard where
 instance Adjunction ICoordF IBoard where
   unit a = tabulate (\(ICoordF row col _ ) -> ICoordF row col a)
   counit (ICoordF row col board) = index board (ICoordF row col ())
-
+{--
 instance Distributive Music where
   distribute = distributeRep
 
@@ -85,7 +86,7 @@ instance Representable Music where
   index (a :+: _) i@(ICoordF _ _ _) = index a i
   index (a :=: _) i@(ICoordF _ _ _) = index a i
   index (Modify _ a) i@(ICoordF _ _ _) = index a i
-  
+  --}
 
 instance (Show a) => Show (SBoard a) where
   show (SBoard a b c d) = "       I  |  II | III | IV\n"
@@ -130,73 +131,75 @@ instance Representable SBoard where
       (desc (SCoordF S3 SI ()), desc (SCoordF S3 SII ()), desc (SCoordF S3 SIII ()), desc (SCoordF S3 SIV ()))
       (desc (SCoordF S4 SI ()), desc (SCoordF S4 SII ()), desc (SCoordF S4 SIII ()), desc (SCoordF S4 SIV ()))
 
-defineSB :: SCoord -> SCoord -> (Picture)
-defineSB  s s'@(SCoordF S1 SI _) = Translate (-30) 30 $ circ s s'
-defineSB  s s'@(SCoordF S1 SII _) = Translate (-10) 30 $ circ s s'
-defineSB  s s'@(SCoordF S1 SIII _) = Translate (10) 30 $ circ s s'
-defineSB  s s'@(SCoordF S1 SIV _) = Translate (30) 30 $ circ s s'
-defineSB  s s'@(SCoordF S2 SI _) = Translate (-30) 10 $ circ s s'
-defineSB  s s'@(SCoordF S2 SII _) = Translate (-10) 10 $ circ s s'
-defineSB  s s'@(SCoordF S2 SIII _) = Translate (10) 10 $ circ s s'
-defineSB  s s'@(SCoordF S2 SIV _) = Translate (30) 10 $ circ s s'
-defineSB  s s'@(SCoordF S3 SI _) = Translate (-30) (-10) $ circ s s'
-defineSB  s s'@(SCoordF S3 SII _) = Translate (-10) (-10) $ circ s s'
-defineSB  s s'@(SCoordF S3 SIII _) = Translate (10) (-10) $ circ s s'
-defineSB  s s'@(SCoordF S3 SIV _) = Translate (30) (-10) $ circ s s'
-defineSB  s s'@(SCoordF S4 SI _) = Translate (-30) (-30) $ circ s s'
-defineSB  s s'@(SCoordF S4 SII _) = Translate (-10) (-30) $ circ s s'
-defineSB  s s'@(SCoordF S4 SIII _) = Translate (10) (-30) $ circ s s'
-defineSB  s s'@(SCoordF S4 SIV _) = Translate (30) (-30) $ circ s s' 
-
-circ :: Eq a => a -> a -> Picture
-circ s s' 
-  | s == s'   = (Color red $ Circle 5)
-  | otherwise = mempty
+defineSB :: SCoord -> (Position)
+defineSB  s'@(SCoordF S4 SI _) = Position $ S.V2 (-30) 30 
+defineSB  s'@(SCoordF S4 SII _) = Position $ S.V2 (-10) 30 
+defineSB  s'@(SCoordF S4 SIII _) = Position $ S.V2 (10) 30 
+defineSB  s'@(SCoordF S4 SIV _) = Position $ S.V2 (30) 30 
+defineSB  s'@(SCoordF S3 SI _) = Position $ S.V2 (-30) 10 
+defineSB  s'@(SCoordF S3 SII _) = Position $ S.V2 (-10) 10 
+defineSB  s'@(SCoordF S3 SIII _) = Position $ S.V2 (10) 10 
+defineSB  s'@(SCoordF S3 SIV _) = Position $ S.V2 (30) 10 
+defineSB  s'@(SCoordF S2 SI _) = Position $ S.V2 (-30) (-10) 
+defineSB  s'@(SCoordF S2 SII _) = Position $ S.V2 (-10) (-10) 
+defineSB  s'@(SCoordF S2 SIII _) = Position $ S.V2 (10) (-10) 
+defineSB  s'@(SCoordF S2 SIV _) = Position $ S.V2 (30) (-10) 
+defineSB  s'@(SCoordF S1 SI _) = Position $ S.V2 (-30) (-30) 
+defineSB  s'@(SCoordF S1 SII _) = Position $ S.V2 (-10) (-30) 
+defineSB  s'@(SCoordF S1 SIII _) = Position $ S.V2 (10) (-30) 
+defineSB  s'@(SCoordF S1 SIV _) = Position $ S.V2 (30) (-30)  
 
 updateBoard ::
   (Eq (f ()), Adjunction f g) => g b -> f () -> b -> g b
 updateBoard b s a = leftAdjunct (updateB b s a) ()
   where updateB board ixToChange update anyIx = if ixToChange == anyIx then update else rightAdjunct (const board) anyIx
-        
+
+getBRow :: SRow -> SBoard a -> (a,a,a,a)
+getBRow S1 (SBoard a _ _ _) = a  
+getBRow S2 (SBoard _ a _ _) = a  
+getBRow S3 (SBoard _ _ a _) = a  
+getBRow S4 (SBoard _ _ _ a) = a  
+
+fillBRow :: (a,a,a,a) -> SBoard a
+fillBRow a = SBoard a a a a
+  
+  
 bdSing :: SCoord -> SCoord -> Bool
 bdSing s s' 
   | s ==  s'  = True
   | otherwise = False
 
-bset :: (Set w m c) => SBoard Entity -> SCoordF c -> SystemT w m ()
+bset :: (Set w m c, Adjunction f g) => g Entity -> f c -> SystemT w m ()
 bset bd cd = zapWithAdjunction (\e c -> e `set` c) bd cd  
 
-bget :: (Get w m c) => SBoard Entity -> SCoordF c -> SystemT w m c
+bget :: (Get w m c, Adjunction f g) => g Entity -> f c -> SystemT w m c
 bget bd cd = zapWithAdjunction (\e _ -> get e) bd cd  
 
 saveBoard :: Sequencer -> System World ()
 saveBoard s = do
-  ms <- mapM getMusic s
-  liftIO (writeMidi "ceph.mid" $ Euterpea.line $ toList ms)
+  ms <- mapM get s
+  liftIO (writeMidi "ceph.mid" $ Euterpea.line . (fmap (\(Song s) -> s)) $ toList ms)
+
+indAdj :: Adjunction f g => g a -> f b -> a
+indAdj b s = rightAdjunct (const b) s
+
+fillB :: a -> SBoard (a)
+fillB a = (\(SCoordF _ _ a) -> a) <$> unit a
 
 toList = foldl (\b a -> a : b) []
 
-getPic e = do 
-  (BodyPicture p) <- get e
-  return (Scale 0.2 0.2 p)
-
-getMusic e = do 
-  (Song p) <- get e
-  return p
-
-soundBoard :: Sequencer -> SCoord -> System World Picture
+soundBoard :: Sequencer -> SCoord -> System World (SBoard (Bool,Position))
 soundBoard bd s = do
-  sbp <- mapM (getPic) bd --gets the pictures out of the entities in the board
+  (Camera viewPos _, Beat m i) <- get global
 
   --combine the entity picture with the indicator of the board's current coordinate
-  picBoard <- return $ (\(b,Translate x y a) -> Translate x y $ Pictures [a,b]) <$> zipR (sbp, tabulate (defineSB s))
-
+  picBoard <- return $ zipR ((tabulate $ bdSing s) , ( + (Position (S.V2 50 50))) <$> tabulate (defineSB))
+  
   e <- return $ rightAdjunct (const bd) s --extracts the entity that matches the coordinate in the board
   --play the entity sound on beat
-  Beat m i <- get global
   when (m == i) $ do
-    (\d -> (Entity 1) `set` (In, Debug $ show d)) =<< bget bd (fmap (const $ SFXResources [] $ rest qn) s)
+    (\d -> (Entity 1) `set` (In, Debug $ show d)) =<< bget bd (fmap (const $ SFXResources [] $ [rest qn]) s)
     playSong e
 
-  return . Pictures . toList $ picBoard
+  return picBoard
  

@@ -14,7 +14,7 @@ import Graphics.Gloss.Interface.IO.Game
 import Linear
 import qualified SDL.Mixer as M
 
-newArrow :: Picture -> (Music Pitch, M.Chunk)
+newArrow :: Txtr -> (Music Pitch, M.Chunk)
   -> System World Entity
 newArrow p (am,cm) = 
    newEntity ( Position 2e7
@@ -23,13 +23,13 @@ newArrow p (am,cm) =
              , NoBehavior
              , ( Projectile
                , Arrow
-               , BodyPicture $ Scale 0.1 0.1 p
+               , BodyPicture p
                , Box (2e7, 0.1, 0.07)
-               , SFXResources [cm] am
+               , SFXResources [] []
                )
              )
 
-newBullet :: [Picture] -> (Music Pitch, M.Chunk) -> System World Entity
+newBullet :: Txtr -> (Music Pitch, M.Chunk) -> System World Entity
 newBullet ps (am,cm) =
   newEntity ( Position 2e7
             , Velocity 0 
@@ -37,9 +37,8 @@ newBullet ps (am,cm) =
             , Seek
             , ( Bullet, Projectile )
             , ( Box (2e7, 0.75, 0.2)
-              , Sprites (fmap ( Scale 0.05 0.02 ) ps)
-              , SFXResources [cm] am
-              , BodyPicture $ Pictures $ fmap ( Scale 0.05 0.02 ) ps
+              , SFXResources [] []
+              , BodyPicture $ ps
               )
             )
 
@@ -50,10 +49,6 @@ removeProjectile  (_, Position p, Box pBox, e) = e `destroy` (Proxy :: Proxy Box
   e `set` Position (pure 20000)
   --}
   
-animateProj :: (Box,Velocity,BodyPicture, Sprites, Projectile) -> (BodyPicture, Sprites)
-animateProj (_, _, bp, r, Arrow) = (bp,r)
-animateProj (_, v, pics, Sprites (p:ps), Bullet) = ((addTrailPics p v pics), Sprites ( ps ++ [ p ]))
-
 shootBullet :: Target -> Position -> Velocity -> Charge -> System World ()
 shootBullet (Target at) (Position from) (Velocity v_init) (Charge c _) = conceIf isInScopeBullet updateMotion
   where
@@ -84,7 +79,8 @@ shootChains (Target at) (Position from) (Velocity v_init) (Charge c _) = conceIf
             , Angle 0
             )
     chns <- cfoldM (\es (Chain,e) -> return $ e:es) [] :: System World [Entity]
-    [pl] <- cfoldM (\pls (Player1,e) -> return $ e:pls) [] :: System World [Entity]
-    chains (pl:chns) e
+    --[pl] <- cfoldM (\pls (Player1,e) -> return $ e:pls) [] :: System World [Entity]
+    cfoldM (\pls (Player1,pe) -> chains (pe:chns) e) ()
+    --chains (pl:chns) e
     return ()
 
