@@ -11,7 +11,6 @@ import Ceph.Util
 import Ceph.Scene.Board
 
 import Apecs
-import Graphics.Gloss
 import Linear
 import qualified SDL as S
 import Foreign.C.Types
@@ -31,17 +30,28 @@ nextFrame (Still,b,s) = (Still,b,s)
 nextFrame i@(_,_,Sprites []) = i
 --}
 
+loadTxtr :: S.Renderer -> FilePath -> IO (Txtr)
+loadTxtr r filePath = do
+  surface <- S.loadBMP filePath
+  size <- S.surfaceDimensions surface
+  S.surfaceColorKey surface S.$= Just (S.V4 0 0 0 0)
+  t <- S.createTextureFromSurface r surface
+  S.freeSurface surface
+  return (Txtr t (S.Rectangle (pure 0) size))
+
 
 renderTexture :: S.Renderer -> Txtr -> S.Rectangle CInt -> CDouble -> IO ()
-renderTexture r (Txtr t size) clip angle = S.copyEx r t (Just size) (Just clip) angle Nothing (pure False)
+renderTexture r (Txtr t size) clip angle = S.copyEx r t (Just size) (Just clip) (180 * angle / pi) Nothing (pure False)
 
-renderEnt :: (Position, Angle, BodyPicture) -> System World ()
-renderEnt (s, Angle theta, BodyPicture pic@(Txtr _ (S.Rectangle _ size))) = do
+renderEnt :: (Position, Angle, Txtr) -> System World ()
+renderEnt (s, Angle theta, pic@(Txtr _ (S.Rectangle _ size@(S.V2 x y)))) = do
   SDLRenderer r <- get global
   view <- get global :: System World Camera
-  liftIO $ renderTexture r pic (S.Rectangle (S.P $ round <$> applyView view s) size) theta
-  where applyView :: Camera -> Position -> V2 CDouble
-        applyView (Camera cam scale) (Position p) = p - cam  / pure scale  + S.V2 380 260
+  liftIO $ renderTexture r pic (S.Rectangle (S.P $ round <$> applyView view s size) size) theta
+
+  where applyView :: Camera -> Position -> V2 CInt -> V2 CDouble
+        applyView (Camera cam scale) (Position p) s = (p - cam  
+           + (fromIntegral <$> ( div <$> ( S.V2 (negate x) (negate y) ) <*> pure 2 )) ) / pure scale  + S.V2 390 260
 
 render :: World -> IO ()
 render w = runWith  w $ do

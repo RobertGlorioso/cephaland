@@ -34,7 +34,6 @@ import Apecs.Core
 import qualified Data.Vector.Unboxed as U
 import qualified SDL as S
 
---import GHC.Prim
 
 v2ToRad :: (RealFloat a, Ord a) => V2 a -> a
 v2ToRad (V2 m n) = case compare m 0 of
@@ -55,17 +54,6 @@ fpow :: t2 -> Int -> (t2 -> t) -> (t2 -> t2) -> [t]
 fpow a 0 _ _ = []
 fpow a n f g = f a : fpow (g a) (n-1) f g
 
-loadTxtr :: S.Renderer -> FilePath -> IO (Txtr)
-loadTxtr r filePath = do
-  surface <- S.loadBMP filePath
-  size <- S.surfaceDimensions surface
-  let key = S.V4 0 0 0 0
-  S.surfaceColorKey surface S.$= Just key
-  t <- S.createTextureFromSurface r surface
-  S.freeSurface surface
-  return (Txtr t (S.Rectangle (pure 0) size))
-
-  
 {-# INLINE cmapIf_ #-}
 cmapIf_ :: forall w m cp cx cy.
   ( Get w m cx

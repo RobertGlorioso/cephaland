@@ -8,14 +8,9 @@ module Ceph.Physics.Box where
 
 import Ceph.Util
 import Ceph.Components
-import Data.List hiding (find)
-import Data.Vector (find)
-import Data.Functor.Rep
-import Data.Functor.Adjunction
-import Data.Distributive
+import Data.List
 import Foreign.C.Types
 import System.Random
-import Graphics.Gloss
 import Control.Monad
 import Apecs
 import Linear hiding (angle)
@@ -87,7 +82,7 @@ playerMarker :: Txtr -> Position -> Velocity -> System World Entity
 playerMarker markerTxtr p (Velocity (V2 vx vy)) = do
   newEntity ( p
             , 0 :: Velocity
-            , BodyPicture $ markerTxtr
+            , markerTxtr
             , Box (0, 0.1, 0.1)
             , Angle 0)
 
@@ -128,31 +123,28 @@ wallBounce
   c@((a,_),_,v@(Velocity vp),p,e,l,Player)
   = do
   let new_a = snd $ rotate_box_cw b (p,a) n -- the new player box that is obtained via rotating it by the wall's angle
-  let em = edgeMeasures new_a b -- the distances to every boxes edge
+  let em = edgeMeasures new_a b -- the distances to this box's edge
   Gravity (V2 _ g)  <- get e
-  let new_l = if (norm vp > 0.00001 * g) || l == Swinging then l else Plant --sets the player behavior for being planted
   if not $ touched new_a b then wallBounce rest c else do
-    --eb `set` Sing
     case minni (abs <$> em) [RightEdge, LeftEdge, TopEdge, BottomEdge] of
-      (d,TopEdge) -> unless ( new_l `elem` [Carry,Plant] ) $ e `set` (new_l,reflect_vel_box (angle n) ( pure friction ) (v,p))
-      (d,BottomEdge) -> unless ( new_l `elem` [Carry,Plant] ) $ e `set` (new_l,reflect_vel_box (angle n) ( pure friction ) (v,p))
-      (d,RightEdge) -> unless ( new_l `elem` [Carry,Plant] ) $ e `set` (new_l,reflect_vel_box (angle n) ( pure friction ) (negate v,p ))
-      (d,LeftEdge) -> unless ( new_l `elem` [Carry,Plant] ) $ e `set` (new_l,reflect_vel_box (angle n) ( pure friction ) (negate v,p ))
+      (d,TopEdge) ->  e `set` (reflect_vel_box (angle n) ( pure friction ) (v,p))
+      (d,BottomEdge) ->  e `set` (reflect_vel_box (angle n) ( pure friction ) (v,p))
+      (d,RightEdge) ->  e `set` (reflect_vel_box (angle n) ( pure friction ) (negate v,p))
+      (d,LeftEdge) ->  e `set` (reflect_vel_box (angle n) ( pure friction ) (negate v,p))
 wallBounce
-  ((b, n, _, _, _):rest)
-  c@((a,_),_,v,p,e,l,Enemy)
+  ((b, n, _, _, eb):rest)
+  c@((a,_),SFXResources j _,v,p,e,l,Enemy)
   = do
     let new_a = (snd $ rotate_box_cw b (p,a) n)
     let em = edgeMeasures new_a b
     if not $ touched new_a b then (when (l `elem` [Plant,Sing]) $ e `set` NoBehavior ) >> wallBounce rest c else do
-      case minni (abs <$> em) [RightEdge, LeftEdge, TopEdge, BottomEdge] of -- edge checking to give the correct normal
-        (d,TopEdge) -> unless ( l `elem` [Carry,Plant] ) $ e `set` (reflect_vel_box (angle n) ( pure friction ) (v,p + position 0 d))
-        (d,BottomEdge) -> unless ( l `elem` [Carry,Plant] ) $ e `set` (reflect_vel_box (angle n) ( pure friction ) (v,p - position 0 d))
-        (d,RightEdge) -> unless ( l `elem` [Carry,Plant] ) $ e `set` (reflect_vel_box (angle n) ( pure friction ) (negate v,p - position d 0))
-        (d,LeftEdge) -> unless ( l `elem` [Carry,Plant] ) $ e `set` (reflect_vel_box (angle n) ( pure friction ) (negate v,p + position d 0))
+      get global >>= (\bdlk -> when ( bdlk == Unlocked ) $ eb `modify` (\(SFXResources _ b) -> (SFXResources j b)))
+      case minni (abs <$> em) [RightEdge, LeftEdge, TopEdge, BottomEdge] of
+        (d,TopEdge) ->  e `set` (reflect_vel_box (angle n) ( pure friction ) (v,p + position 0 d))
+        (d,BottomEdge) ->  e `set` (reflect_vel_box (angle n) ( pure friction ) (v,p - position 0 d))
+        (d,RightEdge) ->  e `set` (reflect_vel_box (angle n) ( pure friction ) (negate v,p - position d 0))
+        (d,LeftEdge) ->  e `set` (reflect_vel_box (angle n) ( pure friction ) (negate v,p + position d 0))
 wallBounce _ _ = return ()
---}
-
 
 edgeMeasures :: Box -> Box -> [CDouble]
 edgeMeasures (Box (V2 bx by, w2, h2)) (Box (V2 ax ay, w1, h1)) =

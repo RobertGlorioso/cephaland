@@ -1,10 +1,11 @@
-resolver: lts-14.5
-#resolver: lts-9.14 # for sdl2
+resolver: lts-14.10
 require-stack-version: ">= 1.7.1"
 packages:
   - .
   
 extra-deps:
+  - git: https://github.com/haskell-game/sdl2-image.git
+    commit: 382395c763b473032721c71921b5c9241142178f
   - apecs-0.7.1
   - astar-monad-0.3.0.0
 #  - csound-expression-5.3.2

@@ -32,10 +32,8 @@ import Data.Bool
 physicsStep :: World -> IO ()
 physicsStep !w = runWith w $ do
   getKeyboardState >>= handle
-  --cmap $ \(Player1,b :: Behavior) -> (Player1, Debug (show b))
   incrementBeat w
   cmapM playerLoop
-  
   pp  <- cfoldM (\a b -> return (b:a) ) []
   let [(Player1, Position p)] = pp
   randomizeGridCell (Position p)

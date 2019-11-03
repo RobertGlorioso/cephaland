@@ -15,29 +15,32 @@ import qualified Data.ByteString as Byte
 
 
 makeMidiSamples i = do
-    mapM_ (\(file, mid) -> Byte.writeFile file $ makeByteMusic mid) 
-        [(n : show o ++ p ++ ".mid", instrument i $ m o q) 
-        | (n,m) <- zip ['a'..'g'] [a,b,c,d,e,f,g], o <- [3..6], (p,q) <- zip ["sn", "en", "qn", "hn", "wn"] [sn,en,qn,hn,wn]]
     {--mapM_ (\(file, mid) -> Byte.writeFile file $ makeByteMusic mid) 
+        [(n ++ show o ++ p ++ show i ++ ".mid", instrument i $ m o q) 
+        | (n,m) <- zip ["a","as","b","bs","c","cs","d","ds","e","es","f","fs","g","gs"] [a,as,b,bs,c,cs,d,ds,e,es,f,fs,g,gs], o <- [3..6], (p,q) <- zip ["sn", "en", "qn", "hn", "wn"] [sn,en,qn,hn,wn]]
+        --}
+    mapM_ (\(file, mid) -> Byte.writeFile file $ makeByteMusic mid) 
         [(show b ++ p ++ ".mid",perc b q) 
-        | b <- [AcousticBassDrum .. OpenTriangle], (p,q) <- zip ["sn", "en", "qn", "hn", "wn"] [sn,en,qn,hn,wn]]--}
+        | b <- [AcousticBassDrum .. OpenTriangle], (p,q) <- zip ["sn", "en", "qn", "hn", "wn"] [sn,en,qn,hn,wn]]
 
 --reading in songs from a user specified file
 importSong :: String -> IO ( M.Chunk)
 importSong f = either (error) (M.decode . makeFile) =<< importFile f
---}
---crds :: [SCoord]
---crds = [(\px py -> SCoordF x y px py ()) |  x<-(toEnum <$> [0..3]), y<-(toEnum <$> [0..3])] <*> [(-30),(-10),10,30] <*> [(-30),(-10),10,30]
+
+succCycle (SCoordF S4 SIV  _) = SCoordF S1 SI ()
+succCycle (SCoordF i SIV  _) = SCoordF (succ i) SI ()
+succCycle (SCoordF i j _) = SCoordF i (succ j) ()
 
 incrementBeat :: World -> System World ()
 incrementBeat w = do
-      Beat m i <- get global
+      (Beat m i, boardstat) <- get global
       -- plays sound effects on beat
-      if (m <= i) then (global `set` Beat m 0) >> (global `modify` (\s  -> succ s :: SCoord)) >> cmapM_ ( \case
-        (Sing, a :: Actor, e) -> playSong e >> if ( a == Weapon ) then ( e `set` Seek ) else e `set` NoBehavior
-        _ -> return ()
-        )
-        else global `set` Beat m (i+1) 
+      when (boardstat == Play) $
+        if (m <= i) then (global `set` Beat m 0) >> (global `modify` (\s  -> succCycle s :: SCoord)) >> cmapM_ ( \case
+            (Sing, a :: Actor, e) -> playSong e >> if ( a == Weapon ) then ( e `set` Seek ) else e `set` NoBehavior
+            _ -> return ()
+            )
+            else global `set` Beat m (i+1) 
     {--liftIO . print =<< flip cfoldM (Song (rest 0)) (\s@(Song i) ->
                 (\case
                     (Sing, Song j) -> return (Song $ i :=: j)
@@ -51,13 +54,15 @@ incrementBeat w = do
 playSong :: Entity -> System World ()
 playSong ent = do
   (SFXResources p s) <- get ent
-  soundPlay p
+  soundPlay p 0
   where
-    soundPlay [] = return ()
-    soundPlay ms@(m:mz) = do
-        chanAvailable <- return . any not =<< mapM M.playing [0..7]
-        if chanAvailable then M.play m else return ()
-        soundPlay mz
+    soundPlay [] _ = return ()
+    soundPlay ms@(m:mz) i 
+      | i > 7 = M.halt 0 >> M.playOn 0 M.Once m >> soundPlay mz 1
+      | otherwise = do
+        chanAvailable <- not <$> M.playing i
+        if chanAvailable then M.playOn i M.Once m >> soundPlay mz (i+1) else soundPlay ms (i+1)
+        
 
 
 --this was all stolen from HSoM

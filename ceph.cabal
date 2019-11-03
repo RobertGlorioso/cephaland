@@ -6,14 +6,14 @@
 -- hash: 5d4385126e2d18faae560b5289e6cc38e5275ed67285554703b4cdf6ec2b77d0
 
 name:           ceph
-version:        0.0.1
+version:        0.1.0
 synopsis:       platformer game 
 description:    platformer game 
 category:       Game
 homepage:       --
 bug-reports:    --
-maintainer:     Robert
-copyright:      2018 Robert
+maintainer:     Bobby Glorioso
+copyright:      2019 Bobby Glorioso
 license:        BSD3
 build-type:     Simple
 cabal-version:  >= 1.10
@@ -32,6 +32,7 @@ library
         Ceph.Component.Enemy
         Ceph.Component.Projectile
         Ceph.Component.Weapon
+        Ceph.Component.Wall
         Ceph.Components
         Ceph.Handler
         Ceph.Jams
@@ -60,26 +61,23 @@ library
                , bytestring
                , containers
                , contravariant >= 1.4
-             --, csound-expression
                , distributive
-               , first-class-families
+               --, first-class-families
                , directory
-               , gloss
-               --, gloss-juicy
                , groups
                , lens
                , linear
                , mtl
                , optparse-applicative
-               , polysemy
+               --, polysemy
                , random
                , safe
                , safe-exceptions
                , sdl2
-               --, sdl2-image
+               , sdl2-image
                , sdl2-mixer
                , sdl2-ttf
-               , singletons
+               --, singletons
                , template-haskell
                , text
                , text-conversions
@@ -91,21 +89,22 @@ executable ceph
   main-is: Main.hs
   other-modules:
       Ceph.Component.Levels
-        Ceph.Component.Enemy
-        Ceph.Component.Projectile
-        Ceph.Component.Player
-        Ceph.Component.Weapon
+      Ceph.Component.Wall
+      Ceph.Component.Enemy
+      Ceph.Component.Projectile
+      Ceph.Component.Player
+      Ceph.Component.Weapon
       Ceph.Components
-        Ceph.Handler
-        Ceph.Jams
-        Ceph.Physics
-        Ceph.Physics.Box
-        Ceph.Scene
-        Ceph.Scene.Board
-        Ceph.Scene.Camera
-        Ceph.Scene.HUD
-        Ceph.Util
-          Paths_ceph
+      Ceph.Handler
+      Ceph.Jams
+      Ceph.Physics
+      Ceph.Physics.Box
+      Ceph.Scene
+      Ceph.Scene.Board
+      Ceph.Scene.Camera
+      Ceph.Scene.HUD
+      Ceph.Util
+      Paths_ceph
   hs-source-dirs:
       src
   default-extensions: DuplicateRecordFields FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving LambdaCase NamedFieldPuns ScopedTypeVariables OverloadedStrings
@@ -122,26 +121,23 @@ executable ceph
               , base >= 4.7 && <5
               , bytestring
               , containers
-              --, csound-expression
               , directory
               , distributive
-              , first-class-families
-              , gloss
-              --, gloss-juicy
+              --, first-class-families
               , groups
               , lens
               , linear
               , mtl
               , optparse-applicative
-              , polysemy
+              --, polysemy
               , random
               , safe
               , safe-exceptions
               , sdl2 >= 2.4.1.0
-              --, sdl2-image
+              , sdl2-image
               , sdl2-mixer
               , sdl2-ttf
-              , singletons
+              --, singletons
               , template-haskell
               , text
               , text-conversions

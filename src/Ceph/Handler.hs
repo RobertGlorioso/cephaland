@@ -1,4 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE LambdaCase #-}
+
 module Ceph.Handler where
 
 import Ceph.Components
@@ -7,8 +9,6 @@ import Ceph.Component.Projectile
 import Ceph.Component.Player
 
 import Apecs
---import Control.Concurrent
-import Graphics.Gloss.Interface.IO.Game
 import Control.Monad
 import SDL.Input
 import Linear
@@ -20,6 +20,16 @@ handle f = do
   when (f ScancodeW) $ cmap $ \(Player1, Velocity v) -> Velocity (v - V2 0 0.2)
   when (f ScancodeS) $ cmap $ \(Player1, Velocity v) -> Velocity (v + V2 0 0.2)
   when (f ScancodeD) $ cmap $ \(Player1, Velocity v) -> Velocity (v + V2 0.2 0)
+  when (f ScancodeF) $ modify global $ \case 
+                          Play -> Pause
+                          Pause -> Play
+                          
+  when (f ScancodeSpace) $ modify global $ \case 
+                          Locked -> Unlocked
+                          Unlocked -> Locked
+    --s <- get global :: System World (SCoordF ())
+    --global `modify` (\b -> fillB (indAdj b s) :: Sequencer)
+                                        
   when (f ScancodeMinus) $ do
     global `modify` \case
       (Beat 500 k) -> Beat 500 k
@@ -30,18 +40,13 @@ handle f = do
     global `modify` \case
       (Beat 2 k) -> Beat 2 k
       (Beat j k) -> Beat (j-1) k
-  when (f ScancodeSpace) $ do
-    
-    case (f <$> [Scancode1,Scancode2,Scancode3,Scancode4]) of
+  case (f <$> [Scancode1,Scancode2,Scancode3,Scancode4]) of
       [True,_,_,_] -> global `modify` \(SBoard a b c d) -> SBoard a a a a :: Sequencer
       [False,True,_,_] -> global `modify` \(SBoard a b c d) -> SBoard b b b b :: Sequencer
       [False,False,True,_] -> global `modify` \(SBoard a b c d) -> SBoard c c c c :: Sequencer
       [False,False,False,True] -> global `modify` \(SBoard a b c d) -> SBoard d d d d :: Sequencer
-      _ -> do
-        s <- get global :: System World (SCoordF ())
-        global `modify` (\b -> fillB (indAdj b s) :: Sequencer)
-
-
+      _ -> return ()
+  
   
 {--
 mouseToWorld :: (CDouble,CDouble) -> Camera -> V2 CDouble

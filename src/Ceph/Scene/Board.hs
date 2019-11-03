@@ -16,6 +16,8 @@ import Data.Distributive
 import Control.Monad
 import qualified SDL.Mixer as M
 
+--this should be in components
+
 instance (Show a) => Show (MBoard a) where
   show (MBoard a b c _  ) = "     | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | \n"
     ++ "Player A" ++ show a ++ "\n"
@@ -75,6 +77,7 @@ instance Representable IBoard where
 instance Adjunction ICoordF IBoard where
   unit a = tabulate (\(ICoordF row col _ ) -> ICoordF row col a)
   counit (ICoordF row col board) = index board (ICoordF row col ())
+
 {--
 instance Distributive Music where
   distribute = distributeRep
@@ -148,6 +151,9 @@ defineSB  s'@(SCoordF S1 SI _) = Position $ S.V2 (-30) (-30)
 defineSB  s'@(SCoordF S1 SII _) = Position $ S.V2 (-10) (-30) 
 defineSB  s'@(SCoordF S1 SIII _) = Position $ S.V2 (10) (-30) 
 defineSB  s'@(SCoordF S1 SIV _) = Position $ S.V2 (30) (-30)  
+  
+listToBoard :: [Entity] -> Sequencer
+listToBoard es = tabulate (\(s :: SCoord) -> es !! fromEnum s)
 
 updateBoard ::
   (Eq (f ()), Adjunction f g) => g b -> f () -> b -> g b
@@ -162,7 +168,6 @@ getBRow S4 (SBoard _ _ _ a) = a
 
 fillBRow :: (a,a,a,a) -> SBoard a
 fillBRow a = SBoard a a a a
-  
   
 bdSing :: SCoord -> SCoord -> Bool
 bdSing s s' 

@@ -13,7 +13,7 @@ import Foreign.C.Types
 moveStuffRandomly :: V2 CDouble -> Entity -> CDouble -> System World ()
 moveStuffRandomly r e a = do
   op <- liftIO $ (\m n -> (\m -> signum m * a + m) <$> [n,negate m]) 
-    <$> (head <$> randomDonutBox 1 1060 1600 ) 
+    <$> (head <$> randomDonutBox 1 360 360 ) 
     <*> (randomRIO (-500,500)) 
   let [o,p] = if length op == 2 then op else [0,0]
   e `modify` (\(Box (_,x,y)) -> Box ( (r + V2 o p) , x, y))
@@ -28,13 +28,11 @@ randomizeGridCell (Position p1@(V2 x1 y1)) =
         moveEnemyWalls =
           cmapM_ $ \case
             (Wall, Out, e) -> moveStuffRandomly p1 e 0
-            (Enemy, Out, e) -> moveStuffRandomly p1 e 0
+            -- (Enemy, Out, e) -> moveStuffRandomly p1 e 0
             (_,_,_) -> return ()
                                     
     if length is > 10 then updateGrid mempty else return ()
     case M.lookup gx is of
       Just ys -> if gy `elem` M.keys ys then return ()
-
-                 
-                 else updateGrid (M.insert gx (M.insert gy () ys) is) >> moveEnemyWalls
+                  else updateGrid (M.insert gx (M.insert gy () ys) is) >> moveEnemyWalls
       Nothing ->  moveEnemyWalls >> updateGrid (M.insert gx mempty is)

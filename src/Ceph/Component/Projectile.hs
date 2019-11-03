@@ -9,36 +9,34 @@ import Ceph.Physics.Box
 import Ceph.Scene
 
 import Apecs
-import Euterpea hiding (Head)
-import Graphics.Gloss.Interface.IO.Game
 import Linear
 import qualified SDL.Mixer as M
 
-newArrow :: Txtr -> (Music Pitch, M.Chunk)
+newArrow :: Txtr -> (M.Chunk, M.Chunk)
   -> System World Entity
-newArrow p (am,cm) = 
+newArrow txtr (am,cm) = 
    newEntity ( Position 2e7
              , Velocity 0 
              , Angle 0
              , NoBehavior
              , ( Projectile
                , Arrow
-               , BodyPicture p
+               , txtr
                , Box (2e7, 0.1, 0.07)
-               , SFXResources [] []
+               , SFXResources [am,cm] []
                )
              )
 
-newBullet :: Txtr -> (Music Pitch, M.Chunk) -> System World Entity
-newBullet ps (am,cm) =
+newBullet :: Txtr -> (M.Chunk, M.Chunk) -> System World Entity
+newBullet txtr (am,cm) =
   newEntity ( Position 2e7
             , Velocity 0 
             , Angle 0
             , Seek
             , ( Bullet, Projectile )
-            , ( Box (2e7, 0.75, 0.2)
-              , SFXResources [] []
-              , BodyPicture $ ps
+            , ( Box (2e7, 1, 1)
+              , SFXResources [am,cm] []
+              , txtr
               )
             )
 

@@ -5,6 +5,20 @@
 
 packages:
 - completed:
+    cabal-file:
+      size: 1433
+      sha256: df03cdc7ed25fb72f74f80f1e0cd66f9cfa05b73bf94aa27ee3ad7ff0349ae2e
+    name: sdl2-image
+    version: 2.0.0
+    git: https://github.com/haskell-game/sdl2-image.git
+    pantry-tree:
+      size: 545
+      sha256: 3f8d686c74dd577de885ef34703859efb2a8d543183ba1ccb71b77868cc052f9
+    commit: 382395c763b473032721c71921b5c9241142178f
+  original:
+    git: https://github.com/haskell-game/sdl2-image.git
+    commit: 382395c763b473032721c71921b5c9241142178f
+- completed:
     hackage: apecs-0.7.1@sha256:d6eb75a6e2dc92b06cd2650cb00655cbcd71c0d36e1d0d6ebc5d7be808386593,2008
     pantry-tree:
       size: 956
@@ -111,7 +125,7 @@ packages:
     hackage: binary-0.8.7.0
 snapshots:
 - completed:
-    size: 524104
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/14/5.yaml
-    sha256: 3c146eebc1b383211ea49d5422fb3d63d699da12307b4bc989107300eb579d60
-  original: lts-14.5
+    size: 524130
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/14/10.yaml
+    sha256: 04841e0397d7ce6364f19359fce89aa45ca8684609d665845db80d398002baa9
+  original: lts-14.10

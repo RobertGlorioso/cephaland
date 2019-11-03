@@ -1,0 +1,80 @@
+C:\Users\rrbm8\Documents\cephaland-master\src\Ceph\Component\Player.hs:
+  hash: 7d3c6d0068fe8711efeed62adc54c39a2c67aa0967ccf2006c55dfc24accee01
+  size: 4872
+  modtime: 1564513434
+C:\Users\rrbm8\Documents\cephaland-master\stack.yaml:
+  hash: 694829cafe246ff4f563d13485d33a6bf8165f118b2b1555eb009aff5d915267
+  size: 802
+  modtime: 1564777586
+C:\Users\rrbm8\Documents\cephaland-master\src\Ceph\Scene\Board.hs:
+  hash: f62121f807a1df243ca11ee7edf52abbf12e656b04f662161fcb06de5908ad1f
+  size: 8425
+  modtime: 1564205013
+C:\Users\rrbm8\Documents\cephaland-master\src\Ceph\Handler.hs:
+  hash: 600dde98152a2dd8b1ae003a8937348424f29dca628992945fc6561c08121da1
+  size: 3455
+  modtime: 1564516520
+C:\Users\rrbm8\Documents\cephaland-master\src\Ceph\Physics.hs:
+  hash: 516fdaaa73dea904f380b22c125bc1ef66d4e88ce0b02926520df658b6c0bad2
+  size: 2852
+  modtime: 1564514947
+C:\Users\rrbm8\Documents\cephaland-master\src\Ceph\Scene\HUD.hs:
+  hash: 53220641ee2cf92684a6aee91c01631a16957a7580109c1f533ac1d4357d3143
+  size: 2142
+  modtime: 1564436545
+C:\Users\rrbm8\Documents\cephaland-master\src\Ceph\Scene\Camera.hs:
+  hash: 16f47dbb4e212e5ce24150264f2f3386cb9876f2adfebb4785219be438d5c4b8
+  size: 1010
+  modtime: 1563030468
+C:\Users\rrbm8\Documents\cephaland-master\src\Ceph\Component\Projectile.hs:
+  hash: 38b73d595e686cccadae9ee63d7fc773c80457de0e6a5d8805de913947486de1
+  size: 3424
+  modtime: 1564535548
+C:\Users\rrbm8\Documents\cephaland-master\src\Ceph\Component\Levels.hs:
+  hash: 947d9b74c1d490fe30cb9ac0e86b2d97fbae99238317d8f21a495f1c20acbb6e
+  size: 1444
+  modtime: 1564448823
+C:\Users\rrbm8\Documents\cephaland-master\src\Main.hs:
+  hash: b443ef5cc2101f662bd12319a59e5abf049c9e458235d7a4391b9ca0d6dc6241
+  size: 6753
+  modtime: 1565035254
+C:\Users\rrbm8\Documents\cephaland-master\src\Ceph\Component\Weapon.hs:
+  hash: dcabf69634d9e8a6b3b3b6bd1ae65f21c15c94777d0d9b5d01e1ea717e05a117
+  size: 3091
+  modtime: 1563030468
+C:\Users\rrbm8\Documents\cephaland-master\src\Ceph\Components.hs:
+  hash: bede2536d2acc4d20d47b7d69d00bf31d8faccd26ccbf2615e0a16cb647f0b5e
+  size: 8766
+  modtime: 1564534910
+C:\Users\rrbm8\Documents\cephaland-master\README.md:
+  hash: 84c515b42ae4adf134c01d4ca53750fbcfe7be2a149311ff0fe61670d687f2d5
+  size: 375
+  modtime: 1563030466
+C:\Users\rrbm8\Documents\cephaland-master\src\Ceph\Physics\Box.hs:
+  hash: eb0e213b244fd1d9cf0b7ba5fa33977cd72336fc19d5693d8dfa4aad20d34b0f
+  size: 9892
+  modtime: 1563030468
+C:\Users\rrbm8\Documents\cephaland-master\src\Ceph\Scene.hs:
+  hash: 64a3bd655f6c7e6edb08e47abb4fc442de34ee524eb3c0e7e2a6e30972ea52b7
+  size: 1635
+  modtime: 1563030467
+C:\Users\rrbm8\Documents\cephaland-master\src\Ceph\Component\Enemy.hs:
+  hash: 3f65a2d16f514cad53323f153bb0916664a99bee5dd795c2075c67f97bca7d6e
+  size: 2495
+  modtime: 1564535609
+C:\Users\rrbm8\Documents\cephaland-master\package.yaml:
+  hash: d469548b268033860daada81d4b2539f5679e67131f0bff531be4397155c24b8
+  size: 1499
+  modtime: 1563030466
+C:\Users\rrbm8\Documents\cephaland-master\ceph.cabal:
+  hash: 2333df582b6b3c77b486214c93d984a9f9f7cf9d6b663bc29ff3422e7439acf3
+  size: 4130
+  modtime: 1564586268
+C:\Users\rrbm8\Documents\cephaland-master\src\Ceph\Util.hs:
+  hash: a29e99701787ade7f1fa5d2f36e2e987264d50e3f2f81459bc2d5c94b1333691
+  size: 9879
+  modtime: 1563030467
+C:\Users\rrbm8\Documents\cephaland-master\src\Ceph\Jams.hs:
+  hash: e957e53dfaf987581cec08cbbfaf491050f2a7bc6eb61df8e9542306f028c58c
+  size: 13238
+  modtime: 1564535463

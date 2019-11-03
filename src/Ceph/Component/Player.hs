@@ -1,32 +1,32 @@
 {-# LANGUAGE ViewPatterns #-}
 module Ceph.Component.Player where
 
-import Apecs
-import Linear
-import Data.List
-import Data.Ord
-import Control.Monad
-import System.Random
+  
 import Ceph.Util
 import Ceph.Physics.Box
 import Ceph.Component.Projectile
 import Ceph.Components
 import Ceph.Component.Weapon
 import Ceph.Component.Enemy
-import Euterpea
-import Graphics.Gloss
+
+import Apecs
+import Linear
+import Data.List
+import Data.Ord
+import Control.Monad
+import System.Random
 import Foreign.C.Types
 import qualified SDL as S
 
-playerLoop :: (BodyPicture, Player, Dash, Velocity, Box, Behavior, Charge, Entity) -> System World ()
-playerLoop (_, Player1, _, v0@(Velocity vv@(V2 vx _)) , _, Moving v2, _, e) = do
+playerLoop :: (Player, Dash, Velocity, Box, Behavior, Charge, Entity) -> System World ()
+playerLoop (Player1, _, v0@(Velocity vv@(V2 vx _)) , _, Moving v2, _, e) = do
   cmap $ \(Target o) -> ( Target (o + vv), Position (o + vv))
   set e $ if (norm vv < speedLimit) then (v0 + Velocity v2) else v0
   cmapM_ $ \case
     (b,Bullet) -> cmap (hurtPlayer b)
     _ -> return ()
     
-playerLoop (_, Player1, _, _, _, Swinging, _, e) = do
+playerLoop (Player1, _, _, _, Swinging, _, e) = do
   (chex,(p1,pn)) <- chainExtended 30
   (chex2,(p1,pn)) <- chainExtended 50
   if chex then
@@ -35,16 +35,14 @@ playerLoop (_, Player1, _, _, _, Swinging, _, e) = do
         (Velocity $ v + ( (if chex2 then 0.02 else 0.002) * normalize  (pn - p1))
         , Swinging))
     else return ()
-playerLoop (BodyPicture bp,Player1, _, _, b@(Box (p1@(V2 x1 y1), _, _)), Attack, _, e) =
+playerLoop (Player1, _, _, b@(Box (p1@(V2 x1 y1), _, _)), Attack, _, e) =
   cmapM_ $ \case
     (Sword, Box sb) -> do
-      --e `set` BodyPicture (Pictures [bp, color (makeColor 0.1 0.1 0.1 0.01) $ ThickCircle 0.5 5])
       Target tp@(V2 x2 y2) <- get global
       cmap $ showSword x1 x2 tp p1
-      cmap killEnemy
     _ -> return ()
 playerLoop
-  (_, Player1, _, _, b@(Box (p1,_,_)), Carry, _, _) =
+  (Player1, _, _, b@(Box (p1,_,_)), Carry, _, _) =
   conceIf
     (\(p, a) -> aabb b p && a == Wall)
     (\(Box (_,x,y)) -> (Box (p1, x, y), Position p1))
@@ -56,7 +54,7 @@ playerLoop
         --carriedEnt `modify` (\(Box (_,x,y)) -> Box (p1, x, y))
         --carriedEnt `set` (Position p1)
 
-playerLoop (_,Player1, Dash dx, Velocity v, b@(Box (p1,_,_)), a, Charge cv chging, e) = do
+playerLoop (Player1, Dash dx, Velocity v, b@(Box (p1,_,_)), a, Charge cv chging, e) = do
       
   cmap $ \(Target o) -> ( Target (o + v), Position (o + v))
   cmapM_ $ \case
@@ -79,10 +77,10 @@ playerLoop (_,Player1, Dash dx, Velocity v, b@(Box (p1,_,_)), a, Charge cv chgin
 
 
 player :: Txtr -> System World Entity
-player p = newEntity (( Position (V2 0 50)
+player txtr = newEntity (( Position (V2 0 50)
                         , 0 :: Velocity
                         , Gravity (V2 0 (0.1))
-                        , BodyPicture p
+                        , txtr
                         , Box (0, 1, 1))
                        , (ProjCount 30, Health 99, Dash 0)
                        , (Player1, Player)
@@ -102,7 +100,7 @@ playerShootChain o@(c, x, v, Player1) = do
         return (Charge 1.0 False,Swinging)
 
 speedLimit :: CDouble
-speedLimit = 4
+speedLimit = 6
 
 movePlayer :: V2 CDouble -> (Player, Velocity, Behavior) -> (Player, Velocity, Behavior)
 movePlayer v c@(d, p, Swinging) = (d, p + Velocity (10*v), Swinging )  

@@ -1,0 +1,80 @@
+C:\Users\rrbm8\OneDrive\cephaland-master\README.md:
+  hash: 84c515b42ae4adf134c01d4ca53750fbcfe7be2a149311ff0fe61670d687f2d5
+  size: 375
+  modtime: 1563030466
+C:\Users\rrbm8\OneDrive\cephaland-master\src\Ceph\Components.hs:
+  hash: 85d6296e305ea52ee4229669bfe061d8ed220484140014b117a030c6234961d9
+  size: 9175
+  modtime: 1567212674
+C:\Users\rrbm8\OneDrive\cephaland-master\src\Ceph\Handler.hs:
+  hash: 600dde98152a2dd8b1ae003a8937348424f29dca628992945fc6561c08121da1
+  size: 3455
+  modtime: 1564516520
+C:\Users\rrbm8\OneDrive\cephaland-master\stack.yaml:
+  hash: 6365d2d95091d77cbbdaf39c56e4715cec0001655b2122ca4d9ac88e3260c39a
+  size: 703
+  modtime: 1565979625
+C:\Users\rrbm8\OneDrive\cephaland-master\src\Ceph\Component\Player.hs:
+  hash: e1f7557beda1818f98d9c260d94b812a828c1d7a6e7fab8386a84913ad97ee97
+  size: 4870
+  modtime: 1566527539
+C:\Users\rrbm8\OneDrive\cephaland-master\src\Ceph\Scene\Board.hs:
+  hash: 108cdc3c3c412f81c3f894e3bd1d9eb7d66fdd9762d211cfcb051fa41b751279
+  size: 8168
+  modtime: 1567009853
+C:\Users\rrbm8\OneDrive\cephaland-master\src\Ceph\Scene\HUD.hs:
+  hash: 42f5f655cad60babdd1c426dbba0ce37daed510dffb33cdd812615dd89b46021
+  size: 2144
+  modtime: 1566526865
+C:\Users\rrbm8\OneDrive\cephaland-master\src\Ceph\Physics.hs:
+  hash: 516fdaaa73dea904f380b22c125bc1ef66d4e88ce0b02926520df658b6c0bad2
+  size: 2852
+  modtime: 1564514947
+C:\Users\rrbm8\OneDrive\cephaland-master\src\Ceph\Scene\Camera.hs:
+  hash: 2711dd5d9d3dd2b2404018f395d8af5f2d69677decf0aacbbd5353288fba2e01
+  size: 1278
+  modtime: 1567186248
+C:\Users\rrbm8\OneDrive\cephaland-master\src\Ceph\Scene.hs:
+  hash: d8520bae78d4a9018b63cfbe0ddccc4104b008cf88cee93cd9e7b9f49794dab6
+  size: 1264
+  modtime: 1567095152
+C:\Users\rrbm8\OneDrive\cephaland-master\src\Main.hs:
+  hash: 24404a33448df3f4e5b08abc64ac5d8bf41f231eef58a5c7bc32bf914f9fea13
+  size: 7870
+  modtime: 1566515799
+C:\Users\rrbm8\OneDrive\cephaland-master\src\Ceph\Component\Weapon.hs:
+  hash: 3afb0e19fccf8d1829ef8966b0c48a939946b946955fe2d44fd7573b5dd0635c
+  size: 2965
+  modtime: 1567187375
+C:\Users\rrbm8\OneDrive\cephaland-master\package.yaml:
+  hash: d469548b268033860daada81d4b2539f5679e67131f0bff531be4397155c24b8
+  size: 1499
+  modtime: 1563030466
+C:\Users\rrbm8\OneDrive\cephaland-master\src\Ceph\Util.hs:
+  hash: 032703b39dd3d179f979b66f31789f358e5c2147205186c499ff49c42cf6b161
+  size: 10463
+  modtime: 1567187062
+C:\Users\rrbm8\OneDrive\cephaland-master\ceph.cabal:
+  hash: 2a1728aaabdf401a8895fefeafafa28d0e100120d1405335fb733e8699e678ac
+  size: 3902
+  modtime: 1566404743
+C:\Users\rrbm8\OneDrive\cephaland-master\src\Ceph\Physics\Box.hs:
+  hash: 73922c19d653d86379e468b552a346302f24a884e63c341c018c634f0c926e71
+  size: 10007
+  modtime: 1567186514
+C:\Users\rrbm8\OneDrive\cephaland-master\src\Ceph\Jams.hs:
+  hash: d0d677e8373c939ceb63a5168787bad5f2edf90bbbb4949558fa7e892af5207d
+  size: 13241
+  modtime: 1566590717
+C:\Users\rrbm8\OneDrive\cephaland-master\src\Ceph\Component\Projectile.hs:
+  hash: ec5f9c51393e2958c2268f684d919e710cbc334272bf5936255c706f9ab41db6
+  size: 3134
+  modtime: 1567213641
+C:\Users\rrbm8\OneDrive\cephaland-master\src\Ceph\Component\Levels.hs:
+  hash: a0d6ddc011ed3dad4911cdeb7e4a07e1c9afd65ea5dd517b5ae88c8f3d7bed7e
+  size: 1471
+  modtime: 1567186379
+C:\Users\rrbm8\OneDrive\cephaland-master\src\Ceph\Component\Enemy.hs:
+  hash: 3f65a2d16f514cad53323f153bb0916664a99bee5dd795c2075c67f97bca7d6e
+  size: 2495
+  modtime: 1564535609

@@ -10,11 +10,10 @@ module Ceph.Scene.HUD where
 
 import Ceph.Scene.Board
 import Ceph.Components
-import Graphics.Gloss
 import Linear (V2(..))
 import Apecs
 
-
+{--
 debugToPic :: ScreenBounds -> [Debug] -> [Picture]
 debugToPic (SB (fmap fromIntegral ->  (V2 w h))) d = zipWith (\z (Debug str) -> Translate (-(w/2)) z $ Scale 0.07 0.07 $ color yellow $ Text str) [h/2 - 20,h/2 - 40..] d
 
@@ -45,3 +44,4 @@ hudPic g = do
             Color green $ Translate (w/2 - 20) (h/2 - 20) $ Scale 0.1 0.1 $ Text $ show numThingsInScope,
             Translate (w/2 - 40) (h/2 - 170) $ mempty ]
         
+--}

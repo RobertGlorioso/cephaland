@@ -7,8 +7,6 @@ import Ceph.Physics.Box
 import Ceph.Util
 import Apecs
 import Linear
-import Graphics.Gloss
-import Graphics.Gloss.Geometry.Angle        (radToDeg)
 
 
 zoomIn :: Camera -> Camera

@@ -14,16 +14,15 @@
 module Ceph.Components where
 
 import Apecs
-import Graphics.Gloss
 import Euterpea
 import Linear
 import Data.Semigroup
 import Data.IntMap hiding (insert)
-import Graphics.Gloss.Interface.IO.Game
 import Data.Time.Clock
 import qualified SDL.Mixer as M
 import qualified SDL as S
 import Foreign.C.Types
+import GHC.Word
 
 data GameOpts = GameOpts { debugOn :: Bool }
 
@@ -104,12 +103,6 @@ data Behavior = Seek | Sing | Attack | Carry | Defend | Dead | Heal | Plant | Sw
 instance Component Behavior where
   type Storage Behavior = Map Behavior
 
-data UserInput = UI { uiEvent :: Event, time :: DiffTime }
-
-data History = History [UserInput]
-instance Component History where
-  type Storage History = Map History
-
 newtype Health = Health Float deriving (Eq, Num, Ord)
 instance Component Health where
   type Storage Health = Map Health
@@ -120,6 +113,28 @@ data SBoard a = SBoard
   (a, a, a, a)
   (a, a, a, a) deriving (Eq,Functor,Foldable,Traversable)
 
+data BoardStatus = Play | Pause deriving (Eq)
+instance Component BoardStatus where
+  type Storage BoardStatus = Global BoardStatus
+
+data BoardLock = Locked | Unlocked deriving (Eq)
+instance Component BoardLock where
+  type Storage BoardLock = Global BoardLock
+
+instance Monoid BoardLock where
+  mempty = Unlocked
+  mappend = const
+  
+instance Semigroup BoardLock where
+  a <> b = const a b
+
+instance Monoid BoardStatus where
+  mempty = Play
+  mappend = const
+  
+instance Semigroup BoardStatus where
+  a <> b = const a b
+  
 data SRow = S1 | S2 | S3 | S4
   deriving (Show, Eq, Enum, Ord)
            
@@ -131,12 +146,40 @@ data SCoordF a = SCoordF SRow SColumn a
   deriving (Show, Eq, Functor)
 type SCoord = SCoordF ()
 
---its going to loop when set up this way, with the last index sent to the first
-instance Enum (SCoord) where
-  succ (SCoordF S4 SIV  _) = SCoordF S1 SI ()
-  succ (SCoordF i SIV  _) = SCoordF (succ i) SI ()
-  succ (SCoordF i j _) = SCoordF i (succ j) ()
-
+instance Enum (SCoordF ()) where
+  fromEnum (SCoordF S4 SI _) = 12
+  fromEnum (SCoordF S4 SII _) = 13
+  fromEnum (SCoordF S4 SIII _) = 14
+  fromEnum (SCoordF S4 SIV _) = 15 
+  fromEnum (SCoordF S3 SI _) = 8 
+  fromEnum (SCoordF S3 SII _) = 9
+  fromEnum (SCoordF S3 SIII _) = 10
+  fromEnum (SCoordF S3 SIV _) = 11 
+  fromEnum (SCoordF S2 SI _) = 4
+  fromEnum (SCoordF S2 SII _) = 5
+  fromEnum (SCoordF S2 SIII _) = 6
+  fromEnum (SCoordF S2 SIV _) = 7
+  fromEnum (SCoordF S1 SI _) = 0
+  fromEnum (SCoordF S1 SII _) = 1
+  fromEnum (SCoordF S1 SIII _) = 2
+  fromEnum (SCoordF S1 SIV _) = 3
+  toEnum 12 = SCoordF S4 SI ()
+  toEnum 13 = SCoordF S4 SII ()
+  toEnum 14 = SCoordF S4 SIII ()
+  toEnum 15  = SCoordF S4 SIV ()
+  toEnum 8  = SCoordF S3 SI ()
+  toEnum 9 = SCoordF S3 SII ()
+  toEnum 10 = SCoordF S3 SIII ()
+  toEnum 11  = SCoordF S3 SIV ()
+  toEnum 4 = SCoordF S2 SI ()
+  toEnum 5 = SCoordF S2 SII ()
+  toEnum 6 = SCoordF S2 SIII ()
+  toEnum 7 = SCoordF S2 SIV ()
+  toEnum 0 = SCoordF S1 SI ()
+  toEnum 1 = SCoordF S1 SII ()
+  toEnum 2 = SCoordF S1 SIII ()
+  toEnum 3 = SCoordF S1 SIV ()
+  
 instance Monoid (SCoordF ()) where
   mempty = SCoordF S1 SI ()
 instance Semigroup (SCoordF ()) where
@@ -145,8 +188,8 @@ instance Semigroup (SCoordF ()) where
 instance Component (SCoordF ()) where
   type Storage (SCoordF ()) = Global (SCoordF ())
 
+type Sequencer = SBoard Entity
 
-type Sequencer = SBoard Entity --(Music Pitch, Picture)
 instance Component (Sequencer) where
   type Storage (Sequencer) = Global (Sequencer)
 instance Monoid (Sequencer) where
@@ -156,9 +199,6 @@ instance Monoid (Sequencer) where
 instance Semigroup Sequencer where
   (<>) = const
   
-
---different Functor types can make different interfaces
---this would be like an synthesizer 
 data MBoard a = MBoard
   a a a a
   deriving (Eq,Functor)
@@ -176,9 +216,9 @@ data ICoordF a = ICoordF Pitch Dur (a)
   deriving (Show, Eq, Functor)
 type ICoord = ICoordF ()
 
-data Sprites = Sprites [Picture]
-instance Component Sprites where
-  type Storage Sprites = Map Sprites
+data SpriteColor = SpriteColor (S.V4 Word8)
+instance Component SpriteColor where
+  type Storage SpriteColor = Map SpriteColor
 
 data SDLRenderer = SDLRenderer S.Renderer
 instance Component SDLRenderer where
@@ -220,10 +260,6 @@ instance Component Angle where type Storage Angle = Map Angle
 
 data Txtr = Txtr S.Texture (S.Rectangle CInt) deriving Eq
 instance Component Txtr where type Storage Txtr = Map Txtr
-
-newtype BodyPicture = BodyPicture Txtr deriving (Eq)
-instance Component BodyPicture where
-  type Storage BodyPicture = Map BodyPicture
 
 data Beat = Beat Int Int deriving Show
 instance Component Beat where 
@@ -267,7 +303,7 @@ instance Component ScreenBounds where
 newtype Song = Song (Music Pitch) deriving Show
 instance Component Song where type Storage Song = Map Song
 
-makeWorld "World" [''SDLRenderer, ''Sequencer, ''SCoord, ''Camera, ''Scope, ''BodyPicture, ''Player, ''Enemy, ''Dummy, ''Wall, ''Projectile, ''Actor, ''Position, ''Linked, ''Velocity, ''Gravity, ''Angle, ''Target, ''Weapon, ''Charge, ''Dash, ''ProjCount, ''Song, ''Health, ''Box, ''Sprites, ''SFXResources, ''Beat, ''Debug, ''DebugMode, ''Behavior, ''Grid, ''ScreenBounds, ''Animated]
+makeWorld "World" [''SDLRenderer, ''Sequencer, ''SCoord, ''Camera, ''Scope, ''Txtr, ''SpriteColor, ''BoardLock, ''BoardStatus, ''Player, ''Enemy, ''Dummy, ''Wall, ''Projectile, ''Actor, ''Position, ''Linked, ''Velocity, ''Gravity, ''Angle, ''Target, ''Weapon, ''Charge, ''Dash, ''ProjCount, ''Song, ''Health, ''Box, ''SFXResources, ''Beat, ''Debug, ''DebugMode, ''Behavior, ''Grid, ''ScreenBounds, ''Animated]
 
 {--keyActor = Key @"Actor"
 

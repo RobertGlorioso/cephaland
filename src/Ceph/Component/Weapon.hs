@@ -5,13 +5,12 @@ import Ceph.Components
 import Ceph.Physics.Box
 import Ceph.Util
 
-import Graphics.Gloss
 import Apecs
 import Linear
 import Data.List
 import Data.Ord
-import qualified Data.Vector.Storable as V
 import Foreign.C.Types
+
 
 showSword ::
   Ord a =>
@@ -36,7 +35,7 @@ hideSword (Sword,_) = (Sword, Position $ pure 2e7 )
 hideSword a = a
 
 sword :: Txtr -> System World Entity
-sword c = newEntity (BodyPicture (c)
+sword c = newEntity ( (c)
                     , Position (V2 (-1.05) 9.66)
                     , Velocity 0
                     , Angle 0
@@ -44,7 +43,7 @@ sword c = newEntity (BodyPicture (c)
                     , Sword)
 
 laser :: Txtr -> System World Entity
-laser c = newEntity (BodyPicture (c)
+laser c = newEntity ( (c)
                     , Position (pure 2e7)
                     , Velocity 0
                     , Angle 0
@@ -52,7 +51,7 @@ laser c = newEntity (BodyPicture (c)
                     , Laser) 
            
 harpoon :: Txtr -> System World Entity
-harpoon c = newEntity (BodyPicture (c)
+harpoon c = newEntity ( (c)
                     , Position (V2 (-10.05) 9.66)
                     , Velocity 0
                     , Angle 0
@@ -68,7 +67,7 @@ chain pic = do
             , Position 0
             , Velocity 0
             , ( box 0 0.05 0.05
-              , BodyPicture pic
+              ,  pic
               )
             )
   
