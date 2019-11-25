@@ -18,7 +18,6 @@
 -- {-# LANGUAGE Strict #-}
 module Ceph.Util where
 
-
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Reader hiding (forM_)
@@ -31,9 +30,9 @@ import Linear
 import Apecs
 import Apecs.Core
 import qualified Data.Vector.Unboxed as U
---import GHC.Prim
 
-v2ToRad :: (Floating a, Ord a) => V2 a -> a
+
+v2ToRad :: (RealFloat a, Ord a) => V2 a -> a
 v2ToRad (V2 m n) = case compare m 0 of
   LT -> atan ( n / m ) + pi
   GT -> atan ( n / m ) 
@@ -51,7 +50,6 @@ kpow n f = f <=< kpow (n-1) f
 fpow :: t2 -> Int -> (t2 -> t) -> (t2 -> t2) -> [t]
 fpow a 0 _ _ = []
 fpow a n f g = f a : fpow (g a) (n-1) f g
-
 
 {-# INLINE cmapIf_ #-}
 cmapIf_ :: forall w m cp cx cy.
@@ -164,7 +162,7 @@ conceIfM_ cond f = do
   sx :: Storage cx <- getStore
   sp :: Storage cp <- getStore
   sl <- lift $ explMembers (sx,sp)
-  U.foldM' (\b e -> do
+  U.foldM'_ (\b e -> do
                if b then do
                  p <- lift (explGet sp e)
                  if cond p then do

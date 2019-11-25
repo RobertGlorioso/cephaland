@@ -5,18 +5,18 @@ import Ceph.Components
 import Ceph.Physics.Box
 import Ceph.Util
 
-import Graphics.Gloss
 import Apecs
 import Linear
 import Data.List
 import Data.Ord
+import Foreign.C.Types
 
 showSword ::
   Ord a =>
   a
   -> a
-  -> V2 Float
-  -> V2 Float
+  -> V2 CDouble
+  -> V2 CDouble
   -> (Weapon, Position, Angle, Velocity)
   -> (Weapon, Position, Angle, Velocity)
 showSword x1 x2 tp pl (Sword,_,_,_) =
@@ -33,43 +33,45 @@ hideSword :: (Weapon, Position) -> (Weapon, Position)
 hideSword (Sword,_) = (Sword, Position $ pure 2e7 )
 hideSword a = a
 
-sword :: Picture -> System World Entity
-sword c = newEntity (BodyPicture (scale 0.1 0.1 c)
-                    , Position (V2 (-1.05) 9.66)
-                    , Velocity 0
-                    , Angle 0
-                    , Box ((V2 (-1.05) 9.66), 0.04, 0.21)
-                    , Sword)
+sword :: Txtr -> System World Entity
+sword pic = newEntity 
+            (pic
+            , Position (V2 (-1.05) 9.66)
+            , Velocity 0
+            , Angle 0
+            , Box ((V2 (-1.05) 9.66), 0.04, 0.21)
+            , Sword)
 
-laser :: Picture -> System World Entity
-laser c = newEntity (BodyPicture (scale 0.1 0.1 c)
-                    , Position (pure 2e7)
-                    , Velocity 0
-                    , Angle 0
-                    , Box ((pure 2e7), 0.04, 0.04)
-                    , Laser) 
+laser :: Txtr -> System World Entity
+laser pic = newEntity 
+            (pic
+            , Position (pure 2e7)
+            , Velocity 0
+            , Angle 0
+            , Box ((pure 2e7), 0.04, 0.04)
+            , Laser) 
            
-harpoon :: Picture -> System World Entity
-harpoon c = newEntity (BodyPicture (scale 0.1 0.1 c)
-                    , Position (V2 (-10.05) 9.66)
-                    , Velocity 0
-                    , Angle 0
-                    , Box ((V2 (-1.05) 9.66), 0.04, 0.21)
-                    , Harpoon)
+harpoon :: Txtr -> System World Entity
+harpoon pic = newEntity 
+              (pic
+              , Position (V2 (-10.05) 9.66)
+              , Velocity 0
+              , Angle 0
+              , Box ((V2 (-1.05) 9.66), 0.04, 0.21)
+              , Harpoon)
   
-chain :: Picture -> System World Entity
-chain pic = newEntity (Chain
-                     , Weapon
-                     , NoBehavior
-                     , Angle 0
-                     , Position 0
-                     , Velocity 0
-                     , ( box 0 0.05 0.05
-                       , BodyPicture $ Pictures
-                         [Line [(0,0), (10,0)]
-                         ,Scale (0.03) (0.03) pic]
-                       )
-                     )
+chain :: Txtr -> System World Entity
+chain pic = do
+  newEntity (Chain
+            , Weapon
+            , NoBehavior
+            , Angle 0
+            , Position 0
+            , Velocity 0
+            , (box 0 0.05 0.05
+              , pic
+              )
+            )
   
 chains :: [Entity] -> Entity -> System World ()
 chains [] _ = return ()
@@ -79,14 +81,12 @@ chains (prev:cur:nxt:rst) t = do
   chains (cur:nxt:rst) t
   
 chainExtended ::
-  Float -> System World (Bool, (V2 Float, V2 Float))
+  CDouble -> System World (Bool, (V2 CDouble, V2 CDouble))
 chainExtended r = do
   ls <- cfoldM (\a b -> return (b:a)) [] :: System World [(Linked, Position)]
   let (_, Position p1) = minimumBy (comparing fst) ls
   let (_, Position pn) = maximumBy (comparing fst) ls
   if norm ( p1 - pn ) > r then return (True,(p1,pn)) else return (False, (p1,pn)) 
-
-
 
 moveChains :: (Linked, Weapon) -> System World (Angle, Position)
 moveChains (Linked e f, Chain) = do

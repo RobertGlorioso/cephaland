@@ -10,11 +10,10 @@ module Ceph.Scene.HUD where
 
 import Ceph.Scene.Board
 import Ceph.Components
-import Graphics.Gloss
 import Linear (V2(..))
 import Apecs
 
-
+{--
 debugToPic :: ScreenBounds -> [Debug] -> [Picture]
 debugToPic (SB (fmap fromIntegral ->  (V2 w h))) d = zipWith (\z (Debug str) -> Translate (-(w/2)) z $ Scale 0.07 0.07 $ color yellow $ Text str) [h/2 - 20,h/2 - 40..] d
 
@@ -35,11 +34,14 @@ hudPic g = do
       mkhud sb@(SB (fmap fromIntegral -> (V2 w h))) = do
         (sbd,sc) <- get global
         sbrd <- soundBoard sbd sc
-        [(Player1, ProjCount numArrows, Health playerHP)] <- cfoldM (\a b -> return (b:a) ) []
+        playerStats <- cfoldM (\a b -> return (b:a) ) []
+        let (Player1, ProjCount numArrows, Health playerHP) = if length playerStats /= 0 then head playerStats else (Player1, ProjCount 0, Health 0)
         numThingsInScope <- length . filter (==In) <$> (cfoldM (\a b -> return (b:a) ) [] :: System World [(Scope)])
         Dash dashVal <- get global
         return $ [Translate (w/2 - 50) (h/2 - 100) $ Scale 4 4 $ Line [((-8),10),(dashVal,10)],
             Color red $ Translate (w/2 - 40) (h/2 - 70) $ ThickArc 0 (max 0 playerHP*pi) 2 59,
             Translate (w/2 - 50) (h/2 - 20) $ Scale 0.1 0.1 $ Text $ show numArrows,
             Color green $ Translate (w/2 - 20) (h/2 - 20) $ Scale 0.1 0.1 $ Text $ show numThingsInScope,
-            Translate (w/2 - 40) (h/2 - 170) $ sbrd ]
+            Translate (w/2 - 40) (h/2 - 170) $ mempty ]
+        
+--}

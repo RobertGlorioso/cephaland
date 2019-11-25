@@ -1,0 +1,2 @@
+dir "soundfonts"
+soundfont "GeneralUser GS v1.471.SF2"

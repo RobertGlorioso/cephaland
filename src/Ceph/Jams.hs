@@ -8,70 +8,74 @@ import Euterpea
 import Data.List hiding (transpose)
 import Codec.Midi
 import System.Random
-
-
-
-
-
 import Control.Monad
 import Numeric
 import Data.Char
 import qualified Data.ByteString as Byte
+import System.Process
+
+midiLoad :: Music Pitch -> IO M.Chunk
+midiLoad m = do
+  --bmsc <- return $ makeByteMusic m
+  --Byte.writeFile "temp.mid" bmsc
+  exportMidiFile "temp.mid" . toMidi . perform $ m
+  proc <- runCommand "timidity -c \"./soundfonts/GeneralUser GS v1.471.cfg.txt\" -Ow temp.mid -o temp.wav"
+  waitForProcess proc
+  sfx <- M.load "temp.wav" :: IO M.Chunk -- midi gives error "unrecognized audio format"
+  return sfx
+
+makeMidiSamples i = [instrument i $ n o p | n <- [a,as,b,bs,c,cs,d,ds,e,es,f,fs,g,gs], o <- [3..6], p <- [sn,en,qn,hn,wn]]
+
+makeMidiFiles i = do
+  mapM_ (\(file, mid) -> exportMidiFile file . toMidi . perform $ mid) 
+      [(n ++ show o ++ p ++ show i ++ ".mid", instrument i $ m o q) 
+      | (n,m) <- zip ["a","as","b","bs","c","cs","d","ds","e","es","f","fs","g","gs"] [a,as,b,bs,c,cs,d,ds,e,es,f,fs,g,gs], o <- [3..6], (p,q) <- zip ["sn", "en", "qn", "hn", "wn"] [sn,en,qn,hn,wn]]
+      
+  {--mapM_ (\(file, mid) -> Byte.writeFile file $ makeByteMusic mid) 
+      [(show b ++ p ++ ".mid",perc b q) 
+      | b <- [AcousticBassDrum .. OpenTriangle], (p,q) <- zip ["sn", "en", "qn", "hn", "wn"] [sn,en,qn,hn,wn]] --}
 
 --reading in songs from a user specified file
-importSong :: String -> IO ( M.Chunk)
-importSong f = either (error) (M.decode . makeFile) =<< importFile f
+--importSong :: String -> IO ( M.Chunk)
+--importSong f = either (error) (M.decode . makeFile) =<< importFile f
 
---crds :: [SCoord]
---crds = [(\px py -> SCoordF x y px py ()) |  x<-(toEnum <$> [0..3]), y<-(toEnum <$> [0..3])] <*> [(-30),(-10),10,30] <*> [(-30),(-10),10,30]
+succCycle (SCoordF S4 SIV  _) = SCoordF S1 SI ()
+succCycle (SCoordF i SIV  _) = SCoordF (succ i) SI ()
+succCycle (SCoordF i j _) = SCoordF i (succ j) ()
 
 incrementBeat :: World -> System World ()
 incrementBeat w = do
-      Beat m i <- get global
-      -- plays sound effects on beat
-      if (m == i) then (global `set` Beat m 0) >> (global `modify` (\s  -> succ s :: SCoord)) >> cmapM_ ( \case
-        (Sing, a :: Actor, e) -> liftIO ( print (a)) >> playSong e >> if ( a == Weapon ) then ( e `set` Seek ) else e `set` NoBehavior
+  (Beat m i, BoardControl boardstat _) <- get global
+  -- plays sound effects on beat
+  when (boardstat == Play) $
+    if (m <= i) then (global `set` Beat m 0) >> (global `modify` (\s  -> succCycle s :: SCoord)) >> cmapM_ ( \case
+        (Sing, a :: Actor, e) -> playSong e >> if ( a == Weapon ) then ( e `set` Seek ) else e `set` NoBehavior
         _ -> return ()
         )
-        else global `set` Beat m (i+1) 
-      {--liftIO . print =<< flip cfoldM (Song (rest 0)) (\s@(Song i) ->
-                (\case
-                    (Sing, Song j) -> return (Song $ i :=: j)
-                    _ -> return (Song i)
-                )
-              )
-      -- e `set` (Debug . show $ (a, Song i)) >>
-    --}
+    else global `set` Beat m (i+1) 
+{--liftIO . print =<< flip cfoldM (Song (rest 0)) (\s@(Song i) ->
+            (\case
+                (Sing, Song j) -> return (Song $ i :=: j)
+                _ -> return (Song i)
+            )
+          )
+  -- e `set` (Debug . show $ (a, Song i)) >>
+--}
 
 --this function assigns a sound to the first open channel it finds
 playSong :: Entity -> System World ()
 playSong ent = do
-  
-  (SFXResources p _) <- get ent
-  when (p /= []) $ M.play $ head p
-  --when (s /= []) $ melodyPlay 6 (head s)
-  --when (p /= []) $ percPlay 0 (head p)
- -- return ()
+  (SFXResources p s _) <- get ent
+  soundPlay [p,s] 0
   where
-    percPlay i mzk
-        | i <= 5 && i >= 0 = do
-            isP <- M.playing i
-            if not isP then do
-              M.playOn i M.Once mzk 
-              --M.whenChannelFinished (\_ -> runWith w ( ent `set` (NoBehavior) )) -- >> ent `destroy` (Proxy :: Proxy Debug))) -- this doesnt always proc for some reason
-              return ()
-            else when (i == 5) (liftIO $ print "skipped beat") >> percPlay (i+1) mzk
-        | True = return ()
-    melodyPlay i mzk
-        | i <= 7 && i > 5 = do
-            isP <- M.playing i
-            if not isP then do
-              M.playOn i M.Once mzk >> return ()
-              --M.whenChannelFinished (\_ -> runWith w ( ent `set` (NoBehavior))) -- >> ent `destroy` (Proxy :: Proxy Debug))) -- this doesnt always proc for some reason
-            else melodyPlay (i+1) mzk
-        | True = return ()
-  
-
+    soundPlay [] _ = return ()
+    soundPlay ms@(m:mz) i 
+      | i > 7 = M.halt 0 >> M.playOn 0 M.Once m >> soundPlay mz 1
+      | otherwise = do
+        chanAvailable <- not <$> M.playing i
+        if chanAvailable then M.playOn i M.Once m >> soundPlay mz (i+1) else soundPlay ms (i+1)
+        
+{--
 
 --this was all stolen from HSoM
 data DetGrammar a = DetGrammar  a           --  start symbol
@@ -210,7 +214,7 @@ g1 = Grammar same (Uni [r1b, r1a, r2b, r2a, r3a, r3b])
 t1 n i =  instrument i $ interpret (gen replFun g1 n !! 3) ir (c 5 tn)
 
 
-------------
+-------------midi encode/decode------------
 
 makeByteMusic = ( makeFile . toMidi . perform) :: Music Pitch -> Byte.ByteString
 
@@ -347,3 +351,4 @@ fixTempo = Byte.pack . map (fromIntegral . binStrToNum . reverse) .
            breakBinStrs 8 . pad (4*6) '0' . numToBinStr
 exportMidiFile :: FilePath -> Midi -> IO ()
 exportMidiFile fn = Byte.writeFile fn . makeFile
+--}

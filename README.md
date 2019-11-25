@@ -1,13 +1,27 @@
--- Its the Cephaland Game Center --
+-- Its the Cephaland Game --
 
-use arrow keys or wasd to move the character
+use w/a/s/d keys to move the character
+use arrow keys to move the net
 
-check out twitch.tv/bobgrouse to check out developments
+=/- will change tempo up/down
 
--- Installing --
+f key will toggle playback
 
-you will have to use stack (updated to latest version)
+space key will toggle lock the sequencer
+
+-- Running the Game --
+
+extract ceph.exe.zip somewhere then click ceph.exe in that folder
+
+you will have to use stack if you want to change the game
 
 `stack build` - command to build a new version
 `stack exec ceph` - command to run the game
-`stack exec ceph -- --debud` - command to run the game with debugging
+`stack exec ceph -- --debug` - command to run the game with debugging (not working on windows)
+
+-- Credits --
+
+Euterpea: https://github.com/Euterpea/Euterpea2
+Timidity: http://timidity.sourceforge.net/
+SDL: https://www.libsdl.org/
+
