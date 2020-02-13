@@ -2,21 +2,67 @@
 
 module Ceph.Component.Wall where
 import Ceph.Components
+import Ceph.Util
 import Ceph.Physics.Box
 import System.Random
+import Foreign.C.Types
 import qualified SDL as S
 import Apecs
 import Linear
 
-hardWall (r,s,g,a) (d,o) txtr@(Txtr _ (S.Rectangle _ (fmap (fromIntegral) -> S.V2 x y))) = do
+floorWall :: (CDouble,CDouble) -> SFXResources -> Angle -> Txtr -> System World Entity
+floorWall (r,s) sfx n txtr@(Txtr _ (S.Rectangle _ (fmap (fromIntegral) -> S.V2 x y))) = do
   ran <- liftIO $ newStdGen
-  let ranColor = (\(r:g:b:a:_) -> S.V4 r g b a) $ randomRs (0,255) ran
-  newEntity ((Wall,Wall1)
+  newEntity ((Wall,Floor)
+            , Position (V2 r s)
+            , n
+            , Velocity 0
+            , box (V2 r s) (x / 2) (y / 2)
+            , sfx
+            , txtr 
+            ) 
+
+oneWayWall :: (CDouble,CDouble) -> SFXResources -> Txtr -> System World Entity
+oneWayWall (r,s) sfx txtr@(Txtr _ (S.Rectangle _ (fmap (fromIntegral) -> S.V2 x y))) = do
+  newEntity ((Wall,OneWayWall)
+            , Position (V2 r s)
+            , Angle (r + s)
+            , Velocity 0
+            , box (V2 r s) (x / 2) (y / 2)
+            , sfx
+            , txtr
+            ) 
+
+newWall :: S.Renderer -> FilePath -> Wall -> (CDouble,CDouble,CDouble,CDouble) -> SFXResources -> System World Entity
+newWall r txtrFile w (b,c,g,a) s = do
+  texture@(Txtr _ (S.Rectangle _ (fmap (fromIntegral) -> S.V2 x y))) <- liftIO $ loadTxtr r txtrFile
+  newEntity ((Wall,w)
+            , Position (V2 b c)
+            , Angle ( if g > a then 2*pi - (g + a) else (g + a) )
+            , Velocity 0
+            , box (V2 b c) (x / 2) (y / 2)
+            , s
+            , texture
+            )
+
+hardWall :: Wall -> (CDouble,CDouble,CDouble,CDouble) -> SFXResources -> Txtr -> System World Entity
+hardWall w (r,s,g,a) sfx txtr@(Txtr _ (S.Rectangle _ (fmap (fromIntegral) -> S.V2 x y))) = do
+  newEntity ((Wall,w)
             , Position (V2 r s)
             , Angle ( if g > a then 2*pi - (g + a) else (g + a) )
             , Velocity 0
-            , box (fromIntegral . round <$> V2 r s) (x / 2) (y / 2)
-            , SFXResources d o []
+            , box (V2 r s) (x / 2) (y / 2)
+            , sfx
             , txtr 
-            , SpriteColor ranColor
-            ) 
+            )
+
+makeFloorWallBox :: Txtr -> V2 CDouble -> [SFXResources] -> System World ()
+makeFloorWallBox flrTexture (V2 x y) sfxs = do
+      flip mapM_ [-1000,-800..1000] $ \j -> do
+        floorWall (x + j, y - 1200) (head $ sfxs) (Angle 0) flrTexture
+      flip mapM_ [-1000,-800..1000] $ \j -> do
+        floorWall (x + j, y + 1200) (head $ sfxs) (Angle 0) flrTexture
+      flip mapM_ [-1000,-800..1000] $ \j -> do
+        floorWall (x - 1200, y + j) (head $ sfxs) (Angle $ pi/2) flrTexture
+      flip mapM_ [-1000,-800..1000] $ \j -> do
+        floorWall (x + 1200, y + j) (head $ sfxs) (Angle $ pi/2) flrTexture

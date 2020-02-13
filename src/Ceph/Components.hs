@@ -13,10 +13,14 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Ceph.Components where
 
+
+import Data.Functor.Rep
+import Data.Functor.Adjunction
+import Data.Distributive
 import Apecs
-import Euterpea
+import Euterpea (Music(..),Pitch,Dur)
 import Linear
-import Data.IntMap hiding (insert)
+import Data.IntMap hiding (insert,foldl)
 import qualified SDL.Mixer as M
 import qualified SDL as S
 import Foreign.C.Types
@@ -24,32 +28,27 @@ import GHC.Word
 
 data GameOpts = GameOpts { debugOn :: Bool }
 
-newtype Debug = Debug String deriving (Show)
-instance Component Debug where
-  type Storage Debug = Map Debug
+data SDLRenderer = SDLRenderer S.Renderer
+instance Component SDLRenderer where
+  type Storage SDLRenderer = Unique SDLRenderer  
 
-data DebugMode = DebugMode Int deriving (Show,Eq)
-instance Component DebugMode where
-  type Storage DebugMode = Global DebugMode
-
-instance Monoid DebugMode where
-  mempty = DebugMode 0
-instance Semigroup DebugMode where
-  (<>) = const
-  
 --these are the guys in the game. if we want to use all these guys in the game loop we use this type.
 --`cmap :: Actor -> ...` will map in everything where `cmap :: Wall -> ...` will map just walls
 data Actor = Player | Enemy | Wall | Weapon | Projectile deriving (Show,Eq)
 instance Component Actor where
   type Storage Actor = Map Actor
 
+data Orbiting = Orbiting Entity
+instance Component Orbiting where
+  type Storage Orbiting = Map Orbiting
+
 --a wall is a stationary box 
-data Wall = Wall1 deriving (Eq, Show)
+data Wall = Wall1 | Wall2 | Wall3 | OneWayWall | Floor deriving (Eq, Show)
 instance Component Wall where
   type Storage Wall = Map Wall
 
 --the weapons: sword / lance will be a box that does cut / pierce | laser will reflect off boxes | harpoon will shoot tiny spears | chain will attach to boxes
-data Weapon = Sword | Lance | Laser | Harpoon | Chain deriving (Eq, Show)
+data Weapon = Sword | Lance | Laser | Harpoon | Chain | Net deriving (Eq, Show)
 instance Component Weapon where
   type Storage Weapon = Map Weapon
 
@@ -59,12 +58,12 @@ instance Component Enemy where
   type Storage Enemy = Map Enemy
 
 --the players
-data Player = Player1 | Player2 | OtherPlayer deriving (Eq, Show)
+data Player = Player1 deriving (Eq, Show)
 instance Component Player where
   type Storage Player = Map Player
 
 --the stuff getting shot 
-data Projectile = Bullet | Arrow deriving (Eq,Show)
+data Projectile = Bullet | Arrow | Squall deriving (Eq,Show)
 instance Component Projectile where
   type Storage Projectile = Map Projectile
 
@@ -89,15 +88,11 @@ data Dash = Dash Float deriving (Eq, Show)
 instance Component Dash where
   type Storage Dash = Unique Dash
   
-data Dummy = Dummy 
-instance Component Dummy where
-  type Storage Dummy = Unique Dummy
-
 data Animated = Animate Int | Loop | Still
 instance Component Animated where
   type Storage Animated = Map Animated
 
-data Behavior = Seek | Sing | Attack | Carry | Defend | Dead | Heal | Plant | Swinging | NoBehavior | Moving (V2 CDouble) deriving (Show,Eq)
+data Behavior = Seek | Sing | Attack | Carry | Defend | Trapped | Heal | Plant | Swinging | NoBehavior deriving (Show,Eq)
 instance Component Behavior where
   type Storage Behavior = Map Behavior
 
@@ -105,13 +100,24 @@ newtype Health = Health Float deriving (Eq, Num, Ord)
 instance Component Health where
   type Storage Health = Map Health
 
+data SList a = SList [a] deriving (Eq, Functor, Foldable, Traversable)
+
+instance Monoid (SList a) where
+  mempty = SList []
+instance Semigroup (SList a) where
+  (SList a) <> (SList b) = SList $ a ++ b
+
+type SongList = SList SFXResources
+instance Component SongList where
+  type Storage SongList = Unique SongList
+
 data SBoard a = SBoard
   (a, a, a, a)
   (a, a, a, a)
   (a, a, a, a)
   (a, a, a, a) deriving (Eq,Functor,Foldable,Traversable)
 
-data BoardControl = BoardControl { status :: BoardStatus, lock :: BoardLock}
+data BoardControl = BoardControl {status :: BoardStatus, lock :: BoardLock}
 instance Component BoardControl where
   type Storage BoardControl = Unique BoardControl
 
@@ -123,6 +129,14 @@ data BoardLock = Locked | Unlocked deriving (Eq)
 instance Component BoardLock where
   type Storage BoardLock = Unique BoardLock
 
+data SpriteColor = SpriteColor (S.V4 Word8) deriving (Eq, Show)
+instance Component SpriteColor where
+  type Storage SpriteColor = Map SpriteColor
+
+data SFXResources = SFXResources { sound :: M.Chunk, song :: Music Pitch, clr :: SpriteColor } deriving (Show,Eq)
+instance Component SFXResources where
+  type Storage SFXResources = Map SFXResources
+
 data SRow = S1 | S2 | S3 | S4
   deriving (Show, Eq, Enum, Ord)
            
@@ -132,54 +146,26 @@ data SColumn = SI | SII | SIII | SIV
 --so this is like a sequencer          
 data SCoordF a = SCoordF SRow SColumn a
   deriving (Show, Eq, Functor)
-type SCoord = SCoordF ()
 
 instance Enum (SCoordF ()) where
-  fromEnum (SCoordF S4 SI _) = 12
-  fromEnum (SCoordF S4 SII _) = 13
-  fromEnum (SCoordF S4 SIII _) = 14
-  fromEnum (SCoordF S4 SIV _) = 15 
-  fromEnum (SCoordF S3 SI _) = 8 
-  fromEnum (SCoordF S3 SII _) = 9
-  fromEnum (SCoordF S3 SIII _) = 10
-  fromEnum (SCoordF S3 SIV _) = 11 
-  fromEnum (SCoordF S2 SI _) = 4
-  fromEnum (SCoordF S2 SII _) = 5
-  fromEnum (SCoordF S2 SIII _) = 6
-  fromEnum (SCoordF S2 SIV _) = 7
-  fromEnum (SCoordF S1 SI _) = 0
-  fromEnum (SCoordF S1 SII _) = 1
-  fromEnum (SCoordF S1 SIII _) = 2
-  fromEnum (SCoordF S1 SIV _) = 3
-  toEnum 12 = SCoordF S4 SI ()
-  toEnum 13 = SCoordF S4 SII ()
-  toEnum 14 = SCoordF S4 SIII ()
-  toEnum 15  = SCoordF S4 SIV ()
-  toEnum 8  = SCoordF S3 SI ()
-  toEnum 9 = SCoordF S3 SII ()
-  toEnum 10 = SCoordF S3 SIII ()
-  toEnum 11  = SCoordF S3 SIV ()
-  toEnum 4 = SCoordF S2 SI ()
-  toEnum 5 = SCoordF S2 SII ()
-  toEnum 6 = SCoordF S2 SIII ()
-  toEnum 7 = SCoordF S2 SIV ()
-  toEnum 0 = SCoordF S1 SI ()
-  toEnum 1 = SCoordF S1 SII ()
-  toEnum 2 = SCoordF S1 SIII ()
-  toEnum 3 = SCoordF S1 SIV ()
-  
+  fromEnum (SCoordF row col _) = 4*(fromEnum row) + fromEnum col
+  toEnum n 
+    | n < 16 && n > 0 = SCoordF (toEnum $ n `div` 4) (toEnum $ n `mod` 4) ()
+    | otherwise        = SCoordF S1 SI ()
+
 instance Monoid (SCoordF ()) where
   mempty = SCoordF S1 SI ()
 instance Semigroup (SCoordF ()) where
   (<>) = const
-    
-instance Component (SCoordF ()) where
-  type Storage (SCoordF ()) = Global (SCoordF ())
+
+type SCoord = SCoordF ()
+instance Component (SCoord) where
+  type Storage (SCoord) = Global (SCoord)
 
 type Sequencer = SBoard Entity
 
 instance Component (Sequencer) where
-  type Storage (Sequencer) = Global (Sequencer)
+  type Storage (Sequencer) = Map (Sequencer)
 instance Monoid (Sequencer) where
   mempty = SBoard (1,2,3,4) (5,6,7,8) (9,10,11,12) (13,14,15,16)
   mappend = const
@@ -187,13 +173,119 @@ instance Monoid (Sequencer) where
 instance Semigroup Sequencer where
   (<>) = const
   
-data MBoard a = MBoard
-  a a a a
-  deriving (Eq,Functor)
+data MBoard a = MBoard [(V2 CDouble, a)] Bool
+  deriving (Functor, Foldable, Traversable)
 
-data MCoordF a = MCoordF [Pitch] InstrumentName (a)
+type Netitor = MBoard SFXResources
+
+instance Component Netitor where
+  type Storage Netitor = Unique Netitor
+
+data MCoordF a = MCoordF (S.Point V2 CDouble) a
   deriving (Show, Eq, Functor)
+
 type MCoord = MCoordF ()
+instance Component MCoord where
+  type Storage MCoord = Unique MCoord
+
+
+instance Distributive MBoard where
+  distribute = distributeRep
+
+instance Representable MBoard where
+  -- We index into our functor using Coord
+  type Rep MBoard = MCoord
+  -- Given an index and a board, pull out the matching cell
+  index (MBoard objs _) (MCoordF (S.P v) _) = snd $ foldl 
+    (\(minb,gx) (b,fx) -> let d = S.distance v b; mind = S.distance v minb in if mind < d then (minb,gx) else (b,fx)) 
+    (head objs) 
+    (tail objs)
+
+  tabulate desc = MBoard mempty False
+
+instance Adjunction MCoordF MBoard where
+  unit a = tabulate (\(MCoordF v _ ) -> MCoordF v a)
+  counit (MCoordF v board) = index board (MCoordF v ())
+
+{--
+defineIBoard :: ICoord -> Music Pitch
+defineIBoard (ICoordF p m _) = Prim . Note m $ p
+
+instance Distributive IBoard where
+  distribute = distributeRep
+
+instance Representable IBoard where
+  type Rep IBoard = ICoord
+  index (IBoard a _ _ _ _ _ _ _ _ _ _ _) (ICoordF (A,_) _ _) = a
+  index (IBoard _ a _ _ _ _ _ _ _ _ _ _) (ICoordF (As,_) _ _) = a
+  index (IBoard _ _ a _ _ _ _ _ _ _ _ _) (ICoordF (B,_) _ _) = a
+  index (IBoard _ _ _ a _ _ _ _ _ _ _ _) (ICoordF (Bs,_) _ _) = a
+  index (IBoard _ _ _ _ a _ _ _ _ _ _ _) (ICoordF (C,_) _ _) = a
+  index (IBoard _ _ _ _ _ a _ _ _ _ _ _) (ICoordF (Cs,_) _ _) = a
+  index (IBoard _ _ _ _ _ _ a _ _ _ _ _) (ICoordF (D,_) _ _) = a
+  index (IBoard _ _ _ _ _ _ _ a _ _ _ _) (ICoordF (Ds,_) _ _) = a
+  index (IBoard _ _ _ _ _ _ _ _ a _ _ _) (ICoordF (E,_) _ _) = a
+  index (IBoard _ _ _ _ _ _ _ _ _ a _ _) (ICoordF (Es,_) _ _) = a
+  index (IBoard _ _ _ _ _ _ _ _ _ _ a _) (ICoordF (F,_) _ _) = a
+  index (IBoard _ _ _ _ _ _ _ _ _ _ _ a) (ICoordF (G,_) _ _) = a
+  tabulate desc = IBoard (desc (ICoordF (A,4) qn ())) (desc (ICoordF (As,4) qn ())) 
+    (desc (ICoordF (B,4) qn ())) 
+    (desc (ICoordF (Bs,4) qn ())) 
+    (desc (ICoordF (C,4) qn ())) 
+    (desc (ICoordF (Cs,4) qn ())) 
+    (desc (ICoordF (D,4) qn ())) 
+    (desc (ICoordF (Ds,4) qn ())) 
+    (desc (ICoordF (E,4) qn ())) 
+    (desc (ICoordF (Es,4) qn ())) 
+    (desc (ICoordF (F,4) qn ())) 
+    (desc (ICoordF (G,4) qn ()))
+  
+instance Adjunction ICoordF IBoard where
+  unit a = tabulate (\(ICoordF row col _ ) -> ICoordF row col a)
+  counit (ICoordF row col board) = index board (ICoordF row col ()) --}
+
+instance (Show a) => Show (SBoard a) where
+  show (SBoard a b c d) = "       I  |  II | III | IV\n"
+    ++ "A   " ++ show a ++ "\n"
+    ++ "B   " ++ show b ++ "\n"
+    ++ "C   " ++ show c ++ "\n"
+    ++ "D   " ++ show d ++ "\n"
+    
+instance Distributive SBoard where
+  distribute = distributeRep
+  
+instance Adjunction SCoordF SBoard where
+  --unit :: a -> SBoard (SCoordF a)
+  unit a = tabulate (\(SCoordF row col _ ) -> SCoordF row col a)
+  counit (SCoordF row col board) = index board (SCoordF row col ())
+
+instance Representable SBoard where
+  -- We index into our functor using Coord
+  type Rep SBoard = SCoord
+  -- Given an index and a board, pull out the matching cell
+  index (SBoard (a, _, _, _) _ _ _) (SCoordF S1 SI _) = a
+  index (SBoard (_, a, _, _) _ _ _) (SCoordF S1 SII _) = a
+  index (SBoard (_, _, a, _) _ _ _) (SCoordF S1 SIII _) = a
+  index (SBoard (_, _, _, a) _ _ _) (SCoordF S1 SIV _) = a
+  index (SBoard _ (a, _, _, _) _ _) (SCoordF S2 SI _) = a
+  index (SBoard _ (_, a, _, _) _ _) (SCoordF S2 SII _) = a
+  index (SBoard _ (_, _, a, _) _ _) (SCoordF S2 SIII _) = a
+  index (SBoard _ (_, _, _, a) _ _) (SCoordF S2 SIV _) = a
+  index (SBoard _ _ (a, _, _, _) _) (SCoordF S3 SI _) = a
+  index (SBoard _ _ (_, a, _, _) _) (SCoordF S3 SII _) = a
+  index (SBoard _ _ (_, _, a, _) _) (SCoordF S3 SIII _) = a
+  index (SBoard _ _ (_, _, _, a) _) (SCoordF S3 SIV _) = a
+  index (SBoard _ _ _ (a, _, _, _)) (SCoordF S4 SI _) = a
+  index (SBoard _ _ _ (_, a, _, _)) (SCoordF S4 SII _) = a
+  index (SBoard _ _ _ (_, _, a, _)) (SCoordF S4 SIII _) = a
+  index (SBoard _ _ _ (_, _, _, a)) (SCoordF S4 SIV _) = a
+
+  -- Given a function which describes a slot, build a Board
+  tabulate desc = SBoard
+      (desc (SCoordF S1 SI ()), desc (SCoordF S1 SII ()), desc (SCoordF S1 SIII ()), desc (SCoordF S1 SIV ()))
+      (desc (SCoordF S2 SI ()), desc (SCoordF S2 SII ()), desc (SCoordF S2 SIII ()), desc (SCoordF S2 SIV ()))
+      (desc (SCoordF S3 SI ()), desc (SCoordF S3 SII ()), desc (SCoordF S3 SIII ()), desc (SCoordF S3 SIV ()))
+      (desc (SCoordF S4 SI ()), desc (SCoordF S4 SII ()), desc (SCoordF S4 SIII ()), desc (SCoordF S4 SIV ()))
 
 data IBoard a = IBoard
   a a a a a a a a a a a a
@@ -204,24 +296,14 @@ data ICoordF a = ICoordF Pitch Dur (a)
   deriving (Show, Eq, Functor)
 type ICoord = ICoordF ()
 
-data SpriteColor = SpriteColor (S.V4 Word8)
-instance Component SpriteColor where
-  type Storage SpriteColor = Map SpriteColor
-
-data SDLRenderer = SDLRenderer S.Renderer
-instance Component SDLRenderer where
-  type Storage SDLRenderer = Unique SDLRenderer  
-
-data SFXResources = SFXResources { sound :: M.Chunk, beat :: M.Chunk, song :: [Music Pitch] } deriving (Show,Eq)
-instance Component SFXResources where
-  type Storage SFXResources = Map SFXResources
-
 data Box = Box (V2 CDouble, CDouble, CDouble) deriving (Show)
 instance Component Box where
   type Storage Box = Map Box
 
-data Phys = Phys { pos :: Position, vel :: Velocity, ang :: Angle, grav :: Gravity } deriving (Eq, Show)
-instance Component Phys where type Storage Phys = Map Phys
+type Phys = (Velocity, Position, Gravity, Angle)
+
+newtype AngularMomentum = AngularMomentum (CDouble)
+instance Component AngularMomentum where type Storage AngularMomentum = Map AngularMomentum
 
 newtype Grid = Grid (IntMap (IntMap ())) deriving Show
 instance Component Grid where type Storage Grid = Unique Grid
@@ -288,10 +370,8 @@ instance Semigroup ScreenBounds where
 instance Component ScreenBounds where
   type Storage ScreenBounds = Global ScreenBounds
   
-newtype Song = Song (Music Pitch) deriving Show
-instance Component Song where type Storage Song = Map Song
 
-makeWorld "World" [''SDLRenderer, ''Sequencer, ''SCoord, ''Camera, ''Scope, ''Txtr, ''SpriteColor, ''BoardControl, ''BoardLock, ''BoardStatus, ''Player, ''Enemy, ''Dummy, ''Wall, ''Projectile, ''Actor, ''Position, ''Linked, ''Velocity, ''Gravity, ''Angle, ''Target, ''Weapon, ''Charge, ''Dash, ''ProjCount, ''Song, ''Health, ''Box, ''SFXResources, ''Beat, ''Debug, ''DebugMode, ''Behavior, ''Grid, ''ScreenBounds, ''Animated]
+makeWorld "World" [''SDLRenderer, ''AngularMomentum, ''SongList, ''Sequencer, ''SCoord, ''MCoord, ''Camera, ''Scope, ''Txtr, ''BoardControl, ''BoardLock, ''BoardStatus, ''Player, ''Enemy, ''Wall, ''Projectile, ''Actor, ''Position, ''Linked, ''Velocity, ''Gravity, ''Angle, ''Target, ''Weapon, ''Charge, ''Dash, ''ProjCount, ''Health, ''Box, ''SFXResources, ''Netitor, ''Beat, ''Behavior, ''Grid, ''ScreenBounds, ''Animated]
 
 {--keyActor = Key @"Actor"
 

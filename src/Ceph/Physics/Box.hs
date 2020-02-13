@@ -17,44 +17,57 @@ import Linear hiding (angle)
 import qualified Linear
 
 friction :: CDouble
-friction = 1.05
+friction = 1.08
 
 boxBound :: System World ()
 boxBound = do
   --recursive version that finds a "neareast wall" for each moving, in-scope ent
   inScopeWall <- cfoldM (\a b@(_,_,_,s,_) -> if s == In then return (b:a) else return a ) [] :: System World [(Box,Angle,Wall,Scope,Entity)]
   cmapM_ $ wallBounce inScopeWall
-  return ()
 
-data TouchedEdge = LeftEdge | RightEdge | TopEdge | BottomEdge | TopRightCorner | NotTouched | BottomRightCorner | BottomLeftCorner | TopLeftCorner deriving (Eq, Show, Ord)
+data TouchedEdge = LeftEdge 
+  | RightEdge 
+  | TopEdge 
+  | BottomEdge deriving (Eq, Show, Ord)
 
+--checks that two boxes are touching
 aabb :: Box -> Box -> Bool
-aabb (Box (V2 ax ay,w1,h1)) (Box (V2 bx by,w2,h2)) = all (<0)
-  [ax - w1 - (bx + w2)
-   , bx - w2 - (ax + w1)
-   , ay - h1 - (by + h2)
-   , by - h2 - (ay + h1) ]
+aabb b1 b2 = all (<0) $ edgeMeasures b1 b2
+
+--checks that the first box is below the second
+isBelow :: Box -> Box -> Bool
+isBelow (Box (V2 _ ay,_,h1)) (Box (V2 _ by,_,h2)) = by + h2 > ay - h1
+
+--calculates the distance between two boxes edges. if all are negative they are touching 
+edgeMeasures :: Box -> Box -> [CDouble]
+edgeMeasures (Box (V2 bx by, w2, h2)) (Box (V2 ax ay, w1, h1)) =
+  [ ax - w1 - (bx + w2)
+  , bx - w2 - (ax + w1)
+  , ay - h1 - (by + h2)
+  , by - h2 - (ay + h1) ]
+
+updateAM :: Box -> Box -> Angle -> AngularMomentum -> AngularMomentum
+updateAM b1 b2 n m = m
 
 rotate_box_ccw ::
   Box -> Angle -> (Position, Box) -> (Position, Box)
-rotate_box_ccw (Box ((V2 ax ay), w1, h1)) (Angle alpha) pb@(Position (V2 bx by), (Box (_,w2,h2)))
+rotate_box_ccw (Box ((V2 ax ay), _, _)) (Angle alpha) pb@(Position (V2 bx by), (Box (_,w2,h2)))
   | alpha > (-0.1) && alpha < (0.1) = pb
   | True =
-    let bx' = (bx - ax)
-        by' = (by - ay)
-        newpos = ( (V2 (bx' * cos alpha - by' * sin alpha) ( bx' * sin alpha + by' * cos alpha )))
-    in (Position newpos , Box ( newpos , w2, h2))
+    let bx' = bx - ax
+        by' = by - ay
+        newpos = V2 (bx' * cos alpha - by' * sin alpha) ( bx' * sin alpha + by' * cos alpha )
+    in (Position newpos, Box (newpos, w2, h2))
 
 rotate_box_cw ::
   Box -> (Position, Box) -> Angle -> (Position, Box)
-rotate_box_cw (Box ((V2 ax ay), w1, h1)) pb@(Position (V2 bx by), (Box (_,w2,h2))) (Angle alpha)
-  | alpha > (-0.1) && alpha < (0.1) = pb
+rotate_box_cw (Box ((V2 ax ay), _, _)) pb@(Position (V2 bx by), (Box (_,w2,h2))) (Angle n)
+  | n > (-0.1) && n < (0.1) = pb
   | True =
-      let bx' = (bx - ax)
-          by' = (by - ay)
-          newpos = ( (V2 ax ay) + (V2 (bx' * cos alpha + by' * sin alpha) ( by' * cos alpha - bx' * sin alpha )))
-
-      in (Position newpos , Box ( newpos , w2, h2))
+      let bx' = bx - ax
+          by' = by - ay
+          newpos = (V2 ax ay) + V2 (bx' * cos n + by' * sin n) (by' * cos n - bx' * sin n)
+      in (Position newpos, Box (newpos, w2, h2))
 
 reflect_vel_box :: V2 CDouble -> V2 CDouble -> (Velocity,Position) -> (Velocity,Position)
 reflect_vel_box a f (Velocity v,Position p) = let new_v =  reflect_v v (normal_v a)
@@ -69,22 +82,11 @@ normal_v (V2 x y) = (V2 (negate y) x)
 minni :: Ord a => [a] -> [b] -> (a,b)
 minni a b = minimumBy (\c d -> compare (fst c) (fst d)) $ zip a b
 
-minni' :: [CDouble] -> [TouchedEdge] -> (CDouble,TouchedEdge)
-minni' a b = let c = maximumBy (\c d -> compare (fst c) (fst d)) $ zip a b in if (fst c) < 0 then c else (0,NotTouched)
-
 box :: V2 CDouble -> CDouble -> CDouble -> Box
 box (V2 x y) w h = Box ((V2 x y), w, h)
 
-randomDonutBox :: Int -> CDouble -> CDouble -> IO [CDouble]
-randomDonutBox l holeRadius diam = (fmap.fmap) (\a ->  signum a * holeRadius + a) $ replicateM l $ randomRIO (negate diam,diam)
-
-playerMarker :: Txtr -> Position -> Velocity -> System World Entity
-playerMarker markerTxtr p (Velocity (V2 vx vy)) = do
-  newEntity ( p
-            , 0 :: Velocity
-            , markerTxtr
-            , Box (0, 0.1, 0.1)
-            , Angle 0)
+randomDonutBox :: CDouble -> CDouble -> IO CDouble
+randomDonutBox holeRadius diam = (\a ->  signum a * holeRadius + a) <$> randomRIO (negate diam,diam)
 
 angle2vec :: Angle -> V2 CDouble
 angle2vec (Angle (CDouble m)) = CDouble <$> Linear.angle m
@@ -94,75 +96,106 @@ position a b = Position $ V2 a b
 
 wallBounce ::
   [(Box, Angle, Wall, Scope, Entity)]
-  -> ((Box, Scope), (SFXResources, SpriteColor), Velocity, Position, Entity, Behavior,
-      Actor)
+  -> ((Box, Scope), SFXResources, Phys, Entity, Behavior, Actor)
   -> System World ()
 wallBounce []  _  = return ()
-wallBounce _ ((_, Out), _, _, _, _, _, _)  = return ()
+wallBounce _ ((_, Out), _, _, _, _, _)  = return ()
 wallBounce
   ((b, n, _, _, eb ):rest)
-  c@((a,_),(SFXResources j _ _ ,SpriteColor k),_,p,e,h,Projectile)
+  c@((a,_),s,(v,p,_,_),e,h,Projectile)
   = do
   let new_a = (snd $ rotate_box_cw b (p,a) n)
-  if not $ touched new_a b
-      then do
-        (when (h == Sing) $ e `set` NoBehavior ) >> wallBounce rest c
-      else do
-        get e >>= \case
-          Bullet -> eb `modify` (\(SFXResources _ b s, _) -> (SFXResources j b s, Sing)) >> e `set` ( Position $ pure 2e7 )
-          Arrow -> eb `modify` (\(SFXResources _ b s, _) -> (SFXResources j b s, Sing)) >> e `set` ( Plant )
+  if not $ aabb new_a b
+    then do
+      (when (h == Sing) $ e `set` NoBehavior ) >> wallBounce rest c
+    else do
+      get e >>= \case
+        Bullet -> eb `modify` (\(SFXResources _ _ _, _) -> (s, Sing)) >> e `set` ( Position $ pure 2e7 )
+        Arrow -> eb `modify` (\(SFXResources _ _ _, _) -> (s, Sing)) >> e `set` ( Plant )
+        Squall -> do
+          let chkPos i = snd $ rotate_box_cw b (p + (\(Velocity vel) -> Position (normalize vel / pure i)) v,a) n -- the new player box that is obtained via rotating it by the wall's angle
+          let em = edgeMeasures (chkPos 1) b -- the distances to the wall's edge
+          if not $ any ((`aabb` b ). chkPos) [0.3,0.5..2.0] then wallBounce rest c else do
+            eb `set` Sing
+            case minni (abs <$> em) [RightEdge, LeftEdge, TopEdge, BottomEdge] of
+              (d,TopEdge) ->  e `set` reflect_vel_box (angle2vec n) (pure friction) (v, p - position 0 d)
+              (d,BottomEdge) ->  e `set` reflect_vel_box (angle2vec n) (pure friction) (v, p + position 0 d)
+              (d,RightEdge) ->  e `set` reflect_vel_box (angle2vec n) (pure friction) (negate v, p - position d 0)
+              (d,LeftEdge) ->  e `set` reflect_vel_box (angle2vec n) (pure friction) (negate v, p + position d 0)
 wallBounce
   ((b, n, _, _, _):rest)
-  c@((a,_),_,_,p,e,_,Weapon) = do
+  c@((a,_),_,(_,p,_,_),e,_,Weapon) = do
     let new_a = snd $ rotate_box_cw b (p,a) n
-    if not $ touched new_a b then wallBounce rest c else do
+    if not $ aabb new_a b then wallBounce rest c else do
       e `set` ()
 wallBounce
-  ((b, n, _, _, eb):rest)
-  c@((a,_),_,v@(Velocity vp),p,e,l,Player)
+  ((b, n, Floor, _, eb):rest)
+  c@((a,_),_,(v@(Velocity (V2 vx vy)),p,_,_),e,_,Player)
   = do
-  let new_a = snd $ rotate_box_cw b (p,a) n -- the new player box that is obtained via rotating it by the wall's angle
-  let em = edgeMeasures new_a b -- the distances to this box's edge
-  Gravity (V2 _ g)  <- get e
-  if not $ touched new_a b then wallBounce rest c else do
-    case minni (abs <$> em) [RightEdge, LeftEdge, TopEdge, BottomEdge] of
-      (d,TopEdge) ->  e `set` reflect_vel_box (angle2vec n) ( pure friction ) (v, p + position 0 d)
-      (d,BottomEdge) ->  e `set` reflect_vel_box (angle2vec n) ( pure friction ) (v, p - position 0 d)
-      (d,RightEdge) ->  e `set` reflect_vel_box (angle2vec n) ( pure friction ) (negate v, p - position d 0)
-      (d,LeftEdge) ->  e `set` reflect_vel_box (angle2vec n) ( pure friction ) (negate v, p + position d 0)
+    let chkPos i = snd $ rotate_box_cw b (p + (\(Velocity v) -> Position (normalize v / pure i)) v,a) n -- the new player box that is obtained via rotating it by the wall's angle
+    let em = edgeMeasures (chkPos 1) b 
+    if not $ any ((`aabb` b ). chkPos) [0.3,0.5..2.0] then wallBounce rest c else do
+      eb `set` Sing
+      case minni (abs <$> em) [RightEdge, LeftEdge, TopEdge, BottomEdge] of
+        (d,TopEdge) ->  e `set` reflect_vel_box (angle2vec n) (pure friction) (Velocity $ V2 vx $ 0.5 * vy, p - position 0 d)
+        (d,BottomEdge) ->  e `set` reflect_vel_box (angle2vec n) (pure friction) (v, p + position 0 d)
+        (d,RightEdge) ->  e `set` reflect_vel_box (angle2vec n) (pure friction) (negate v, p - position d 0)
+        (d,LeftEdge) ->  e `set` reflect_vel_box (angle2vec n) (pure friction) (negate v, p + position d 0)
+wallBounce
+  ((b@(Box (bv,w,h)), n, OneWayWall, _, _):rest)
+  c@((a,_),_,(v,p,_,_),e,_,Player)
+  = do
+  let chkPos i = snd $ rotate_box_cw b (p + (\(Velocity vel) -> Position (normalize vel / pure i)) v,a) n 
+  let ems i = edgeMeasures (chkPos i) b
+  if (not $ any ((`aabb` b ). chkPos) [0.3,0.5..2.0] ) then wallBounce rest c else do
+    case (\i -> minni (abs <$> ems i) [RightEdge, LeftEdge, TopEdge, BottomEdge]) <$> [0.5,2.0] of
+      [(d1,TopEdge),(d2,TopEdge)] -> 
+        if d1 > d2 then set e $ reflect_vel_box (angle2vec n) (pure friction) (v, p) else  wallBounce rest c
+      _ -> wallBounce rest c
 wallBounce
   ((b, n, _, _, eb):rest)
-  c@((a,_),(SFXResources j t s,SpriteColor k),v,p,e,l,Enemy)
+  c@((a,_),_,(v,p,_,_),e,_,Player)
   = do
-    let new_a = (snd $ rotate_box_cw b (p,a) n)
-    let em = edgeMeasures new_a b
-    if not $ touched new_a b then (when (l `elem` [Plant,Sing]) $ e `set` NoBehavior ) >> wallBounce rest c else do
-      get global >>= (\(BoardControl _ bdlk) -> when ( bdlk == Unlocked ) 
-        $ eb `modify` (\(SFXResources _ _ _, SpriteColor _) -> (SFXResources j t s, SpriteColor k)))
+    let chkPos i = snd $ rotate_box_cw b (p + (\(Velocity vel) -> Position (normalize vel / pure i)) v,a) n -- the new player box that is obtained via rotating it by the wall's angle
+    let em = edgeMeasures (chkPos 1) b -- the distances to this box's edge
+    if not $ any ((`aabb` b ). chkPos) [0.3,0.5..2.0] then wallBounce rest c else do
+      eb `set` Sing
       case minni (abs <$> em) [RightEdge, LeftEdge, TopEdge, BottomEdge] of
-        (d,TopEdge) ->  e `set` reflect_vel_box (angle2vec n) ( pure friction ) (v,p + position 0 d)
-        (d,BottomEdge) ->  e `set` reflect_vel_box (angle2vec n) ( pure friction ) (v,p - position 0 d)
+        (d,TopEdge) ->  e `set` reflect_vel_box (angle2vec n) (pure friction) (v, p - position 0 d)
+        (d,BottomEdge) ->  e `set` reflect_vel_box (angle2vec n) (pure friction) (v, p + position 0 d)
+        (d,RightEdge) ->  e `set` reflect_vel_box (angle2vec n) (pure friction) (negate v, p - position d 0)
+        (d,LeftEdge) ->  e `set` reflect_vel_box (angle2vec n) (pure friction) (negate v, p + position d 0)
+wallBounce
+  ((b, n, wl, _, eb):rest)
+  c@((a,_),(SFXResources j s (SpriteColor k)),(v,p,_,_),e,_,Enemy)
+  = do
+    let chkPos i = snd $ rotate_box_cw b (p + (\(Velocity vel) -> Position (normalize vel / pure i)) v,a) n -- the new player box that is obtained via rotating it by the wall's angle
+    let em = edgeMeasures (chkPos 1) b
+    if not $ any ((`aabb` b ). chkPos) [0.5,2.0] then wallBounce rest c else do
+      get global >>= \(BoardControl _ bdlk) -> when ( bdlk == Unlocked ) 
+        (eb `modify` 
+          (\(SFXResources j2 s2 (SpriteColor k2)) -> 
+            if getInst s == getInst s2 
+            then SFXResources j s $ SpriteColor k
+            else SFXResources j2 s2 $ SpriteColor k2
+          )
+        )
+      eb `set` Sing
+      when (wl == Floor) $ case minni (abs <$> em) [RightEdge, LeftEdge, TopEdge, BottomEdge] of
+        (d,TopEdge) ->  e `set` reflect_vel_box (angle2vec n) ( pure friction ) (v,p - position 0 d)
+        (d,BottomEdge) ->  e `set` reflect_vel_box (angle2vec n) ( pure friction ) (v,p + position 0 d)
         (d,RightEdge) ->  e `set` reflect_vel_box (angle2vec n) ( pure friction ) (negate v,p - position d 0)
-        (d,LeftEdge) ->  e `set` reflect_vel_box (angle2vec n) ( pure friction ) (negate v,p + position d 0)
+        (d,LeftEdge) ->  e `set` reflect_vel_box (angle2vec n) ( pure friction ) (negate v,p + position d 0)--}
 wallBounce _ _ = return ()
-  
-edgeMeasures :: Box -> Box -> [CDouble]
-edgeMeasures (Box (V2 bx by, w2, h2)) (Box (V2 ax ay, w1, h1)) =
-      [ ax - w1 - (bx + w2)
-      , bx - w2 - (ax + w1)
-      , ay - h1 - (by + h2)
-      , by - h2 - (ay + h1) ]
 
-touched :: Box -> Box -> Bool
-touched a b = all (<0) $ edgeMeasures a b
-
+{--
 collideProc' :: Box -> Maybe Gravity -> (Box, Velocity, Position, Actor, Behavior) -> (Box, Velocity, Position, Actor, Behavior)
-collideProc' b2 g c@(b1,  Velocity v@(V2 v1 v2), Position p, a, Plant) = c
-collideProc' b2 g c@(b1,  Velocity v@(V2 v1 v2), Position p, a, Carry) = c
+collideProc' b2 g c@(_,_,_,_, Plant) = c
+collideProc' b2 g c@(_,_,_,_, Carry) = c
 collideProc' b2 g (b1,  Velocity v@(V2 v1 v2), Position p, a, l) = do
       case minni' (edgeMeasures b1 b2) [RightEdge, LeftEdge, TopEdge, BottomEdge] of
-        (_,NotTouched) -> (b1, Velocity v, Position p, a, l)
-        (d,TopEdge) -> (b1
+        (_,Notaabb) -> (b1, Velocity v, Position p, a, l)
+        (d,TopEdge) ->  (b1
                         , Velocity (V2 v1 (abs v2) / pure friction)
                         , Position $ p + V2 v1 (abs v2 + d)
                         , a
@@ -185,7 +218,7 @@ collideProc' b2 g (b1,  Velocity v@(V2 v1 v2), Position p, a, l) = do
 
 
 
-{--
+
 --other way of performing the box collision
 
 

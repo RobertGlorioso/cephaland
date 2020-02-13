@@ -30,14 +30,29 @@ import Linear
 import Apecs
 import Apecs.Core
 import qualified Data.Vector.Unboxed as U
+import Euterpea (Music(..), Control(..), InstrumentName(..))
+import qualified SDL as S
+import Ceph.Components
 
+loadTxtr :: S.Renderer -> FilePath -> IO (Txtr)
+loadTxtr r filePath = do
+  surface <- S.loadBMP filePath
+  size <- S.surfaceDimensions surface
+  S.surfaceColorKey surface S.$= Just (S.V4 0 0 0 0)
+  t <- S.createTextureFromSurface r surface
+  S.freeSurface surface
+  return (Txtr t (S.Rectangle (pure 0) size))
+
+getInst (m :=: _) = getInst m
+getInst (m :+: _) = getInst m
+getInst (Modify (Instrument i) _) = i
+getInst (_) = CustomInstrument "no instrument found"
 
 v2ToRad :: (RealFloat a, Ord a) => V2 a -> a
 v2ToRad (V2 m n) = case compare m 0 of
   LT -> atan ( n / m ) + pi
   GT -> atan ( n / m ) 
   EQ -> (-pi)/2 * (signum n)
-
 
 poww :: (Eq t, Num t) => t1 -> t -> (t1 -> t1) -> [t1]
 poww a 0 _ = [a]

@@ -8,8 +8,23 @@ import Ceph.Util
 import Apecs
 import Linear
 import Data.List
+import Control.Monad
 import Data.Ord
 import Foreign.C.Types
+
+netLoop :: System World ()
+netLoop = do
+  cmapM $ \case
+    (Net, nb@(Box (_,w,h)), Position p) -> return (Box (p,w,h))
+    (_,b,_) -> return b
+  cmapM_ $ \case
+    (Net, nb) -> do
+      cmapM_  $ \case
+        (Enemy, eb, s :: SFXResources, e) -> when (aabb eb nb) $ do
+          e `set` (Trapped) 
+          global `modify` (\(SList ss) -> SList $ s:ss)
+        _ -> return ()
+    _ -> return ()
 
 showSword ::
   Ord a =>
@@ -39,8 +54,8 @@ sword pic = newEntity
             , Position (V2 (-1.05) 9.66)
             , Velocity 0
             , Angle 0
-            , Box ((V2 (-1.05) 9.66), 0.04, 0.21)
-            , Sword)
+            , Box ((V2 (-1.05) 9.66), 0.4, 0.21)
+            , (Weapon,Sword))
 
 laser :: Txtr -> System World Entity
 laser pic = newEntity 
@@ -49,7 +64,7 @@ laser pic = newEntity
             , Velocity 0
             , Angle 0
             , Box ((pure 2e7), 0.04, 0.04)
-            , Laser) 
+            , (Weapon,Laser) )
            
 harpoon :: Txtr -> System World Entity
 harpoon pic = newEntity 
@@ -58,8 +73,21 @@ harpoon pic = newEntity
               , Velocity 0
               , Angle 0
               , Box ((V2 (-1.05) 9.66), 0.04, 0.21)
-              , Harpoon)
-  
+              , (Weapon,Harpoon))
+
+
+net :: Txtr -> System World Entity
+net pic = do
+  newEntity ((Weapon, Net)
+            , NoBehavior
+            , Angle 0
+            , Position 0
+            , Velocity 0
+            , (box 0 50 50
+              , pic
+              )
+            )
+
 chain :: Txtr -> System World Entity
 chain pic = do
   newEntity (Chain
@@ -72,14 +100,35 @@ chain pic = do
               , pic
               )
             )
-  
+
+chain' :: SFXResources -> System World Entity
+chain' s = do
+  newEntity (Chain
+            , Weapon
+            , NoBehavior
+            , Angle 0
+            , Position 0
+            , Velocity 0
+            , (box 0 0.05 0.05
+              , s
+              )
+            )
+
 chains :: [Entity] -> Entity -> System World ()
 chains [] _ = return ()
+chains [_] _ = return ()
 chains (_:lst:[]) targ = lst `set` (WLinked lst targ 1.0 )
 chains (prev:cur:nxt:rst) t = do
   cur `set` (Linked prev nxt)
   chains (cur:nxt:rst) t
-  
+
+wChains :: CDouble -> [Entity] -> Entity -> System World ()
+wChains _ [] _ = return ()
+wChains _ (_:lst:[]) targ = lst `set` (WLinked lst targ 1.0 )
+wChains j (prev:cur:nxt:rst) t = do
+  cur `set` (WLinked prev nxt j)
+  chains (cur:nxt:rst) t
+    
 chainExtended ::
   CDouble -> System World (Bool, (V2 CDouble, V2 CDouble))
 chainExtended r = do
@@ -88,12 +137,14 @@ chainExtended r = do
   let (_, Position pn) = maximumBy (comparing fst) ls
   if norm ( p1 - pn ) > r then return (True,(p1,pn)) else return (False, (p1,pn)) 
 
-moveChains :: (Linked, Weapon) -> System World (Angle, Position)
-moveChains (Linked e f, Chain) = do
-          (Position p1) <- get e
-          (Position p0) <- get f
-          return $ (Angle $ v2ToRad (p0 - p1), Position $ (p0 + p1) / 2)
-moveChains (WLinked e f m, Chain) = do
-          (Position p0) <- get e
-          (Position p1) <- get f
-          return $ (Angle $ v2ToRad (p0 - p1), Position $ (pure (1-m) * p0 + (pure m * p1)))
+moveChains :: (Linked,Box) -> System World (Angle, Position, Box)
+moveChains (Linked e f,Box (_,w,h)) = do
+  (Position p1) <- get e
+  (Position p0) <- get f
+  let newP = (p0 + p1) / 2
+  return $ (Angle $ v2ToRad (p0 - p1), Position newP, Box (newP,w,h)) 
+moveChains (WLinked e f m,Box (_,w,h)) = do
+  (Position p0) <- get e
+  (Position p1) <- get f
+  let newP = pure (1-m) * p0 + (pure m * p1)
+  return $ (Angle $ v2ToRad (p0 - p1), Position newP, Box (newP,w,h)) 

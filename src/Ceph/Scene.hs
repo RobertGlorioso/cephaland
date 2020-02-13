@@ -3,9 +3,7 @@
 
 module Ceph.Scene where
 
-import Ceph.Physics.Box
 import Ceph.Components
-import Ceph.Scene.HUD
 import Ceph.Scene.Camera
 import Ceph.Util
 import Ceph.Scene.Board
@@ -13,8 +11,11 @@ import Ceph.Scene.Board
 import Apecs
 import Linear
 import Control.Monad
+import GHC.Word
 import qualified SDL as S
 import Foreign.C.Types
+import System.Random
+import Data.Vector.Storable (fromList)
 
 {--addTrailPics :: Picture -> Velocity -> BodyPicture -> BodyPicture
 addTrailPics p (Velocity (V2 x y)) (BodyPicture (Pictures ps)) =
@@ -31,50 +32,101 @@ nextFrame (Still,b,s) = (Still,b,s)
 nextFrame i@(_,_,Sprites []) = i
 --}
 
-loadTxtr :: S.Renderer -> FilePath -> IO (Txtr)
-loadTxtr r filePath = do
-  surface <- S.loadBMP filePath
-  size <- S.surfaceDimensions surface
-  S.surfaceColorKey surface S.$= Just (S.V4 0 0 0 0)
-  t <- S.createTextureFromSurface r surface
-  S.freeSurface surface
-  return (Txtr t (S.Rectangle (pure 0) size))
-
 renderTexture :: S.Renderer -> Txtr -> S.Rectangle CInt -> CDouble -> IO ()
-renderTexture r (Txtr t size) clip angle = S.copyEx r t (Just size) (Just clip) (180 * angle / pi) Nothing (pure False)
+renderTexture r (Txtr t size) clip n = S.copyEx r t (Just size) (Just clip) (180 * n / pi) Nothing (pure False)
 
-renderEnt :: (Position, Angle, Txtr) -> System World ()
-renderEnt (s, Angle theta, pic@(Txtr _ (S.Rectangle _ size@(S.V2 x y)))) = do
-  SDLRenderer r <- get global
+checkerRect :: S.Renderer -> V2 CInt -> V2 CInt -> V4 Word8 -> Maybe  ( V4 Word8 ) -> System World ()
+checkerRect r pos size color1 Nothing = do
+  let (V2 sx sy) = size
+  let (V2 ll lr) = pos 
+  let (V2 ul ur) = pos + size
+  S.rendererDrawColor r S.$= color1
+  S.fillRects r $ fromList $ fmap fst $ filter snd $ zip [S.Rectangle (S.P $ V2 x y) (div <$> size <*> pure 4)| x <- [ll,ll+(sx `div` 4)..ul], y <- [lr,lr+(sy `div` 4)..ur]] (concat $ repeat [True, False])
+checkerRect r pos size color1 (Just color2) = do
+  let (V2 sx sy) = size
+  let (V2 ll lr) = pos 
+  let (V2 ul ur) = pos + size
+  S.rendererDrawColor r S.$= color1
+  mapM_ (\(p,t) -> when t $ S.fillRect r (Just $ S.Rectangle (S.P p) (div <$> size <*> pure 4)))
+      $ zip [V2 x y | x <- [ll,ll+(sx `div` 4)..ul], y <- [lr,lr+(sy `div` 4)..ur]] (concat $ repeat [True, False])
+  S.rendererDrawColor r S.$= color2
+  mapM_ (\(p,t) -> when t $ S.fillRect r (Just $ S.Rectangle (S.P p) (div <$> size <*> pure 4)))
+      $ zip [V2 x y | x <- [ll,ll+(sx `div` 4)..ul], y <- [lr,lr+(sy `div` 4)..ur]] (concat $ repeat [False,True])
+
+randomChkrs :: S.Renderer -> Camera -> Position -> CInt -> V4 Word8 -> Maybe (V4 Word8) -> System World ()
+randomChkrs r cam pos maxSize clr clr2 = do
+  rpos <- liftIO $ (\o p -> Position $ V2 o p) <$> randomRIO (-10,10) <*> randomRIO (-10,10)
+  bg <- liftIO $ randomRIO (6,maxSize)
+  checkerRect r (round <$> applyView cam (rpos + pos) (pure bg)) (pure bg) clr clr2
+
+renderEnt :: (Position, Angle, Txtr, Actor, Entity) -> S.Renderer -> System World ()
+renderEnt (pos@(Position s@(V2 x2 y2)), Angle theta, pic, Weapon, e) r = do
+  get e >>= \case
+    Net -> do
+      view <- get global :: System World Camera 
+      cmapM_ $ \(Target x@(V2 x1 y1)) -> do
+        if (abs (x2 - x1) < abs (y2 - y1)) then
+          liftIO $ renderTexture r pic (S.Rectangle (S.P $ round <$> applyView view pos (round <$> s-x)) (round <$> pure 1.9 * (s-x) ) ) ((-pi / 2) + v2ToRad (s-x))
+          else
+          liftIO $ renderTexture r pic (S.Rectangle (S.P $ round <$> applyView view pos (round <$> s-x)) (round <$> pure 1.9 * (s-x) ) ) (v2ToRad (s-x))
+    _ -> renderEnt (pos, Angle theta, pic, Wall, e) r
+renderEnt (pos, Angle theta, pic@(Txtr _ (S.Rectangle _ size)), _, _) r = do
   view <- get global :: System World Camera
-  liftIO $ renderTexture r pic (S.Rectangle (S.P $ round <$> applyView view s size) size) theta
+  liftIO $ renderTexture r pic (S.Rectangle (S.P $ round <$> applyView view pos size) size) theta
 
-  where applyView :: Camera -> Position -> V2 CInt -> V2 CDouble
-        applyView (Camera cam scale) (Position p) s = (p - cam  
-           + (fromIntegral <$> ( div <$> ( S.V2 (negate x) (negate y) ) <*> pure 2 )) ) / pure scale  + S.V2 390 260
+applyView :: Camera -> Position -> V2 CInt -> V2 CDouble
+applyView (Camera cam scale) (Position p) (S.V2 x y) = 
+  (p - cam + (fromIntegral <$> ( div <$> ( S.V2 (negate x) (negate y) ) <*> pure 2 )) ) / pure scale  + S.V2 390 260
 
 render :: World -> IO ()
 render w = runWith  w $ do
   cmapM_ cameraFollowPlayer
-  SDLRenderer r <- get global
+  (SList slst :: SongList, SDLRenderer r, cam :: Camera, sc :: SCoord, Beat bm bt ) <- get global
   --cmap nextFrame
+  S.rendererDrawColor r S.$= S.V4 190 100 19 255
+  cmapM_ $ \case
+    (In,b) -> renderEnt b r
+    _ -> return ()
+
   BoardControl _ boardlock <- get global
   S.rendererDrawColor r S.$= S.V4 150 150 150 255
-  when (boardlock == Locked) $ S.fillRect r (Just $ S.Rectangle (S.P $ S.V2 18 18) (S.V2 80 80))
+  when (boardlock == Locked) $ do
+    checkerRect r (pure 8) (V2 80 80) (V4 150 150 150 255) (Just $ V4 190 150 150 255) 
     
-  get global >>= (\(a,b) -> soundBoard a b) >>=
-    mapM ( \case
-          (False,Position (V2 x y),SpriteColor key) 
-            -> S.rendererDrawColor r S.$= key 
-              >> S.fillRect r (Just (S.Rectangle (S.P $ round <$> S.V2 x y) (S.V2 15 15)))
-          (True,Position (V2 x y),SpriteColor key) 
-            -> S.rendererDrawColor r S.$= key 
-              >> S.fillRect r (Just (S.Rectangle (S.P $ round <$> S.V2 x y) (S.V2 10 10)))
-    )
-    
-  S.rendererDrawColor r S.$= S.V4 190 190 190 255
+  chns <- flip cfoldM [] $ \b -> \case
+    c@(Chain, Position _) -> return $ c:b
+    _ -> return b
+  
+  flip mapM_ (zip slst chns)
+    $ \(SFXResources _ _ (SpriteColor clr) ,(_,pos)) -> randomChkrs r cam pos 9 clr Nothing
+  
   cmapM_ $ \case
-    (In,b@( _, _, _)) -> renderEnt b
-    _ -> return ()
-            
+    ((MBoard ns True) :: Netitor) -> do
+      foldM_ (\(acc :: Double) (_,SFXResources _ _ (SpriteColor clr)) -> do
+        S.rendererDrawColor r S.$= clr 
+        let dsc = acc / 20
+        S.fillRect r (Just (S.Rectangle (S.P $ S.V2 (720 + round (dsc * sin acc)) (100 + (round (dsc * cos acc)))) (pure 3)))
+        return $ acc + ((fromIntegral $ fromEnum sc) + (fromIntegral bt / fromIntegral bm))
+        ) (0) ns
+    (MBoard _ False) -> return ()
+
+  flip cfoldM_ 0 $ \acc (s :: Sequencer) -> do
+    flip mapM_ s $ \( e :: Entity ) -> do
+      get e >>= \case
+                  (pos,SFXResources _ _ (SpriteColor clr),In) -> replicateM_ 10 $ randomChkrs r cam pos 6 clr Nothing
+                  _ -> return ()
+    soundBoard s sc >>=
+      \m -> flip mapM_ m $ \case
+        (False, Position (V2 x y), SpriteColor clr) 
+          -> S.rendererDrawColor r S.$= clr 
+            >> S.fillRect r (Just (S.Rectangle (S.P $ round <$> S.V2 (x+acc) y) (S.V2 15 15)))
+        (True, Position (V2 x y), SpriteColor clr) 
+          -> S.rendererDrawColor r S.$= clr 
+            >> S.fillRect r (Just (S.Rectangle (S.P $ round <$> S.V2 (x+acc) y) (S.V2 10 10)))
+    return $ acc + 85
+  
+  S.rendererDrawColor r S.$= (S.V4 12 12 120 255 ) 
+  
+
+    
 

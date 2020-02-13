@@ -1,19 +1,18 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ViewPatterns #-}
 module Ceph.Component.Projectile where
 
 import Ceph.Components
 import Ceph.Component.Weapon
 import Ceph.Util
 import Ceph.Physics.Box
-import Ceph.Scene
-
 import Apecs
 import Linear
-import qualified SDL.Mixer as M
+import qualified SDL as S
 
-newArrow :: Txtr -> (M.Chunk, M.Chunk) -> System World Entity
-newArrow txtr (a,b) = 
+newArrow :: Txtr -> SFXResources -> System World Entity
+newArrow txtr s = 
    newEntity ( Position 2e7
              , Velocity 0 
              , Angle 0
@@ -22,29 +21,36 @@ newArrow txtr (a,b) =
                , Arrow
                , txtr
                , Box (2e7, 0.1, 0.07)
-               , SFXResources a b []
+               , s
                )
              )
 
-newBullet :: Txtr -> (M.Chunk, M.Chunk) -> System World Entity
-newBullet txtr (a,b) =
+newSquall :: Txtr -> SFXResources -> System World Entity
+newSquall txtr@(Txtr _ (S.Rectangle _ (fmap (fromIntegral) -> V2 x y))) s = do
+  newEntity ((Projectile,Squall)
+            , (Position (pure 50)
+              , Velocity (pure 0)
+              , box (pure 50) (x / 2) (y / 2)
+              , Angle 0
+              , AngularMomentum 0.5
+            )
+            , txtr
+            , s
+            , (Gravity $ V2 0 0.01
+            , NoBehavior) )
+
+newBullet :: Txtr -> SFXResources -> System World Entity
+newBullet txtr s =
   newEntity ( Position 2e7
             , Velocity 0 
             , Angle 0
             , Seek
             , ( Bullet, Projectile )
             , ( Box (2e7, 1, 1)
-              , SFXResources a b []
+              , s
               , txtr
               )
             )
-
-removeProjectile :: (Projectile, Position, Box, Entity) -> System World ()
-removeProjectile  (_, Position p, Box pBox, e) = e `destroy` (Proxy :: Proxy Box)
-{--do
-  cmap $ \(Box otherBox, Velocity v, Position p2) -> if aabb (Box otherBox) (Box pBox) then  Velocity ( v + (0.5 * normalize (p2 - p)) ) else Velocity v
-  e `set` Position (pure 20000)
-  --}
   
 shootBullet :: Target -> Position -> Velocity -> Charge -> System World ()
 shootBullet (Target at) (Position from) (Velocity v_init) (Charge c _) = conceIf isInScopeBullet updateMotion
@@ -75,9 +81,8 @@ shootChains (Target at) (Position from) (Velocity v_init) (Charge c _) = conceIf
             , Velocity $ v_init + (pure c) * normalize (at - from)
             , Angle 0
             )
-    chns <- cfoldM (\es (Chain,e) -> return $ e:es) [] :: System World [Entity]
-    --[pl] <- cfoldM (\pls (Player1,e) -> return $ e:pls) [] :: System World [Entity]
-    cfoldM (\pls (Player1,pe) -> chains (pe:chns) e) ()
-    --chains (pl:chns) e
+    chns <- cfoldM (\es (Chain,ent) -> return $ ent:es) [] :: System World [Entity]
+    cfoldM (\_ (Player1,pe) -> chains (pe:chns) e) ()
     return ()
+  updateMotion _ = return ()
 

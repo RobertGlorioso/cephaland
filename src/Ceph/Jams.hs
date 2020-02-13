@@ -9,23 +9,67 @@ import Data.List hiding (transpose)
 import Codec.Midi
 import System.Random
 import Control.Monad
-import Numeric
 import Data.Char
+import Linear
 import qualified Data.ByteString as Byte
 import System.Process
+import GHC.Word
+import System.IO
 
 midiLoad :: Music Pitch -> IO M.Chunk
-midiLoad m = do
-  --bmsc <- return $ makeByteMusic m
-  --Byte.writeFile "temp.mid" bmsc
-  exportMidiFile "temp.mid" . toMidi . perform $ m
-  proc <- runCommand "timidity -c \"./soundfonts/GeneralUser GS v1.471.cfg.txt\" -Ow temp.mid -o temp.wav"
-  waitForProcess proc
-  sfx <- M.load "temp.wav" :: IO M.Chunk -- midi gives error "unrecognized audio format"
+midiLoad ms = do
+  exportMidiFile "temp.mid" . toMidi . perform $ ms
+  inF <- openFile "in.txt" ReadMode
+  outF <- openFile "out.txt" WriteMode
+  (_,_,_,process) <- createProcess 
+    (shell "timidity -c \"./soundfonts/GeneralUser GS v1.471.cfg.txt\" -Ow temp.mid -o temp.wav" ) 
+    {std_in = UseHandle inF, std_out = UseHandle outF, std_err = UseHandle outF}
+  _ <- waitForProcess process
+  sfx <- M.load "temp.wav"
   return sfx
 
-makeMidiSamples i = [instrument i $ n o p | n <- [a,as,b,bs,c,cs,d,ds,e,es,f,fs,g,gs], o <- [3..6], p <- [sn,en,qn,hn,wn]]
+makeColorsMidi :: V4 Word8 -> [(SpriteColor,Int)]
+makeColorsMidi beg = 
+  [((\(V3 x y z) -> SpriteColor $ beg + V4 x y z 255) $ g <$> h,i)
+  | 
+    h <- [V3 10 5 5 
+          ,V3 5 5 10 
+          ,V3 5 10 5 
+          ,V3 15 15 10 
+          ,V3 15 10 15 
+          ,V3 10 15 15 
+          ,V3 15 20 20
+          ,V3 20 15 20 
+          ,V3 20 20 15
+          ,V3 25 20 25 
+          ,V3 20 25 25 
+          ,V3 25 25 20
+          ,V3 40 35 35
+          ,V3 35 40 35 
+        ],
+    --g <- [(+20),(+50),(+100),(+130)],
+    g <- [(+50),(+100)],
+    i <- [2,3]
+  ]
 
+makeMidiSamples :: InstrumentName -> [Music Pitch]
+makeMidiSamples i = [instrument i $ n o p 
+                    | n <- [a,as,b,bs,c,cs,d,ds,e,es,f,fs,g,gs]
+                    , o <- [3,4]
+                    , p <- [hn,wn] ]
+
+makeMidiBeats :: [Music Pitch]
+makeMidiBeats = [perc b p 
+                | b <- [AcousticBassDrum .. OpenTriangle]
+                , p <- [hn,wn] ]
+
+makeMidiNames :: InstrumentName -> [String]
+makeMidiNames i = [n ++ show o ++ p ++ show i
+                  | n <- ["a","as","b","bs","c","cs","d","ds","e","es","f","fs","g","gs"]
+                  , o <- [3,4]
+                  , p <- ["hn","wn"] ]
+
+makeMidiFiles :: InstrumentName -> IO ()
 makeMidiFiles i = do
   mapM_ (\(file, mid) -> exportMidiFile file . toMidi . perform $ mid) 
       [(n ++ show o ++ p ++ show i ++ ".mid", instrument i $ m o q) 
@@ -39,19 +83,20 @@ makeMidiFiles i = do
 --importSong :: String -> IO ( M.Chunk)
 --importSong f = either (error) (M.decode . makeFile) =<< importFile f
 
+succCycle :: SCoord -> SCoord
 succCycle (SCoordF S4 SIV  _) = SCoordF S1 SI ()
 succCycle (SCoordF i SIV  _) = SCoordF (succ i) SI ()
 succCycle (SCoordF i j _) = SCoordF i (succ j) ()
 
-incrementBeat :: World -> System World ()
-incrementBeat w = do
+incrementBeat :: System World ()
+incrementBeat = do
   (Beat m i, BoardControl boardstat _) <- get global
   -- plays sound effects on beat
   when (boardstat == Play) $
-    if (m <= i) then (global `set` Beat m 0) >> (global `modify` (\s  -> succCycle s :: SCoord)) >> cmapM_ ( \case
-        (Sing, a :: Actor, e) -> playSong e >> if ( a == Weapon ) then ( e `set` Seek ) else e `set` NoBehavior
+    if (m <= i) then (global `set` Beat m 0) >> cmapM_ ( \case
+        (Sing, actr :: Actor, ent) -> playSong ent >> if ( actr == Weapon ) then ( ent `set` Seek ) else ent `set` NoBehavior
         _ -> return ()
-        )
+        ) >> (global `modify` (\s  -> succCycle s :: SCoord)) 
     else global `set` Beat m (i+1) 
 {--liftIO . print =<< flip cfoldM (Song (rest 0)) (\s@(Song i) ->
             (\case
@@ -65,12 +110,12 @@ incrementBeat w = do
 --this function assigns a sound to the first open channel it finds
 playSong :: Entity -> System World ()
 playSong ent = do
-  (SFXResources p s _) <- get ent
-  soundPlay [p,s] 0
+  (SFXResources p _ _) <- get ent
+  soundPlay [p] 0
   where
     soundPlay [] _ = return ()
     soundPlay ms@(m:mz) i 
-      | i > 7 = M.halt 0 >> M.playOn 0 M.Once m >> soundPlay mz 1
+      | i > 7 = M.halt (7) >> M.playOn 0 M.Once m >> soundPlay mz 1
       | otherwise = do
         chanAvailable <- not <$> M.playing i
         if chanAvailable then M.playOn i M.Once m >> soundPlay mz (i+1) else soundPlay ms (i+1)
