@@ -48,7 +48,7 @@ makeColorsMidi beg =
           ,V3 35 40 35 
         ],
     --g <- [(+20),(+50),(+100),(+130)],
-    g <- [(+50),(+100)],
+    g <- [(+70),(+120)],
     i <- [2,3]
   ]
 
@@ -106,7 +106,6 @@ incrementBeat = do
           )
   -- e `set` (Debug . show $ (a, Song i)) >>
 --}
-
 --this function assigns a sound to the first open channel it finds
 playSong :: Entity -> System World ()
 playSong ent = do

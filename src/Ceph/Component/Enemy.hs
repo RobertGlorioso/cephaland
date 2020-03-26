@@ -54,7 +54,7 @@ go2player m (Position p) v
 enemy :: S.Renderer -> FilePath -> Enemy -> SFXResources -> System World Entity
 enemy r enmFile enm sfx = do
   txtr <- liftIO $ loadTxtr r enmFile
-  (p,q) <- liftIO $ (,) <$> randomRIO (-10000,10000) <*> randomRIO (-1000,1000)
+  (p,q) <- liftIO $ (,) <$> randomRIO (-2000,2000) <*> randomRIO (-2000,2000)
   newEntity (
     (Enemy, enm)
     , Charge 0 False

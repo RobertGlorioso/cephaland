@@ -15,8 +15,8 @@ handle f = do
   mousePos <- getAbsoluteMouseLocation
   global `set` (MCoordF (fromIntegral <$> mousePos) () :: MCoord)
   when (f ScancodeA) $ cmap $ \(Player1, Velocity v) -> Velocity (v - V2 0.2 0)
-  when (f ScancodeW) $ cmap $ \(Player1, Dash c, Velocity v@(V2 _ vy)) -> 
-    if c < 4 then (Dash c,Velocity v) else if vy < 0 then (Dash 0, Velocity (V2 0 (-4))) else (Dash 0, Velocity (v - V2 0 4))
+  when (f ScancodeW) $ cmap $ \(Player1, Dash c, Velocity v@(V2 vx vy)) -> 
+    if c < 2 then (Dash c,Velocity v) else if vy < (-1) then (Dash 0, Velocity (V2 vx (-4))) else (Dash 0, Velocity (v - V2 0 4))
   when (f ScancodeS) $ cmap $ \(Player1, Velocity v) -> Velocity (v + V2 0 0.2)
   when (f ScancodeD) $ cmap $ \(Player1, Velocity v) -> Velocity (v + V2 0.2 0)
   when (f ScancodeLeft) $ cmap $ \(Target  v) ->  (Target $ v - V2 2 0)

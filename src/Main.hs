@@ -5,6 +5,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 module Main where
 import Ceph.Scene
+import Ceph.Scene.Board
 import Ceph.Util
 import Ceph.Components
 import Ceph.Physics
@@ -68,14 +69,14 @@ main = do
       msmpl2 <- return $ makeMidiSamples Flute
       bsmpl <- return $ makeMidiBeats
       
-      ifls <- return $ (++ ".wav") <$> makeMidiNames Tuba
+      ifls <- return $ (++ ".wav") <$> makeMidiNames Accordion
       ifls2 <- return $ (++ ".wav") <$> makeMidiNames Flute 
       bcs <- liftIO $ mapM (\file -> M.load $ "./resource/sfx/" ++ file) beatsFiles :: System World [M.Chunk]
       pfs <- liftIO $ mapM (\file -> M.load $ "./resource/sfx/" ++ file) ifls :: System World [M.Chunk]
       pfs2 <- liftIO $ mapM (\file -> M.load $ "./resource/sfx/" ++ file) ifls2 :: System World [M.Chunk]
-      sfxs <- return $ filter (\(SFXResources _ (Modify (_) (Prim (Note _ p))) _ ) -> p `elem` [(G,3)] ) -- ,(A,4),(B,4),(C,4),(D,4),(E,4),(Fs,4)]) 
+      sfxs <- return $ filter (\(SFXResources _ (Modify (_) (Prim (Note _ p))) _ ) -> p `elem` [(G,3),(A,4),(B,4),(C,4),(D,4),(E,4),(Fs,4)]) 
                 $ getZipList $ SFXResources <$> ZipList pfs <*> ZipList msmpl <*> ZipList (fmap fst cols)
-      sfxs2 <- return $ filter (\(SFXResources _ (Modify (_) (Prim (Note _ p))) _ ) -> p `elem` [(E,3),(Fs,3),(G,4),(A,4),(B,4),(C,4),(D,4)]) 
+      sfxs2 <- return $ filter (\(SFXResources _ (Modify (_) (Prim (Note _ p))) _ ) -> p `elem` [(G,3),(A,4),(B,4),(C,4),(D,4),(E,4),(Fs,4)]) --[(E,3),(Fs,3),(G,4),(A,4),(B,4),(C,4),(D,4)]) 
                 $ getZipList $ SFXResources <$> ZipList pfs2 <*> ZipList msmpl2 <*> ZipList (fmap fst cols2)
       sfxs3 <- return $ getZipList $ SFXResources <$> ZipList bcs <*> ZipList bsmpl <*> ZipList (fmap fst cols3)
       
@@ -100,24 +101,24 @@ main = do
 
       wallPos1 <- liftIO $
         zip4 <$>
-          replicateM 100 (randomDonutBox 600 900)
+          replicateM 50 (randomDonutBox 100 900)
           <*> replicateM 100 (randomDonutBox 600 400)
-          <*> replicateM 100 (randomRIO (20,50 :: CDouble))
-          <*> replicateM 100 (randomRIO (20,50 :: CDouble))
+          <*> replicateM 100 (randomRIO (0,1 :: CDouble))
+          <*> replicateM 100 (randomRIO (0,1 :: CDouble))
       wallEs1 <- mapM (\(w,bx) -> newWall r wallFile Wall1 w bx) $ zip wallPos1 (concat . repeat $ sfxs)
       wallPos2 <- liftIO $
         zip4 <$>
-          replicateM 100 (randomDonutBox 600 900)
+          replicateM 50 (randomDonutBox 600 900)
           <*> replicateM 100 (randomDonutBox 600 400)
-          <*> replicateM 100 (randomRIO (20,50 :: CDouble))
-          <*> replicateM 100 (randomRIO (20,50 :: CDouble))
+          <*> replicateM 100 (randomRIO (0,1 :: CDouble))
+          <*> replicateM 100 (randomRIO (0,1 :: CDouble))
       wallEs2 <- mapM (\(w,bx) -> newWall r wallFile2 Wall2 w bx) $ zip wallPos2 (concat . repeat $ sfxs2)
       wallPos3 <- liftIO $
         zip4 <$>
-          replicateM 100 ( randomDonutBox 600 900 )
+          replicateM 50 ( randomDonutBox 600 900 )
           <*> replicateM 100 ( randomDonutBox 600 400 )
-          <*> replicateM 100 (randomRIO (20,50 :: CDouble))
-          <*> replicateM 100 (randomRIO (20,50 :: CDouble))
+          <*> replicateM 100 (randomRIO (0,1 :: CDouble))
+          <*> replicateM 100 (randomRIO (0,1 :: CDouble))
       wallEs3 <- mapM (\(w,bx) -> newWall r wallFile3 Wall3 w bx) $ zip wallPos3 (concat . repeat $ sfxs3)
             
       mapM_ (newBullet bultTexture) sfxs
@@ -139,18 +140,19 @@ main = do
         newM <- liftIO $ midiLoad (msmpl !! u :+: msmpl !! v)
         ent `set` SFXResources newM oldMp oldClr
 
-      _ <- oneWayWall (10,3) (head sfxs) flrTexture
+      -- _ <- oneWayWall (10,3) (head sfxs) flrTexture
       pl <- player1 octoTexture (head sfxs)
-      nt <- net netTexture
+      let nr = MBoard (zip (repeat $ pure 0) $ sfxs ++ sfxs2 ++ sfxs3 ) True :: Netitor
+      nt <- net netTexture nr
+
       wChains 0.6 (pl:nt:tg:[]) tg
       
       let makeChains i = replicateM i (chain' (head sfxs)) >>= (\chns -> chains (pl:chns) tg)
       
       mapM_ makeChains [10..20] 
-      --_ <- newEntity( listToBoard(wallEs1) :: Sequencer )
-      -- _ <- newEntity( listToBoard(wallEs2) )
-      --_ <- newEntity( listToBoard(wallEs3) )
-      _ <- newEntity( MBoard (zip (repeat $ pure 0) $ sfxs ++ sfxs2 ++ sfxs3) True :: Netitor )
+      _ <- newEntity( listToBoard(wallEs1) )
+      _ <- newEntity( listToBoard(wallEs2) )
+      _ <- newEntity( listToBoard(wallEs3) )
       cmap (\bx -> bool Out In $ aabb bx (Box (0, 600, 600)))
       set global (Camera 0 1.0
                   , SDLRenderer r
@@ -160,6 +162,7 @@ main = do
                   , BoardControl Play Unlocked
                   )
       _ <- newEntity ( Grid mempty )
+      playSong (Entity 3)
       randomizeGridCell 0 
 
 mainLoop :: World -> S.Renderer -> IO ()

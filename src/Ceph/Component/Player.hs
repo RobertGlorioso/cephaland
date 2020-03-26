@@ -16,7 +16,7 @@ playerLoop (Player1, _, _, _, Swinging, _, e) = do
   (chex2,(p1,pn)) <- chainExtended 50
   if chex then
     e `modify`
-      (\(Velocity v,_) ->
+      (\(Velocity v) ->
         (Velocity $ v + ( (if chex2 then 0.02 else 0.002) * normalize  (pn - p1))
         , Swinging))
     else return ()
@@ -85,7 +85,7 @@ playerSwinging = do
   conceIfM_
     (\case
         (_, Out, _, _) -> False
-        (_ :: Wall, In, n, c) -> let new_b = (snd $ rotate_box_cw c (Position t,Box (t, 0.5, 0.5) ) n) in aabb new_b c
+        (_ :: Wall, In, n, c) -> let new_b = (rotate_box_cw c (Box (t, 0.5, 0.5),n)) in aabb new_b c
     )
     (\(Wall1) -> do
         cmap $ \(Player1) -> Swinging 

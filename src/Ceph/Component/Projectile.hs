@@ -29,14 +29,14 @@ newSquall :: Txtr -> SFXResources -> System World Entity
 newSquall txtr@(Txtr _ (S.Rectangle _ (fmap (fromIntegral) -> V2 x y))) s = do
   newEntity ((Projectile,Squall)
             , (Position (pure 50)
-              , Velocity (pure 0)
-              , box (pure 50) (x / 2) (y / 2)
+              , Velocity (pure 1)
+              , box (pure 2) (x / 2) (y / 2)
               , Angle 0
-              , AngularMomentum 0.5
+              , AngularMomentum 0.1
             )
             , txtr
             , s
-            , (Gravity $ V2 0 0.01
+            , (Gravity $ V2 0 0
             , NoBehavior) )
 
 newBullet :: Txtr -> SFXResources -> System World Entity

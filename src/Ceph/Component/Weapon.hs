@@ -4,6 +4,7 @@ module Ceph.Component.Weapon where
 import Ceph.Components
 import Ceph.Physics.Box
 import Ceph.Util
+import Ceph.Scene
 
 import Apecs
 import Linear
@@ -11,20 +12,19 @@ import Data.List
 import Control.Monad
 import Data.Ord
 import Foreign.C.Types
+import qualified SDL as S
 
 netLoop :: System World ()
 netLoop = do
   cmapM $ \case
-    (Net, nb@(Box (_,w,h)), Position p) -> return (Box (p,w,h))
-    (_,b,_) -> return b
-  cmapM_ $ \case
-    (Net, nb) -> do
+    (Net, nb@(Box (_,w,h)), pos@(Position p), Txtr t _) -> do
       cmapM_  $ \case
         (Enemy, eb, s :: SFXResources, e) -> when (aabb eb nb) $ do
           e `set` (Trapped) 
           global `modify` (\(SList ss) -> SList $ s:ss)
         _ -> return ()
-    _ -> return ()
+      return (Box (p,w,h))
+    (_,b,_,t) -> return b
 
 showSword ::
   Ord a =>
@@ -76,9 +76,9 @@ harpoon pic = newEntity
               , (Weapon,Harpoon))
 
 
-net :: Txtr -> System World Entity
-net pic = do
-  newEntity ((Weapon, Net)
+net :: Txtr -> Netitor -> System World Entity
+net pic ntr = do
+  newEntity ((Weapon, Net, ntr)
             , NoBehavior
             , Angle 0
             , Position 0

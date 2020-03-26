@@ -78,6 +78,7 @@ netBoard :: Netitor -> MCoord -> System World (SFXResources)
 netBoard sl m = do
   set global Pause
   return $ indAdj sl m
+  
 soundBoard :: Sequencer -> SCoord -> System World (SBoard (Bool,Position,SpriteColor))
 soundBoard bd s = do
   (Camera viewPos _, Beat m i) <- get global

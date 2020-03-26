@@ -35,7 +35,8 @@ physicsStep !w = runWith w $ do
   incrementBeat
   cmapM playerLoop
   
-  cmapM_ $ \(Player1, Position p) -> do
+  cmapM_ $ \pc@(Box (p,_,_), _, Player1) -> do
+    cmap $ squallBounce pc
     randomizeGridCell (Position p)
     enemyLoop p
   motion
@@ -68,7 +69,7 @@ physicsStep !w = runWith w $ do
       cmap $ \(AngularMomentum m, Angle n) -> Angle $ n + m
       --move chains and other linked objs
       cmapM moveChains
-        
+      
       --updates scope for rendering & collision detection
       (Camera cam _) <- get global :: System World Camera
       cmap (\(_::Actor,b) -> bool Out In $ aabb b (Box (cam, 600, 600)) )

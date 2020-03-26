@@ -5,8 +5,8 @@ module Ceph.Scene where
 
 import Ceph.Components
 import Ceph.Scene.Camera
-import Ceph.Util
 import Ceph.Scene.Board
+import Ceph.Util
 
 import Apecs
 import Linear
@@ -66,22 +66,22 @@ renderEnt (pos@(Position s@(V2 x2 y2)), Angle theta, pic, Weapon, e) r = do
       view <- get global :: System World Camera 
       cmapM_ $ \(Target x@(V2 x1 y1)) -> do
         if (abs (x2 - x1) < abs (y2 - y1)) then
-          liftIO $ renderTexture r pic (S.Rectangle (S.P $ round <$> applyView view pos (round <$> s-x)) (round <$> pure 1.9 * (s-x) ) ) ((-pi / 2) + v2ToRad (s-x))
+          liftIO $ renderTexture r pic (S.Rectangle (S.P $ round <$> applyView view pos (round <$> s-x)) (round <$> pure 1.9 * (s-x)) ) (-pi/2 + v2ToRad (s-x))
           else
-          liftIO $ renderTexture r pic (S.Rectangle (S.P $ round <$> applyView view pos (round <$> s-x)) (round <$> pure 1.9 * (s-x) ) ) (v2ToRad (s-x))
-    _ -> renderEnt (pos, Angle theta, pic, Wall, e) r
+          liftIO $ renderTexture r pic (S.Rectangle (S.P $ round <$> applyView view pos (round <$> s-x)) (round <$> pure 1.9 * (s-x)) ) (v2ToRad (s-x))
+    _ -> renderEnt (pos, Angle theta, pic, Wall, e) r 
 renderEnt (pos, Angle theta, pic@(Txtr _ (S.Rectangle _ size)), _, _) r = do
   view <- get global :: System World Camera
   liftIO $ renderTexture r pic (S.Rectangle (S.P $ round <$> applyView view pos size) size) theta
 
 applyView :: Camera -> Position -> V2 CInt -> V2 CDouble
 applyView (Camera cam scale) (Position p) (S.V2 x y) = 
-  (p - cam + (fromIntegral <$> ( div <$> ( S.V2 (negate x) (negate y) ) <*> pure 2 )) ) / pure scale  + S.V2 390 260
+  (p - cam + (fromIntegral <$> ( div <$> S.V2 (negate x) (negate y) <*> pure 2 )) ) / pure scale  + S.V2 390 260
 
 render :: World -> IO ()
 render w = runWith  w $ do
   cmapM_ cameraFollowPlayer
-  (SList slst :: SongList, SDLRenderer r, cam :: Camera, sc :: SCoord, Beat bm bt ) <- get global
+  (SList slst :: SongList, SDLRenderer r, cam :: Camera, sc :: SCoord, Beat bm bt) <- get global
   --cmap nextFrame
   S.rendererDrawColor r S.$= S.V4 190 100 19 255
   cmapM_ $ \case
@@ -98,30 +98,37 @@ render w = runWith  w $ do
     _ -> return b
   
   flip mapM_ (zip slst chns)
-    $ \(SFXResources _ _ (SpriteColor clr) ,(_,pos)) -> randomChkrs r cam pos 9 clr Nothing
+    $ \(SFXResources _ _ (SpriteColor clr), (_,pos)) -> randomChkrs r cam pos 9 clr Nothing
   
   cmapM_ $ \case
-    ((MBoard ns True) :: Netitor) -> do
-      foldM_ (\(acc :: Double) (_,SFXResources _ _ (SpriteColor clr)) -> do
+    ((MBoard ns True) :: Netitor, Position p@(V2 px py)) -> do
+      foldM_ (\(acc :: CDouble) (_,SFXResources _ _ (SpriteColor clr)) -> do
         S.rendererDrawColor r S.$= clr 
         let dsc = acc / 20
-        S.fillRect r (Just (S.Rectangle (S.P $ S.V2 (720 + round (dsc * sin acc)) (100 + (round (dsc * cos acc)))) (pure 3)))
-        return $ acc + ((fromIntegral $ fromEnum sc) + (fromIntegral bt / fromIntegral bm))
-        ) (0) ns
-    (MBoard _ False) -> return ()
+        cmapM_ $ \(Target t) -> do
+          view <- get global
+          S.fillRect r $ 
+            Just (S.Rectangle 
+              (S.P $ round <$> applyView view (Position $ S.V2 (px + (dsc * sin acc)) (py + ((dsc * cos acc)))) (round <$> t-p))
+              (pure 3)
+            )
+        return $ acc + ((fromIntegral $ fromEnum sc) + (fromIntegral (bt + 10) / fromIntegral bm))
+        ) (100) ns
+    (MBoard _ False, Position p) -> return ()
 
   flip cfoldM_ 0 $ \acc (s :: Sequencer) -> do
-    flip mapM_ s $ \( e :: Entity ) -> do
-      get e >>= \case
-                  (pos,SFXResources _ _ (SpriteColor clr),In) -> replicateM_ 10 $ randomChkrs r cam pos 6 clr Nothing
-                  _ -> return ()
+    flip mapM_ s $ \(e :: Entity) -> do
+      get e >>= 
+        \case
+          (pos,SFXResources _ _ (SpriteColor clr),In) -> replicateM_ 10 $ randomChkrs r cam pos 6 clr Nothing
+          _ -> return ()
     soundBoard s sc >>=
       \m -> flip mapM_ m $ \case
         (False, Position (V2 x y), SpriteColor clr) 
           -> S.rendererDrawColor r S.$= clr 
             >> S.fillRect r (Just (S.Rectangle (S.P $ round <$> S.V2 (x+acc) y) (S.V2 15 15)))
         (True, Position (V2 x y), SpriteColor clr) 
-          -> S.rendererDrawColor r S.$= clr 
+          -> S.rendererDrawColor r S.$= clr
             >> S.fillRect r (Just (S.Rectangle (S.P $ round <$> S.V2 (x+acc) y) (S.V2 10 10)))
     return $ acc + 85
   

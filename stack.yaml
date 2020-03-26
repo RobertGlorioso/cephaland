@@ -1,38 +1,37 @@
-#resolver: lts-13.27
-resolver: lts-9.14 # for sdl2
+resolver: lts-14.25
 require-stack-version: ">= 1.7.1"
 packages:
   - .
+#ghc-variant: integersimple
 extra-deps:
-  - apecs-0.7.1
+#  - git: https://github.com/haskell-game/sdl2-image.git
+#    commit: 382395c763b473032721c71921b5c9241142178f
+#  - acts-0.1.0.0
+  - apecs-0.9.0
+  - astar-monad-0.3.0.0
 #  - csound-expression-5.3.2
 #  - csound-expression-typed-0.2.2.0
-#  - apecs-stm-0.1.1
-  - first-class-families-0.5.0.0
-  - gloss-juicy-0.2.3
-  - gloss-1.13.0.1
-  - gloss-rendering-1.13.0.2
-#  - hosc-0.16
-#  - tidal-0.9.10
-#  - streamly-0.4.1
+#  - first-class-families-0.5.0.0
+#  - gloss-juicy-0.2.3
+#  - gloss-1.13.0.1
+#  - gloss-rendering-1.13.0.2
   - Euterpea-2.0.7
+  - generic-data-0.6.0.1
   - PortMidi-0.2.0.0
   - arrows-0.4.4.2
   - Stream-0.4.7.2
+  - StateVar-1.1.1.1
+  - text-1.2.3.1
   - lazysmallcheck-0.6
   - HCodecs-0.5.1
-#  - hamilton-0.1.0.3
-#  - hmatrix-vector-sized-0.1.1.0
-#  - lockfree-queue-0.2.3.1
   - sdl2-2.4.1.0
-#  -  sdl2-mixer-1.1.0
-#  -  sdl2-ttf-2.0.2
+  - sdl2-mixer-1.1.0
+#  - sdl2-image-2.0.0
   - containers-0.5.11.0
-  - stm-2.4.5.1  # 2.5.0.0
+#  - stm-2.5.0.0
 #  - vector-sized-1.0.4.0
 #  - indexed-list-literals-0.2.1.1
 #  - csound-expression-5.3.2
-
   - binary-0.8.7.0
 
 flags: {}
