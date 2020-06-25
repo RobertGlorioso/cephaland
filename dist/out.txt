@@ -1,0 +1,7 @@
+Playing temp.mid
+MIDI file: temp.mid
+Format: 1  Tracks: 0  Divisions: 96
+No pre-resampling cache hit
+Playing time: ~3 seconds
+Notes cut: 0
+Notes lost totally: 0
