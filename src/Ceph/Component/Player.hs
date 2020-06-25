@@ -3,6 +3,9 @@ module Ceph.Component.Player where
 import Ceph.Util
 import Ceph.Physics.Box
 import Ceph.Component.Projectile
+
+import Ceph.Component.Enemy
+import Ceph.Component.Levels
 import Ceph.Components
 import Ceph.Component.Weapon
 import Apecs
@@ -10,8 +13,8 @@ import Linear
 import Control.Monad
 import Foreign.C.Types
 
-playerLoop :: (Player, Dash, Velocity, Box, Behavior, Charge, Entity) -> System World ()
-playerLoop (Player1, _, _, _, Swinging, _, e) = do
+playerLoop :: (Player, Dash, (Box, Velocity, Entity), Behavior, Charge) -> System World ()
+playerLoop (Player1, _, (_,_,e), Swinging, _) = do
   (chex,_) <- chainExtended 30
   (chex2,(p1,pn)) <- chainExtended 50
   if chex then
@@ -20,13 +23,13 @@ playerLoop (Player1, _, _, _, Swinging, _, e) = do
         (Velocity $ v + ( (if chex2 then 0.02 else 0.002) * normalize  (pn - p1))
         , Swinging))
     else return ()
-playerLoop (Player1, _, _, (Box (p1@(V2 x1 _), _, _)), Attack, _, _) =
+playerLoop (Player1, _, (Box (p1@(V2 x1 _), _, _), _, _), Attack, _) =
   cmapM_ $ \case
     Sword -> do
       Target tp@(V2 x2 _) <- get global
       cmap $ showSword x1 x2 tp p1
     _ -> return ()
-playerLoop (Player1, _, _, b@(Box (p1,_,_)), Carry, _, _) =
+playerLoop (Player1, _, (b@(Box (p1,_,_)), _,e), Carry, _) =
   conceIf
     (\(p, a) -> aabb b p && a == Wall)
     (\(Box (_,x,y)) -> (Box (p1, x, y), Position p1))
@@ -36,8 +39,16 @@ playerLoop (Player1, _, _, b@(Box (p1,_,_)), Carry, _, _) =
         --let (_,carriedEnt,_) = head e
         --carriedEnt `modify` (\(Box (_,x,y)) -> Box (p1, x, y))
         --carriedEnt `set` (Position p1)
-playerLoop (Player1, Dash dx, Velocity v, (Box (p1,_,_)), _, Charge cv chging, e) = do
-  cmap $ \(Target o) -> ( Target (o + v), Position (o + v))
+playerLoop (Player1, Dash dx, pb@(Box (p1,_,_),Velocity v,e), _, Charge cv chging) = do
+  cmapM_ $ \case
+    (ob, Enemy1) -> bounce (0.9,0.1) pb ob
+    _ -> return ()
+  cmapM_ $ \case
+    (ob, Squall) -> bounce (0.1,0.9) pb ob
+    _ -> return ()
+  cmap $ \(a::Netitor) -> Velocity v
+  randomizeGridCell (Position p1)
+  enemyLoop pb
   cmapM_ $ \case
     (blt,Bullet) -> cmap (hurtPlayer blt)
     _ -> return ()
@@ -47,14 +58,16 @@ playerLoop (Player1, Dash dx, Velocity v, (Box (p1,_,_)), _, Charge cv chging, e
         | True   = Charge cv False
   let dsh
         | dx < 10.0 = Dash (dx + 0.1)
-        | True     = Dash dx
-  e `set` (Player, Angle (v2ToRad $ p1 - tg), chg, dsh, Velocity v )     
+        | True      = Dash dx
+  cmapM $ \(Target o) -> do
+    e `set` (Angle (pi + v2ToRad o), chg, dsh)
+    return $ Position (o + p1) 
 
 player1 :: Txtr -> SFXResources -> System World Entity
 player1 txtr s = 
-  newEntity ((Position (V2 0 50)
+  newEntity ((Position (V2 (200) 250)
               , 0 :: Velocity
-              , Gravity (V2 0 (0.1))
+              , Gravity (V2 0 (0.05))
               , txtr
               , Box (0, 1, 1))
             , (ProjCount 30, Health 99, Dash 0)

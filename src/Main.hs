@@ -2,6 +2,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 module Main where
 import Ceph.Scene
@@ -19,7 +20,8 @@ import Ceph.Component.Weapon
 import Ceph.Jams
 
 import Apecs
-import Data.List (isInfixOf,zip4)
+import Data.List (isInfixOf,zip4,find)
+import Data.Maybe
 import Data.Bool
 import Data.Time.Clock
 import Options.Applicative
@@ -32,20 +34,21 @@ import qualified SDL.Mixer as M
 import qualified SDL as S
 import Foreign.C.Types
 import Euterpea
+import Data.Monoid
 
---todo:
---refactor init script to delegate to various components
 
 main :: IO ()
 main = do
   S.initialize [S.InitVideo, S.InitAudio]
   M.initialize []
   M.openAudio M.defaultAudio 256
-  window <- S.createWindow "CEPH" S.defaultWindow
-  S.showWindow window
-  renderer <- S.createRenderer window (-1) S.defaultRenderer
+  M.setChannels 128
   w <- initWorld
+  window <- S.createWindow "CEPH" S.defaultWindow
+  renderer <- S.createRenderer window (-1) S.defaultRenderer
   runSystem (initGame renderer) w
+  S.showWindow window
+  S.HintRenderScaleQuality S.$= S.ScaleLinear
   {--
   let opts = info (parseopts <**> helper)
         $ fullDesc
@@ -58,112 +61,97 @@ main = do
   S.destroyWindow window
   M.quit
   S.quit
-  where 
-    initGame r = do
-      beatsFiles <- liftIO $ getDirectoryContents "./resource/sfx"
-                    >>= return . filter ((\x y z -> x && y && z ) <$> isInfixOf "en" <*> isInfixOf ".wav"  <*> ( flip elem ['A'..'Z'] . head ))
-      cols <- return $ makeColorsMidi (S.V4 0 50 0 0)
-      cols2 <- return $ makeColorsMidi (S.V4 50 0 0 0) 
-      cols3 <- return $ makeColorsMidi (S.V4 0 0 50 0)       
-      msmpl <- return $ makeMidiSamples Tuba
-      msmpl2 <- return $ makeMidiSamples Flute
-      bsmpl <- return $ makeMidiBeats
-      
-      ifls <- return $ (++ ".wav") <$> makeMidiNames Accordion
-      ifls2 <- return $ (++ ".wav") <$> makeMidiNames Flute 
-      bcs <- liftIO $ mapM (\file -> M.load $ "./resource/sfx/" ++ file) beatsFiles :: System World [M.Chunk]
-      pfs <- liftIO $ mapM (\file -> M.load $ "./resource/sfx/" ++ file) ifls :: System World [M.Chunk]
-      pfs2 <- liftIO $ mapM (\file -> M.load $ "./resource/sfx/" ++ file) ifls2 :: System World [M.Chunk]
-      sfxs <- return $ filter (\(SFXResources _ (Modify (_) (Prim (Note _ p))) _ ) -> p `elem` [(G,3),(A,4),(B,4),(C,4),(D,4),(E,4),(Fs,4)]) 
-                $ getZipList $ SFXResources <$> ZipList pfs <*> ZipList msmpl <*> ZipList (fmap fst cols)
-      sfxs2 <- return $ filter (\(SFXResources _ (Modify (_) (Prim (Note _ p))) _ ) -> p `elem` [(G,3),(A,4),(B,4),(C,4),(D,4),(E,4),(Fs,4)]) --[(E,3),(Fs,3),(G,4),(A,4),(B,4),(C,4),(D,4)]) 
-                $ getZipList $ SFXResources <$> ZipList pfs2 <*> ZipList msmpl2 <*> ZipList (fmap fst cols2)
-      sfxs3 <- return $ getZipList $ SFXResources <$> ZipList bcs <*> ZipList bsmpl <*> ZipList (fmap fst cols3)
-      
-      let enemyFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/squid1.bmp" 
-      let chainFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/chain.bmp"
-      let wallFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/wall.bmp"
-      let wallFile2 = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/wall1.bmp"
-      let wallFile3 = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/wall2.bmp"
-      let floorFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/coral1.bmp"
-      let octoFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/octo2.bmp"
-      let bultFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/bullett.bmp"
-      let netFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/space.bmp"
-      chnTexture <- liftIO $ loadTxtr r chainFile
-      flrTexture <- liftIO $ loadTxtr r floorFile
-      octoTexture <- liftIO $ loadTxtr r octoFile
-      bultTexture <- liftIO $ loadTxtr r bultFile
-      netTexture <- liftIO $ loadTxtr r netFile
-      
-      _ <- newSquall bultTexture (head sfxs)
 
-      tg <- newEntity (Target 0,Box (0,0,0),Angle 0,Position 0)
+initGame :: S.Renderer -> System World ()
+initGame r = do
+  let mkSFX ms col = do
+        sfx <- liftIO $ mapM midiLoad ms
+        return $ getZipList $ SFXResources <$> ZipList sfx <*> ZipList ms <*> ZipList (makeColorsMidi col)
+  
+  asmplSfxs <- liftIO $ mkSFX (makeMidiSamples Flute) (S.V4 50 0 50 0)
+  beatSfxs <- liftIO $ mkSFX (makeMidiSamples Percussion) (S.V4 0 50 50 0)
+  csmplSfxs <- liftIO $ mkSFX (makeMidiSamples Oboe) (S.V4 50 50 0 0)
 
-      wallPos1 <- liftIO $
-        zip4 <$>
-          replicateM 50 (randomDonutBox 100 900)
-          <*> replicateM 100 (randomDonutBox 600 400)
-          <*> replicateM 100 (randomRIO (0,1 :: CDouble))
-          <*> replicateM 100 (randomRIO (0,1 :: CDouble))
-      wallEs1 <- mapM (\(w,bx) -> newWall r wallFile Wall1 w bx) $ zip wallPos1 (concat . repeat $ sfxs)
-      wallPos2 <- liftIO $
-        zip4 <$>
-          replicateM 50 (randomDonutBox 600 900)
-          <*> replicateM 100 (randomDonutBox 600 400)
-          <*> replicateM 100 (randomRIO (0,1 :: CDouble))
-          <*> replicateM 100 (randomRIO (0,1 :: CDouble))
-      wallEs2 <- mapM (\(w,bx) -> newWall r wallFile2 Wall2 w bx) $ zip wallPos2 (concat . repeat $ sfxs2)
-      wallPos3 <- liftIO $
-        zip4 <$>
-          replicateM 50 ( randomDonutBox 600 900 )
-          <*> replicateM 100 ( randomDonutBox 600 400 )
-          <*> replicateM 100 (randomRIO (0,1 :: CDouble))
-          <*> replicateM 100 (randomRIO (0,1 :: CDouble))
-      wallEs3 <- mapM (\(w,bx) -> newWall r wallFile3 Wall3 w bx) $ zip wallPos3 (concat . repeat $ sfxs3)
-            
-      mapM_ (newBullet bultTexture) sfxs
-                  
-      enms1 <- mapM (enemy r enemyFile Enemy1) sfxs
-      mapM_ (enemy r enemyFile Enemy1) sfxs
-      enms2 <- mapM (enemy r enemyFile Enemy1) sfxs2
-      mapM_ (enemy r enemyFile Enemy1) sfxs2
-      mapM_ (enemy r enemyFile Enemy1) sfxs3
+  let enemyFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/squid1.bmp" 
+  --let chainFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/chain.bmp"
+  let wallFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/wall.bmp"
+  let wallFile2 = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/wall1.bmp"
+  let wallFile3 = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/wall2.bmp"
+  let floorFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/coral1.bmp"
+  let octoFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/octo2.bmp"
+  let bultFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/bullett.bmp"
+  let netFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/starshell.bmp"
+  --chnTexture <- liftIO $ loadTxtr r chainFile
+  flrTexture <- liftIO $ loadTxtr r floorFile
+  octoTexture <- liftIO $ loadTxtr r octoFile
+  bultTexture <- liftIO $ loadTxtr r bultFile
+  netTexture <- liftIO $ loadTxtr r netFile
+  wallTexture2 <- liftIO $ loadTxtr r wallFile2
 
-      makeFloorWallBox flrTexture (pure 0) sfxs
-      makeFloorWallBox flrTexture (V2 2600 0) sfxs2
-      makeFloorWallBox flrTexture (V2 0 2600) sfxs3
+  
+  --let squalls v = newSquall (Position v) bultTexture (beatSfxs !! 1)
+  --sqx <- liftIO $ replicateM 10 $ randomRIO (-100,100) :: System World [CDouble]
+  --sqy <- liftIO $ replicateM 10 $ randomRIO (-100,100) 
+  --sqs <- mapM squalls $ zipWith (V2) sqx sqy
+  newSquall (Position $ pure 30) netTexture (beatSfxs !! 1) -- >>= \e -> set e $ Netted sqs
+  tg <- newEntity (Target $ pure 10, Box (0,0,0), Position 0)
 
-      flip mapM_ (wallEs1 ++ enms1) $ \ent -> do
-        SFXResources _ oldMp oldClr <- get ent
-        u <- liftIO $ randomRIO (0,length msmpl - 1 )
-        v <- liftIO $ randomRIO (0,length msmpl - 1 )
-        newM <- liftIO $ midiLoad (msmpl !! u :+: msmpl !! v)
-        ent `set` SFXResources newM oldMp oldClr
+  let wallbxs r s = zip [(x-z,r+y,0,0) | (z,y) <- zip [0,12,24,36] [-350,-300..350], x <- [-200,-177..50]] s
+  let makeWalls wall wp = mapM (\(w,bx) -> nonWall w bx wallTexture2) $ concat (getZipList $ wp <$> ZipList [0,200,400] <*> ZipList [beatSfxs, asmplSfxs, csmplSfxs])
+  
+  let circleOfFifths o = take 3 $ iterate (\j -> drop 3 j ++ take 3 j) $ fmap (\i -> find ((==i) . getPC . song) asmplSfxs) ((Note qn . (,o)) <$> [F,C,G,D,A,E,B,Fs,Cs,Af,Ef,Bf])
+  let tonnetzBxs r o = zip [(x-a,r+y,0,0) | (a,y) <- zip [0,12..100] [-250,-225..0], x <- [200,225..450]] (catMaybes . concat $ circleOfFifths o)
+  
+  wallEs <- makeWalls Wall1 wallbxs
+  tonnetzWalls <- mapM (\(w,bx) -> nonWall w bx wallTexture2) $ concat [tonnetzBxs 200 3,tonnetzBxs 0 4]
+  
+  pl <- player1 octoTexture (last beatSfxs)
+  oneWayWall (-600, -40) (head $ asmplSfxs) flrTexture
+  oneWayWall (600, -110) (head $ asmplSfxs) flrTexture
+  
+  wallboxs <- mapM get $ wallEs ++ tonnetzWalls ++ [pl] :: System World [Box]      
+  let nr = MBoard ( zip wallboxs (wallEs ++ tonnetzWalls ++ [pl]) ) True :: Netitor
+  nt <- net netTexture nr
+  wChains 0.5 (pl:nt:tg:[]) tg
+  
+  mapM_ (newBullet bultTexture) beatSfxs
+              
+  enms1 <- mapM (enemy r enemyFile Enemy1) =<< liftIO (replicateM 1 $ takeRandom beatSfxs)
+  enms2 <- mapM (enemy r enemyFile Enemy1) =<< liftIO (replicateM 1 $ takeRandom asmplSfxs)
+  enms3 <- mapM (enemy r enemyFile Enemy1) =<< liftIO (replicateM 1 $ takeRandom csmplSfxs)
 
-      -- _ <- oneWayWall (10,3) (head sfxs) flrTexture
-      pl <- player1 octoTexture (head sfxs)
-      let nr = MBoard (zip (repeat $ pure 0) $ sfxs ++ sfxs2 ++ sfxs3 ) True :: Netitor
-      nt <- net netTexture nr
+  makeFloorWallBox flrTexture (pure 0) beatSfxs
+  --makeFloorWallBox flrTexture (V2 (-1200) 0) asmplSfxs
+  --makeFloorWallBox flrTexture (V2 0 1200) csmplSfxs
 
-      wChains 0.6 (pl:nt:tg:[]) tg
-      
-      let makeChains i = replicateM i (chain' (head sfxs)) >>= (\chns -> chains (pl:chns) tg)
-      
-      mapM_ makeChains [10..20] 
-      _ <- newEntity( listToBoard(wallEs1) )
-      _ <- newEntity( listToBoard(wallEs2) )
-      _ <- newEntity( listToBoard(wallEs3) )
-      cmap (\bx -> bool Out In $ aabb bx (Box (0, 600, 600)))
-      set global (Camera 0 1.0
-                  , SDLRenderer r
-                  , Beat 20 0
-                  , mempty :: SCoord
-                  , mempty :: SongList
-                  , BoardControl Play Unlocked
-                  )
-      _ <- newEntity ( Grid mempty )
-      playSong (Entity 3)
-      randomizeGridCell 0 
+  let makeChains i = replicateM i (chain' (head beatSfxs)) >>= (\chns -> chains (pl:chns) tg)
+  
+  mapM_ makeChains [10..20] 
+
+  let makeSequencer :: [SFXResources] -> System World ()
+      makeSequencer sfxs = do
+        rest <- return $ last sfxs
+        restEnt <- newEntity rest
+        _ <- newEntity (getInst $ song rest, listToBoard (repeat [restEnt]) :: Sequencer)
+        return ()
+
+  makeSequencer asmplSfxs
+  makeSequencer csmplSfxs
+  makeSequencer beatSfxs
+  _ <- newEntity( musicClock, Position $ V2 360 60 )
+
+  cmap (\bx -> bool Out In $ aabb bx (Box (0, 600, 600)))
+  cmap $ \(SFXResources _ s _ ) -> getInst s
+  set global (Camera 0 1.0
+              , SDLRenderer r
+              , Beat 40 0
+              , mempty :: SCoord
+              , mempty :: SongList
+              , MCoordF (Box (0,1,1)) (Entity 10)
+              , BoardControl Play Unlocked 0 [S1,S2,S3,S4]
+              )
+  _ <- newEntity ( Grid mempty )
+  randomizeGridCell 0 
 
 mainLoop :: World -> S.Renderer -> IO ()
 mainLoop w renderer = do
@@ -171,7 +159,7 @@ mainLoop w renderer = do
   t1 <- getCurrentTime
   let quit = elem S.QuitEvent $ map S.eventPayload events
   S.clear renderer
-  S.rendererDrawColor renderer S.$= S.V4 190 190 19 255
+  S.rendererDrawColor renderer S.$= S.V4 19 19 19 255
   render w
   S.present renderer
   physicsStep w

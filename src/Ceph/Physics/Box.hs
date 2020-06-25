@@ -17,7 +17,23 @@ import Linear hiding (angle)
 import qualified Linear
 
 friction :: CDouble
-friction = 1.08
+friction = 1.23
+
+bounce :: (CDouble,CDouble) -> (Box, Velocity, Entity) -> (Box, Velocity, Entity) -> System World ()
+bounce (a,b) (bp@(Box (bppos,_,_)), vp, ep) (bs@(Box (bspos,_,_)), vs, eo) =
+  if aabb bp bs 
+    then do 
+      ep `set` (Velocity (pure b) * vp + (Velocity (pure a) * vs), Position (bppos + normalize (bppos - bspos)))
+      eo `set` (Velocity (pure a) * vp + (Velocity (pure b) * vs), Position (bspos - normalize (bppos - bspos)))
+    else return ()
+
+shove :: (Box, Entity) -> (Box, Entity) -> System World ()
+shove (bp@(Box (bppos,_,_)), ep) (bs@(Box (bspos,_,_)), eo) =
+  if aabb bp bs 
+    then do 
+      ep `set` (Position (bppos + normalize (bppos - bspos)))
+      eo `set` (Position (bspos - normalize (bppos - bspos)))
+    else return ()
 
 boxBound :: System World ()
 boxBound = do
@@ -60,7 +76,7 @@ rotate_box_cw (Box (V2 ax ay, _, _)) (b@(Box (V2 bx by, w2, h2)), Angle n)
 
 rotate_pos_cw :: Position -> (Box,Angle) -> Position
 rotate_pos_cw p0@(Position (V2 ax ay)) (Box (V2 bx by, _, _),Angle n)
-  | n > (-0.1) && n < (0.1) = p0
+ -- | n > (-0.1) && n < (0.1) = p0
   | True =
       let bx' = bx - ax
           by' = by - ay
@@ -68,7 +84,7 @@ rotate_pos_cw p0@(Position (V2 ax ay)) (Box (V2 bx by, _, _),Angle n)
       in Position newpos
 
 rotate_cw :: Position -> (Box,Angle) -> V2 CDouble
-rotate_cw (Position p0@(V2 bx by)) (Box ((V2 ax ay), _, _),Angle n)
+rotate_cw (Position p0@(V2 bx by)) (Box ((V2 ax ay), _, _), Angle n)
   | n > (-0.1) && n < (0.1) = p0
   | True =
       let bx' = bx - ax
@@ -76,12 +92,16 @@ rotate_cw (Position p0@(V2 bx by)) (Box ((V2 ax ay), _, _),Angle n)
       in (V2 ax ay) + V2 (bx' * cos n + by' * sin n) (by' * cos n - bx' * sin n)
 
 --reflecting a velocity vector. the first argument is the wall's angle as a vector
-reflect_vel :: V2 CDouble -> (Velocity, Position) -> (Velocity, Position)
-reflect_vel a (Velocity v, Position p) = let new_v =  reflect v (normal_v a)
-  in ( Velocity $ new_v / pure friction, Position p)
-  where 
-    reflect :: V2 CDouble -> V2 CDouble -> V2 CDouble
-    reflect v1 vn = v1 - (pure (2 * (v1 `dot` vn)) * vn)
+reflect_vel :: Edge -> CDouble -> Angle -> Box -> (Velocity, Position) -> (Velocity, Position)
+reflect_vel c d n a (Velocity v, p) = let new_v =  Velocity $ reflect v (normal_v $ angle2vec n) / pure friction
+  in case c of
+    TopEdge -> ( new_v , rotate_pos_cw (p - position 0 d) (a,n) )
+    BottomEdge -> ( new_v , rotate_pos_cw (p + position 0 d) (a,n) )
+    RightEdge -> ( negate new_v , rotate_pos_cw (p - position d 0) (a,n) )
+    LeftEdge -> ( negate new_v , rotate_pos_cw (p + position d 0) (a,n) )
+
+reflect :: V2 CDouble -> V2 CDouble -> V2 CDouble
+reflect v1 vn = v1 - (pure (2 * (v1 `dot` vn)) * vn)
 
 --the normal to a vector
 --used to reflect a moving object's velocity when it collides 
@@ -103,10 +123,6 @@ angle2vec (Angle (CDouble m)) = CDouble <$> Linear.angle m
 position :: CDouble -> CDouble -> Position
 position a b = Position $ V2 a b
 
-squallBounce :: (Box, Velocity, Player) -> (Box, Velocity, Projectile) -> (Velocity)
-squallBounce (bp, vp, _) (bs, vs, Squall) = if aabb bp bs then (Velocity (pure 0.9) * vp + (Velocity (pure 0.1) * vs)) else vs
-squallBounce _ (_, v, _)  = v
-
 wallBounce ::
   [(Box, Angle, Wall, Scope, Entity)]
   -> ((Box, Scope), SFXResources, Phys, Entity, Behavior, Actor)
@@ -123,18 +139,16 @@ wallBounce
       (when (h == Sing) $ e `set` NoBehavior ) >> wallBounce rest c
     else do
       get e >>= \case
-        Bullet -> eb `set` (s, Sing) >> e `set` ( Position $ pure 2e7 )
-        Arrow -> eb `set` (s, Sing) >> e `set` ( Plant )
+        --Bullet -> eb `set` (s, Sing) >> e `set` ( Position $ pure 2e7 )
+        --Arrow -> eb `set` (s, Sing) >> e `set` ( Plant )
         Squall -> do
           let chkPos i = rotate_box_cw b ((\(Velocity vel) (Box (p,x,y)) -> Box ((normalize vel / pure i) + p, x, y)) v a, n) -- the new player box that is obtained via rotating it by the wall's angle
           let em = edgeMeasures (chkPos 1) b -- the distances to the wall's edge
-          if not $ any ((`aabb` b ). chkPos) [0.3,0.5..2.0] then wallBounce rest c else do
-            eb `set` Sing
+          if not $ any ((`aabb` b ). chkPos) [1.0] then wallBounce rest c else do
+            --eb `set` Sing
             case minni (abs <$> em) [RightEdge, LeftEdge, TopEdge, BottomEdge] of
-              (d,TopEdge) ->  e `set` reflect_vel (angle2vec n) (v, p) -- - position 0 d)
-              (d,BottomEdge) ->  e `set` reflect_vel (angle2vec n) (v, p) -- + position 0 d)
-              (d,RightEdge) ->  e `set` reflect_vel (angle2vec n) (negate v, p) -- - position d 0)
-              (d,LeftEdge) ->  e `set` reflect_vel (angle2vec n) (negate v, p) -- + position d 0)
+              (d,g) -> e `set` reflect_vel g d n a (v, p)
+        _ -> return ()
 wallBounce
   ((b, n, _, _, _):rest)
   c@((a,_),_,(_,p,_,_),e,_,Weapon) = do
@@ -143,146 +157,56 @@ wallBounce
       e `set` ()
 wallBounce
   ((b, n, Floor, _, eb):rest)
-  c@((a,_),_,(v@(Velocity (V2 vx vy)),p,_,_),e,_,Player)
+  c@((a,_),_,(v@(Velocity vel@(V2 vx vy)),p,_,_),e,_,Player)
   = do
     let chkPos i = rotate_box_cw b ((\(Velocity vel) (Box (o,x,y)) -> Box ((normalize vel / pure i) + o, x, y)) v a, n) -- the new player box that is obtained via rotating it by the wall's angle
     let em = edgeMeasures (chkPos 1) b 
-    if not $ any ((`aabb` b ). chkPos) [0.3,0.5..2.0] then wallBounce rest c else do
-      eb `set` Sing
+    if not $ any ((`aabb` b ). chkPos) [1.0] then wallBounce rest c else do
+      --eb `set` Sing
+      when (norm vel < 1) $ e `set` Plant
       case minni (abs <$> em) [RightEdge, LeftEdge, TopEdge, BottomEdge] of
-        (d,TopEdge) ->  e `set` reflect_vel (angle2vec n) (Velocity $ V2 vx $ 0.5 * vy, (rotate_pos_cw (p - position 0 d) (a,n)))
-        (d,BottomEdge) ->  e `set` reflect_vel (angle2vec n) (v, rotate_pos_cw (p + position 0 d) (a,n))
-        (d,RightEdge) ->  e `set` reflect_vel (angle2vec n) (negate v, (rotate_pos_cw (p - position d 0) (a,n)))
-        (d,LeftEdge) ->  e `set` reflect_vel (angle2vec n) (negate v, rotate_pos_cw (p + position d 0) (a,n))
+        (d,TopEdge) -> e `set` reflect_vel TopEdge d n a ((Velocity $ V2 vx $ 0.5 * vy), p)
+        (d,g) ->  e `set` reflect_vel g d n a (Velocity (pure 0.9) * v, p)
 wallBounce
   ((b, n, OneWayWall, _, _):rest)
-  c@((a,_),_,(v,p,_,_),e,_,Player)
+  c@((a,_),_,(v@(Velocity vel),p,_,_),e,_,Player)
   = do
   let chkPos i = rotate_box_cw b ((\(Velocity vel) (Box (p,x,y)) -> Box ((normalize vel / pure i) + p, x, y)) v a, n) -- the new player box that is obtained via rotating it by the wall's angle
   let ems i = edgeMeasures (chkPos i) b
-  if (not $ any ((`aabb` b ). chkPos) [0.3,0.5..2.0] ) then wallBounce rest c else do
+  if (not $ any ((`aabb` b ) . chkPos) [1.0]) then wallBounce rest c else do
+    when (norm vel < 1) $ e `set` Plant
     case (\i -> minni (abs <$> ems i) [RightEdge, LeftEdge, TopEdge, BottomEdge]) <$> [0.5,2.0] of
       [(d1,TopEdge),(d2,TopEdge)] -> 
-        if d1 > d2 then set e $ reflect_vel (angle2vec n) (v, p) else  wallBounce rest c
+        if d1 > d2 then set e $ reflect_vel TopEdge d1 n a (v, p) else  wallBounce rest c
       _ -> wallBounce rest c
 wallBounce
   ((b, n, _, _, eb):rest)
-  c@((a,_),_,(v,p,_,_),e,_,Player)
+  c@((a,_),_,(v@(Velocity vel),p,_,_),e,_,Player)
   = do
     let chkPos i = rotate_box_cw b ((\(Velocity vel) (Box (p,x,y)) -> Box ((normalize vel / pure i) + p, x, y)) v a, n) -- the new player box that is obtained via rotating it by the wall's angle
     let em = edgeMeasures (chkPos 1) b -- the distances to this box's edge
-    if not $ any ((`aabb` b ). chkPos) [0.3,0.5..2.0] then wallBounce rest c else do
-      eb `set` Sing
+    if not $ any ((`aabb` b ). chkPos) [1.0] then wallBounce rest c else do
+      --eb `set` Sing
+      when (norm vel < 1) $ e `set` Plant
+      --shove (b,eb) (a,e)
       case minni (abs <$> em) [RightEdge, LeftEdge, TopEdge, BottomEdge] of
-        (d,TopEdge) ->  e `set` reflect_vel (angle2vec n) (v, (rotate_pos_cw (p - position 0 d) (a,n)))
-        (d,BottomEdge) ->  e `set` reflect_vel (angle2vec n) (v, rotate_pos_cw (p + position 0 d) (a,n))
-        (d,RightEdge) ->  e `set` reflect_vel (angle2vec n) (negate v, (rotate_pos_cw (p - position d 0) (a,n)))
-        (d,LeftEdge) ->  e `set` reflect_vel (angle2vec n) (negate v, rotate_pos_cw (p + position d 0) (a,n))
-wallBounce
-  ((b, n, wl, _, eb):rest)
-  c@((a,_),sfx1@(SFXResources _ s _),(v,p,_,_),e,_,Enemy)
-  = do
-    let chkPos i = rotate_box_cw b ((\(Velocity vel) (Box (p,x,y)) -> Box ((normalize vel / pure i) + p, x, y)) v a, n) -- the new player box that is obtained via rotating it by the wall's angle
-    let em = edgeMeasures (chkPos 1) b
-    if not $ any ((`aabb` b ). chkPos) [0.5,2.0] then wallBounce rest c else do
-      get global >>= \(BoardControl _ bdlk) -> when ( bdlk == Unlocked ) 
-        (eb `modify` 
-          (\sfx2@(SFXResources _ s2 _) -> 
-            if getInst s == getInst s2 
-            then sfx1
-            else sfx2
-          )
-        )
-      eb `set` Sing
-      case minni (abs <$> em) [RightEdge, LeftEdge, TopEdge, BottomEdge] of
-        (d,TopEdge) ->  e `set` reflect_vel (angle2vec n) (v, (rotate_pos_cw (p - position 0 d) (a,n)))
-        (d,BottomEdge) ->  e `set` reflect_vel (angle2vec n) (v, rotate_pos_cw (p + position 0 d) (a,n))
-        (d,RightEdge) ->  e `set` reflect_vel (angle2vec n) (negate v, (rotate_pos_cw (p - position d 0) (a,n)))
-        (d,LeftEdge) ->  e `set` reflect_vel (angle2vec n) (negate v, rotate_pos_cw (p + position d 0) (a,n))
+        (d,g) -> e `set` reflect_vel g d n a (v, p)
+-- wallBounce
+--   ((b, n, _, _, _):rest)
+--   c@((a,_),_,(v,p,_,_),e,_,Enemy)
+--   = do
+--     let chkPos i = rotate_box_cw b ((\(Velocity vel) (Box (pos,x,y)) -> Box ((normalize vel / pure i) + pos, x, y)) v a, n) -- the new player box that is obtained via rotating it by the wall's angle
+--     let em = edgeMeasures (chkPos 1) b
+--     if not $ any ((`aabb` b ). chkPos) [0.5,2.0] then wallBounce rest c else do
+--       {--get global >>= \(BoardControl _ bdlk _) -> when ( bdlk == Unlocked ) 
+--         (eb `modify` 
+--           (\sfx2@(SFXResources _ s2 _) -> 
+--             if getInst s == getInst s2 
+--             then sfx1
+--             else sfx2
+--           )
+--         )--}
+--       --eb `set` Sing
+--       case minni (abs <$> em) [RightEdge, LeftEdge, TopEdge, BottomEdge] of
+--         (d,g) ->  e `set` reflect_vel g d n a (v, p)
 wallBounce _ _ = return ()
-
-{--
-collideProc' :: Box -> Maybe Gravity -> (Box, Velocity, Position, Actor, Behavior) -> (Box, Velocity, Position, Actor, Behavior)
-collideProc' b2 g c@(_,_,_,_, Plant) = c
-collideProc' b2 g c@(_,_,_,_, Carry) = c
-collideProc' b2 g (b1,  Velocity v@(V2 v1 v2), Position p, a, l) = do
-      case minni' (edgeMeasures b1 b2) [RightEdge, LeftEdge, TopEdge, BottomEdge] of
-        (_,Notaabb) -> (b1, Velocity v, Position p, a, l)
-        (d,TopEdge) ->  (b1
-                        , Velocity (V2 v1 (abs v2) / pure friction)
-                        , Position $ p + V2 v1 (abs v2 + d)
-                        , a
-                        , maybe l (\(Gravity (V2 _ jg)) -> if norm v < (-10)*jg then Plant else l) g )
-        (d,BottomEdge) -> (b1
-                          , Velocity (V2 v1 (negate . abs $ v2) / pure friction)
-                          , Position $ p + V2 v1 (negate . abs $ v2 - d)
-                          , a
-                          , l)
-        (d,RightEdge) -> (b1
-                         , Velocity (V2 (abs v1) v2 / pure friction)
-                         , Position $ p + V2 (abs v1 + d) v2
-                         , a
-                         , l)
-        (d,LeftEdge) -> (b1
-                        , Velocity (V2 (negate . abs $ v1) v2 / pure friction)
-                        , Position $ p + V2 ( negate . abs $ v1 - d) v2
-                        , a
-                        , l)
-
-
-
-
---other way of performing the box collision
-
-
-foldBoxBound :: System World ()
-foldBoxBound = do
-  g :: Gravity <- get global
-  flip cfoldM_ () $ \() -> \case
-    (_, _, Wall, _) -> return ()
-    (_, Out, _, _) -> return ()
-    (b_, In, Player, e) -> do
-      flip cfoldM_ () $ \() -> \case
-        (_, Out,_) -> return ()
-        (Wall1, In, c) -> when (aabb b_ c) $ ( e `modify` collideProc' c (Just g))
-    (b_, In, Enemy, e) -> do
-      flip cfoldM_ () $ \() -> \case
-        (_, Out,_) -> return ()
-        (Wall1, In, c) -> when (aabb b_ c) $
-          e `modify` collideProc' c (Just g) >> e `set` Sing
-    (b_, In, Projectile, e) -> do
-      flip cfoldM_ () $ \() -> \case
-        (_, Out,_) -> return ()
-        (Wall1, In, c) -> when (aabb b_ c) $ e `set` (Position (pure 2e7), Sing)
-    (b_, In, Weapon, e) -> do
-      flip cfoldM_ () $ \() -> \case
-        (_, Out,_) -> return ()
-        (Wall1, In, c) -> when (aabb b_ c) (e `modify` collideProc' c (Just g) >> e `set` Sing)
-
-
-
-  --similar to the first but with recursion factored out to loops
-
-
-loopBoxBound :: Gravity -> System World ()
-loopBoxBound g = cmapIfM_
-
-  (\case
-      (Wall,_) -> False
-      (_,Out) -> False
-      _ -> True
-  )
-
-  (\( b_, a, e) -> do
-      conceIfM_
-        (\case
-            (_, Out, c) -> False
-            (a_, In, c) -> a_ /= Wall && aabb b_ c
-        )
-        (\b -> do
-            when (a == Player) $ e `modify` collideProc' b (Just g)
-            when (a `Data.List.elem` [Enemy, Projectile]) $ e `set` Sing
-            when (a == Projectile) $ e `set` Position 2e7
-        )
-  )
---}

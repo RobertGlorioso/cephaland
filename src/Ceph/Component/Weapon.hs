@@ -17,14 +17,20 @@ import qualified SDL as S
 netLoop :: System World ()
 netLoop = do
   cmapM $ \case
-    (Net, nb@(Box (_,w,h)), pos@(Position p), Txtr t _) -> do
-      cmapM_  $ \case
-        (Enemy, eb, s :: SFXResources, e) -> when (aabb eb nb) $ do
-          e `set` (Trapped) 
-          global `modify` (\(SList ss) -> SList $ s:ss)
-        _ -> return ()
-      return (Box (p,w,h))
-    (_,b,_,t) -> return b
+    (Net, nb@(Box (_,_,_)), pos@(Position np), d) -> do
+      cmapM  $ \case
+        (Enemy, eb, s :: SFXResources, e) -> 
+          if (aabb eb nb) then do
+            --return $ reflect_vel TopEdge 0 0 nb e
+            bounce (0.7,0.3) e d
+            
+            --global `modify` (\(SList ss) -> SList $ s:ss)
+          else return ()
+        (_,_,_,_) -> return ()
+      Target t <- cfoldM (\_ b -> return b) (Target 0)
+      let V2 w h = abs $ (/50) $ t - np
+      return $ Box (np, w, h)
+    (_,b,_,_) -> return b
 
 showSword ::
   Ord a =>
@@ -84,7 +90,7 @@ net pic ntr = do
             , Position 0
             , Velocity 0
             , (box 0 50 50
-              , pic
+              --, pic
               )
             )
 
@@ -136,6 +142,12 @@ chainExtended r = do
   let (_, Position p1) = minimumBy (comparing fst) ls
   let (_, Position pn) = maximumBy (comparing fst) ls
   if norm ( p1 - pn ) > r then return (True,(p1,pn)) else return (False, (p1,pn)) 
+
+moveNets :: (Netted,Box) -> System World (Position,Box)
+moveNets (Netted ns, Box (_,w,h)) = do
+  ps <- fmap (\(Position p) -> p) <$> mapM get ns
+  let newP = (sum ps) / (fromIntegral $ length ps )
+  return $ (Position newP, Box (newP, w, h))
 
 moveChains :: (Linked,Box) -> System World (Angle, Position, Box)
 moveChains (Linked e f,Box (_,w,h)) = do

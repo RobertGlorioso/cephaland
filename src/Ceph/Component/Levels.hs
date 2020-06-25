@@ -21,17 +21,18 @@ moveStuffRandomly r e a = do
 randomizeGridCell :: Position -> SystemT World IO ()
 randomizeGridCell (Position p1@(V2 x1 y1)) = 
   cmapM_ $ \(Grid is) -> do
-    let (floor -> gx) = (x1 / 1500) + (signum x1)
-        (floor -> gy) = (y1 / 400) + (signum y1)
+    let (floor -> gx) = (x1 / 500) + (signum x1)
+        (floor -> gy) = (y1 / 500) + (signum y1)
         updateGrid g = cmap $ \(Grid _) -> Grid g
-        moveEnemyWalls =
-          cmapM_ $ \case
-            (Wall1, Out, e) -> moveStuffRandomly p1 e 100
+        --moveEnemyWalls = 
+          --cmapM_ $ \case
+            --(Wall1, Out, e) -> moveStuffRandomly p1 e 100
             --(Enemy, Out, e) -> moveStuffRandomly p1 e 1000
-            (_,_,_) -> return ()
-                                    
+            --_ -> return ()
+    sqs <- flip cfoldM [] $ \a s -> return (s:a)                             
     if length is > 10 then updateGrid mempty else return ()
     case M.lookup gx is of
-      Just ys -> if gy `elem` M.keys ys then return ()
-                  else updateGrid (M.insert gx (M.insert gy () ys) is) >> moveEnemyWalls
-      Nothing -> moveEnemyWalls >> updateGrid (M.insert gx mempty is)
+      Just ys -> case M.lookup gy ys of
+                    Just (ss) -> return () -- mapM_ (\e -> cmap (\(SBoard _ _ _ _ :: Sequencer) -> e)) ss
+                    Nothing -> updateGrid (M.insert gx (M.insert gy sqs ys) is)
+      Nothing ->  updateGrid (M.insert gx (M.insert gy sqs mempty) is)

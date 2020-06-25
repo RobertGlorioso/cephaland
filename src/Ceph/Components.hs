@@ -13,14 +13,15 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Ceph.Components where
 
-
+import Data.Semigroup
+import Data.List
 import Data.Functor.Rep
 import Data.Functor.Adjunction
 import Data.Distributive
 import Apecs
-import Euterpea (Music(..),Pitch,Dur)
-import Linear
-import Data.IntMap hiding (insert,foldl)
+import Euterpea -- (Music(..),PitchClass(..),Pitch,Dur,Note)
+import Linear (V2(..))
+import Data.IntMap (IntMap)
 import qualified SDL.Mixer as M
 import qualified SDL as S
 import Foreign.C.Types
@@ -72,6 +73,10 @@ data Linked = Linked Entity Entity | WLinked Entity Entity CDouble deriving (Eq,
 instance Component Linked where
   type Storage Linked = Map Linked
 
+data Netted = Netted [Entity]
+instance Component Netted where
+  type Storage Netted = Map Netted
+
 data ProjCount = ProjCount Int deriving Show
 instance Component ProjCount where
   type Storage ProjCount = Map ProjCount
@@ -92,7 +97,7 @@ data Animated = Animate Int | Loop | Still
 instance Component Animated where
   type Storage Animated = Map Animated
 
-data Behavior = Seek | Sing | Attack | Carry | Defend | Trapped | Heal | Plant | Swinging | NoBehavior deriving (Show,Eq)
+data Behavior = Seek | Sing | Attack | Carry | Defend | Trapped | Heal | Plant | Swinging | Hidden | NoBehavior deriving (Show,Eq)
 instance Component Behavior where
   type Storage Behavior = Map Behavior
 
@@ -117,15 +122,15 @@ data SBoard a = SBoard
   (a, a, a, a)
   (a, a, a, a) deriving (Eq,Functor,Foldable,Traversable)
 
-data BoardControl = BoardControl {status :: BoardStatus, lock :: BoardLock}
+data BoardControl = BoardControl {status :: BoardStatus, lock :: BoardLock, charge :: Int, playback :: [SRow]} deriving (Eq, Show)
 instance Component BoardControl where
   type Storage BoardControl = Unique BoardControl
 
-data BoardStatus = Play | Pause deriving (Eq)
+data BoardStatus = Play | Pause deriving (Eq, Show)
 instance Component BoardStatus where
   type Storage BoardStatus = Unique BoardStatus
 
-data BoardLock = Locked | Unlocked deriving (Eq)
+data BoardLock = Locked | Unlocked deriving (Eq, Show)
 instance Component BoardLock where
   type Storage BoardLock = Unique BoardLock
 
@@ -143,7 +148,6 @@ data SRow = S1 | S2 | S3 | S4
 data SColumn = SI | SII | SIII | SIV
   deriving (Show, Eq, Enum, Ord)
 
---so this is like a sequencer          
 data SCoordF a = SCoordF SRow SColumn a
   deriving (Show, Eq, Functor)
 
@@ -162,87 +166,16 @@ type SCoord = SCoordF ()
 instance Component (SCoord) where
   type Storage (SCoord) = Global (SCoord)
 
-type Sequencer = SBoard Entity
+type Sequencer = SBoard [Entity]
 
 instance Component (Sequencer) where
   type Storage (Sequencer) = Map (Sequencer)
 instance Monoid (Sequencer) where
-  mempty = SBoard (1,2,3,4) (5,6,7,8) (9,10,11,12) (13,14,15,16)
+  mempty = SBoard ([1],[2],[3],[4]) ([5],[6],[7],[8]) ([9],[10],[11],[12]) ([13],[14],[15],[16])
   mappend = const
 
 instance Semigroup Sequencer where
   (<>) = const
-  
-data MBoard a = MBoard [(V2 CDouble, a)] Bool
-  deriving (Functor, Foldable, Traversable)
-
-type Netitor = MBoard SFXResources
-
-instance Component Netitor where
-  type Storage Netitor = Unique Netitor
-
-data MCoordF a = MCoordF (S.Point V2 CDouble) a
-  deriving (Show, Eq, Functor)
-
-type MCoord = MCoordF ()
-instance Component MCoord where
-  type Storage MCoord = Unique MCoord
-
-
-instance Distributive MBoard where
-  distribute = distributeRep
-
-instance Representable MBoard where
-  -- We index into our functor using Coord
-  type Rep MBoard = MCoord
-  -- Given an index and a board, pull out the matching cell
-  index (MBoard objs _) (MCoordF (S.P v) _) = snd $ foldl 
-    (\(minb,gx) (b,fx) -> let d = S.distance v b; mind = S.distance v minb in if mind < d then (minb,gx) else (b,fx)) 
-    (head objs) 
-    (tail objs)
-
-  tabulate desc = MBoard mempty False
-
-instance Adjunction MCoordF MBoard where
-  unit a = tabulate (\(MCoordF v _ ) -> MCoordF v a)
-  counit (MCoordF v board) = index board (MCoordF v ())
-
-{--
-defineIBoard :: ICoord -> Music Pitch
-defineIBoard (ICoordF p m _) = Prim . Note m $ p
-
-instance Distributive IBoard where
-  distribute = distributeRep
-
-instance Representable IBoard where
-  type Rep IBoard = ICoord
-  index (IBoard a _ _ _ _ _ _ _ _ _ _ _) (ICoordF (A,_) _ _) = a
-  index (IBoard _ a _ _ _ _ _ _ _ _ _ _) (ICoordF (As,_) _ _) = a
-  index (IBoard _ _ a _ _ _ _ _ _ _ _ _) (ICoordF (B,_) _ _) = a
-  index (IBoard _ _ _ a _ _ _ _ _ _ _ _) (ICoordF (Bs,_) _ _) = a
-  index (IBoard _ _ _ _ a _ _ _ _ _ _ _) (ICoordF (C,_) _ _) = a
-  index (IBoard _ _ _ _ _ a _ _ _ _ _ _) (ICoordF (Cs,_) _ _) = a
-  index (IBoard _ _ _ _ _ _ a _ _ _ _ _) (ICoordF (D,_) _ _) = a
-  index (IBoard _ _ _ _ _ _ _ a _ _ _ _) (ICoordF (Ds,_) _ _) = a
-  index (IBoard _ _ _ _ _ _ _ _ a _ _ _) (ICoordF (E,_) _ _) = a
-  index (IBoard _ _ _ _ _ _ _ _ _ a _ _) (ICoordF (Es,_) _ _) = a
-  index (IBoard _ _ _ _ _ _ _ _ _ _ a _) (ICoordF (F,_) _ _) = a
-  index (IBoard _ _ _ _ _ _ _ _ _ _ _ a) (ICoordF (G,_) _ _) = a
-  tabulate desc = IBoard (desc (ICoordF (A,4) qn ())) (desc (ICoordF (As,4) qn ())) 
-    (desc (ICoordF (B,4) qn ())) 
-    (desc (ICoordF (Bs,4) qn ())) 
-    (desc (ICoordF (C,4) qn ())) 
-    (desc (ICoordF (Cs,4) qn ())) 
-    (desc (ICoordF (D,4) qn ())) 
-    (desc (ICoordF (Ds,4) qn ())) 
-    (desc (ICoordF (E,4) qn ())) 
-    (desc (ICoordF (Es,4) qn ())) 
-    (desc (ICoordF (F,4) qn ())) 
-    (desc (ICoordF (G,4) qn ()))
-  
-instance Adjunction ICoordF IBoard where
-  unit a = tabulate (\(ICoordF row col _ ) -> ICoordF row col a)
-  counit (ICoordF row col board) = index board (ICoordF row col ()) --}
 
 instance (Show a) => Show (SBoard a) where
   show (SBoard a b c d) = "       I  |  II | III | IV\n"
@@ -286,17 +219,92 @@ instance Representable SBoard where
       (desc (SCoordF S2 SI ()), desc (SCoordF S2 SII ()), desc (SCoordF S2 SIII ()), desc (SCoordF S2 SIV ()))
       (desc (SCoordF S3 SI ()), desc (SCoordF S3 SII ()), desc (SCoordF S3 SIII ()), desc (SCoordF S3 SIV ()))
       (desc (SCoordF S4 SI ()), desc (SCoordF S4 SII ()), desc (SCoordF S4 SIII ()), desc (SCoordF S4 SIV ()))
+data MBoard a = MBoard { mboxes :: [(Box, a)], active :: Bool }
+  deriving (Functor, Foldable, Traversable)
+
+type Netitor = MBoard Entity
+
+instance Component Netitor where
+  type Storage Netitor = Unique Netitor
+
+data MCoordF a = MCoordF { bx :: Box, sel :: a } --pt :: (S.Point V2 CDouble), sel :: a }
+  deriving (Show, Eq, Functor)
+
+type MCoord = MCoordF Entity
+instance Component MCoord where
+  type Storage MCoord = Unique MCoord
+
+instance Distributive MBoard where
+  distribute = distributeRep
+
+instance Representable MBoard where
+  -- We index into our functor using Coord
+  type Rep MBoard = MCoord
+  -- Given an index and a board, pull out the matching cell
+  index (MBoard objs _) (MCoordF b2 _) = 
+    case filter fst $ (\(b1@(Box (minb,_,_)),gx) -> (aabb b1 b2,gx) ) <$> objs of
+      (a:_)  -> snd a
+      [] -> snd ( last objs ) 
+      where aabb :: Box -> Box -> Bool
+            aabb (Box (V2 bx by, w2, h2)) (Box (V2 ax ay, w1, h1)) = all (<0) $
+                [ ax - w1 - (bx + w2)
+                , bx - w2 - (ax + w1)
+                , ay - h1 - (by + h2)
+                , by - h2 - (ay + h1) ]
+  tabulate desc = MBoard mempty False
+
+instance Adjunction MCoordF MBoard where
+  unit a = tabulate (\(MCoordF v _ ) -> MCoordF v a)
+  counit (MCoordF v board) = index board (MCoordF v (Entity 1))
+
+instance Distributive IBoard where
+  distribute = distributeRep
+
+instance Representable IBoard where
+  type Rep IBoard = ICoord
+  index (IBoard a _ _ _ _ _ _ _ _ _ _ _) (ICoordF (C,_) _ _) = a
+  index (IBoard _ a _ _ _ _ _ _ _ _ _ _) (ICoordF (Cs,_) _ _) = a
+  index (IBoard _ _ a _ _ _ _ _ _ _ _ _) (ICoordF (D,_) _ _) = a
+  index (IBoard _ _ _ a _ _ _ _ _ _ _ _) (ICoordF (Ef,_) _ _) = a
+  index (IBoard _ _ _ _ a _ _ _ _ _ _ _) (ICoordF (E,_) _ _) = a
+  index (IBoard _ _ _ _ _ a _ _ _ _ _ _) (ICoordF (F,_) _ _) = a
+  index (IBoard _ _ _ _ _ _ a _ _ _ _ _) (ICoordF (Fs,_) _ _) = a
+  index (IBoard _ _ _ _ _ _ _ a _ _ _ _) (ICoordF (G,_) _ _) = a
+  index (IBoard _ _ _ _ _ _ _ _ a _ _ _) (ICoordF (Af,_) _ _) = a
+  index (IBoard _ _ _ _ _ _ _ _ _ a _ _) (ICoordF (A,_) _ _) = a
+  index (IBoard _ _ _ _ _ _ _ _ _ _ a _) (ICoordF (Bf,_) _ _) = a
+  index (IBoard _ _ _ _ _ _ _ _ _ _ _ a) (ICoordF (B,_) _ _) = a
+  tabulate desc = IBoard (desc (ICoordF (C,4) qn ())) 
+    (desc (ICoordF (Cs,4) qn ())) 
+    (desc (ICoordF (D,4) qn ())) 
+    (desc (ICoordF (Ef,4) qn ())) 
+    (desc (ICoordF (E,4) qn ())) 
+    (desc (ICoordF (F,4) qn ())) 
+    (desc (ICoordF (Fs,4) qn ())) 
+    (desc (ICoordF (G,4) qn ())) 
+    (desc (ICoordF (Af,4) qn ())) 
+    (desc (ICoordF (A,4) qn ())) 
+    (desc (ICoordF (Bf,4) qn ()))
+    (desc (ICoordF (B,4) qn ()))
+  
+instance Adjunction ICoordF IBoard where
+  unit a = tabulate (\(ICoordF row col _ ) -> ICoordF row col a)
+  counit (ICoordF row col board) = index board (ICoordF row col ())
 
 data IBoard a = IBoard
   a a a a a a a a a a a a
-  deriving (Show,Eq,Functor)
+  deriving (Show,Eq,Functor,Foldable)
 
---this would be like an Instrument 
-data ICoordF a = ICoordF Pitch Dur (a)
+type MusicClock = IBoard (Music Pitch, Position)
+
+data ICoordF a = ICoordF Pitch Dur a
   deriving (Show, Eq, Functor)
 type ICoord = ICoordF ()
 
-data Box = Box (V2 CDouble, CDouble, CDouble) deriving (Show)
+instance Component ICoord where type Storage ICoord = Unique ICoord
+instance Component MusicClock where type Storage MusicClock = Unique MusicClock
+instance Component InstrumentName where type Storage InstrumentName = Map InstrumentName
+data Box = Box (V2 CDouble, CDouble, CDouble) deriving (Show, Eq)
 instance Component Box where
   type Storage Box = Map Box
 
@@ -305,7 +313,7 @@ type Phys = (Velocity, Position, Gravity, Angle)
 newtype AngularMomentum = AngularMomentum (CDouble)
 instance Component AngularMomentum where type Storage AngularMomentum = Map AngularMomentum
 
-newtype Grid = Grid (IntMap (IntMap ())) deriving Show
+newtype Grid = Grid (IntMap (IntMap [Sequencer])) deriving Show
 instance Component Grid where type Storage Grid = Unique Grid
 
 newtype Position = Position (V2 CDouble) deriving (Num, Eq, Show)
@@ -371,7 +379,7 @@ instance Component ScreenBounds where
   type Storage ScreenBounds = Global ScreenBounds
   
 
-makeWorld "World" [''SDLRenderer, ''AngularMomentum, ''SongList, ''Sequencer, ''SCoord, ''MCoord, ''Camera, ''Scope, ''Txtr, ''BoardControl, ''BoardLock, ''BoardStatus, ''Player, ''Enemy, ''Wall, ''Projectile, ''Actor, ''Position, ''Linked, ''Velocity, ''Gravity, ''Angle, ''Target, ''Weapon, ''Charge, ''Dash, ''ProjCount, ''Health, ''Box, ''SFXResources, ''Netitor, ''Beat, ''Behavior, ''Grid, ''ScreenBounds, ''Animated]
+makeWorld "World" [''SDLRenderer, ''AngularMomentum, ''SongList, ''Sequencer, ''SCoord, ''MCoord, ''ICoord, ''MusicClock, ''InstrumentName, ''Camera, ''Scope, ''Txtr, ''BoardControl, ''BoardLock, ''BoardStatus, ''Player, ''Enemy, ''Wall, ''Projectile, ''Actor,  ''Linked, ''Netted, ''Position, ''Velocity, ''Gravity, ''Angle, ''Target, ''Weapon, ''Charge, ''Dash, ''ProjCount, ''Health, ''Box, ''SFXResources, ''Netitor, ''Beat, ''Behavior, ''Grid, ''ScreenBounds, ''Animated]
 
 {--keyActor = Key @"Actor"
 

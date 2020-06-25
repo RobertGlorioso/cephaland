@@ -1,12 +1,3 @@
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TemplateHaskellQuotes #-}
@@ -14,25 +5,26 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE RankNTypes #-}
 -- {-# LANGUAGE Strict #-}
 module Ceph.Util where
 
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Reader hiding (forM_)
---import Data.Proxy
---import Fcf
---import GHC.TypeLits hiding (type (*),Nat)
---import Unsafe.Coerce
---import Data.Kind
+import Data.Proxy
 import Linear
 import Apecs
 import Apecs.Core
 import qualified Data.Vector.Unboxed as U
-import Euterpea (Music(..), Control(..), InstrumentName(..))
+import Euterpea (Music(..), Control(..), InstrumentName(..), Primitive(..))
 import qualified SDL as S
 import Ceph.Components
+import System.Random
+
+takeRandom :: [a] -> IO a
+takeRandom as = do
+  r <- randomRIO (0, length as - 1) :: IO Int
+  return $ as !! r
 
 loadTxtr :: S.Renderer -> FilePath -> IO (Txtr)
 loadTxtr r filePath = do
@@ -46,7 +38,19 @@ loadTxtr r filePath = do
 getInst (m :=: _) = getInst m
 getInst (m :+: _) = getInst m
 getInst (Modify (Instrument i) _) = i
+getInst (Modify _ m) = getInst m
 getInst (_) = CustomInstrument "no instrument found"
+
+getNote (m :=: _) = getNote m
+getNote (m :+: _) = getNote m
+getNote (Modify _ m) = getNote m
+getNote (Prim (Note _ (n,_))) = Left n
+getNote (Prim n) = Right n
+
+getPC (m :=: _) = getPC m
+getPC (m :+: _) = getPC m
+getPC (Modify _ m) = getPC m
+getPC (Prim n) = n
 
 v2ToRad :: (RealFloat a, Ord a) => V2 a -> a
 v2ToRad (V2 m n) = case compare m 0 of
@@ -178,14 +182,13 @@ conceIfM_ cond f = do
   sp :: Storage cp <- getStore
   sl <- lift $ explMembers (sx,sp)
   U.foldM'_ (\b e -> do
-               if b then do
-                 p <- lift (explGet sp e)
-                 if cond p then do
-                   lift (explGet sx e) >>= f
-                   return False
-                   else return True
-                 else return False
-           )
+              if b then do
+                p <- lift (explGet sp e)
+                if cond p then do
+                  lift (explGet sx e) >>= f
+                  return False
+                  else return True
+                else return False )
     True sl
   return ()
 
@@ -204,7 +207,6 @@ instance Has w m c => Has w m (Redirect c) where
 
 instance (ExplSet m s) => ExplSet m (RedirectStore s) where
   explSet (RedirectStore s) _ (Redirect (Entity ety) c) = explSet s ety c
-
 
 -- | Pseudocomponent that can be read like any other component, but will only
 --   yield a single member when iterated over. Intended to be used as
@@ -225,126 +227,6 @@ instance (ExplGet m s) => ExplGet m (HeadStore s) where
 
 instance (ExplMembers m s) => ExplMembers m (HeadStore s) where
   explMembers (HeadStore s) = U.take 1 <$> explMembers s
-
-{--
-data OpenSum (f :: k -> Type) (ts :: [k]) where
-  UnsafeOpenSum :: Int -> f t -> OpenSum f ts
-
-type FindElem (key :: k) (ts :: [k]) = FromMaybe Stuck =<< FindIndex (TyEq key) ts
-
-type Member t ts = KnownNat (Eval (FindElem t ts))
-
-findElem :: forall t ts. Member t ts => Int
-findElem = fromIntegral . natVal $ Proxy @(Eval (FindElem t ts))
-
-inj :: forall f t ts. Member t ts => f t -> OpenSum f ts
-inj = UnsafeOpenSum (findElem @t @ts)
-
-prj :: forall f t ts. Member t ts => OpenSum f ts -> Maybe (f t)
-prj (UnsafeOpenSum i f) = if i == findElem @t @ts
-                             then Just $ unsafeCoerce f
-                             else Nothing
-
-weaken :: OpenSum f ts -> OpenSum f (x ': ts)
-weaken (UnsafeOpenSum i f) = (UnsafeOpenSum i (unsafeCoerce f))
-
-supply :: f x -> OpenSum f ts -> OpenSum f (x ': ts)
-supply x (UnsafeOpenSum i f) = inj x
-
-
-decompose :: OpenSum f (t ': ts) -> Either (f t) (OpenSum f ts)
-decompose (UnsafeOpenSum 0 t) = Left $ unsafeCoerce t
-decompose (UnsafeOpenSum n t) = Right $ UnsafeOpenSum (n - 1) t
-
-match :: forall f ts b. (forall t. f t -> b) -> OpenSum f ts -> b
-match fn (UnsafeOpenSum _ t) = fn t
-
-
-data Any (f :: k -> Type) where
-  Any :: f t -> Any f
-
-data OpenProduct (f :: k -> Type) (ts :: [(Symbol,k)]) where
-  OpenProduct :: V.Vector (Any f) -> OpenProduct f ts
-
-nil :: OpenProduct f '[]
-nil = OpenProduct V.empty
-
-data Key (key :: Symbol) = Key
-
-insert :: Key key -> f t -> OpenProduct f ts -> OpenProduct f ('(key,t) ': ts)
-insert _ ft (OpenProduct v) = OpenProduct $ V.cons (Any ft) v
-
-type PFindElem (key :: Symbol) (ts :: [(Symbol,k)]) = Eval (FromMaybe Stuck =<< FindIndex (TyEq key <=< Fst) ts)
-
-pfindElem :: forall key ts. KnownNat (PFindElem key ts) => Int
-pfindElem = fromIntegral . natVal $ Proxy @(PFindElem key ts)
-
-type LookupType (key :: k) (ts :: [(k,t)]) = FromMaybe Stuck =<< Lookup key ts
-
-gett :: forall key ts f.
-       KnownNat (PFindElem key ts)
-       => Key key
-       -> OpenProduct f ts
-       -> f (Eval (LookupType key ts))
-gett _ (OpenProduct v) = unAny $ V.unsafeIndex v $ pfindElem @key @ts
-  where
-    unAny (Any a) = unsafeCoerce a
-  
-type UpdateElem (key :: Symbol) (t :: k) (ts :: [(Symbol,k)]) = SetIndex (PFindElem key ts) '(key, t) ts
-
-update :: forall key ts t f.
-           KnownNat (PFindElem key ts)
-        => Key key
-        -> f t
-        -> OpenProduct f ts
-        -> OpenProduct f (Eval (UpdateElem key t ts))
-update _ ft (OpenProduct v) = OpenProduct $ v V.// [(pfindElem @key @ts, Any ft)]
-
-type family All (c :: Type -> Constraint) ( ts :: [Type]) :: Constraint where
-  All c  '[] = ()
-  All c (t ': ts) = (c t, All c ts)
-
-data HList (ts :: [Type]) where
-  HNil :: HList '[]
-  (:#) :: t -> HList ts -> HList (t ': ts)
-infixr 5 :#
-
-data Nat = Z | S Nat
-
-data Natural a where
-  Zero :: Natural 'Z
-  Succ :: Natural a -> Natural ('S a)
-
-zero = Zero
-uno = Succ Zero
-dos = Succ uno
-tres = Succ dos
-quat = Succ tres
-cinc = Succ quat
-
-instance Show (Natural a) where
-  show Zero = "0"
-  show (Succ n) = "1+" ++ show n
-  
-class IndexType (n :: Nat) (xs :: [Type]) (i :: Type) | n xs -> i where
-   fromIndex :: Natural n -> HList xs -> i
-
-instance IndexType 'Z (x ': xs) x where
-   fromIndex Zero (x :# _) = x
-
-instance IndexType n xs a => IndexType ('S n) (x ': xs) a where
-   fromIndex (Succ n) (_ :# xs) = fromIndex n xs
-
-instance All Show ts => Show (HList ts) where
-  show HNil = "'[]"
-  show (a :# as) = show a ++ " :# " ++ show as
-              
-instance All Eq ts => Eq (HList ts) where
-  HNil == HNil = True
-  (a :# as) == (b :# bs) = a == b && as == bs
-  
---type instance Elem (HList ts) = HList (Elem ts)
-
 --instance (All (Has w m) ts, Monad m, Component (HList ts))  => Has w m (HList ts) where
 --  getStore =  HNil <$> getStore
 nuProxy :: Proxy a -> Proxy b
@@ -356,4 +238,3 @@ checkE _ e = do
   if b then (return .Just =<< get e) else (return Nothing)
   --cmap $ ((\(c) -> Debug (show c)) :: cx -> Debug)
   
---}

@@ -23,7 +23,9 @@ import Ceph.Component.Player
 import Ceph.Component.Enemy
 import Ceph.Component.Levels
 import Ceph.Component.Weapon
+import Ceph.Component.Projectile
 import Ceph.Physics.Box
+import Control.Monad
 import Apecs
 import Linear
 import SDL.Input
@@ -31,19 +33,23 @@ import Data.Bool
           
 physicsStep :: World -> IO ()
 physicsStep !w = runWith w $ do
-  getKeyboardState >>= handle
-  incrementBeat
+  ks <- getKeyboardState
+  ms <- getMouseButtons
+  handle ks ms
+  get global >>= \b -> when (status b == Play) incrementBeat
+
   cmapM playerLoop
   
-  cmapM_ $ \pc@(Box (p,_,_), _, Player1) -> do
-    cmap $ squallBounce pc
-    randomizeGridCell (Position p)
-    enemyLoop p
+  --cmapM_ $ \pc@(Box (p,_,_), _, Player1) -> do
+  --  cmap $ squallBounce pc
+  --  randomizeGridCell (Position p)
+  --  enemyLoop p
+  
   motion
   where
     motion = do
       cmap $ \case
-        ( b, p, _, _, Plant, f) -> (b,p,0,Plant,f)
+        (b, p, _, _, Plant, f) -> (b,p,0,Plant,f)
         (Box (_,w,h), Position p, Velocity v, _, s, Weapon)
           -> (Box (p+v,w,h), Position $ p + v, Velocity v, s, Weapon)
         (Box (_,w,h), Position p, Velocity v, _, Seek, f)
@@ -69,7 +75,7 @@ physicsStep !w = runWith w $ do
       cmap $ \(AngularMomentum m, Angle n) -> Angle $ n + m
       --move chains and other linked objs
       cmapM moveChains
-      
+      cmapM moveNets
       --updates scope for rendering & collision detection
       (Camera cam _) <- get global :: System World Camera
       cmap (\(_::Actor,b) -> bool Out In $ aabb b (Box (cam, 600, 600)) )

@@ -25,18 +25,18 @@ newArrow txtr s =
                )
              )
 
-newSquall :: Txtr -> SFXResources -> System World Entity
-newSquall txtr@(Txtr _ (S.Rectangle _ (fmap (fromIntegral) -> V2 x y))) s = do
+newSquall :: Position -> Txtr -> SFXResources -> System World Entity
+newSquall (Position pos) txtr@(Txtr _ (S.Rectangle _ (fmap (fromIntegral) -> V2 x y))) s = do
   newEntity ((Projectile,Squall)
-            , (Position (pure 50)
+            , (Position pos
               , Velocity (pure 1)
-              , box (pure 2) (x / 2) (y / 2)
+              , box (pos) (x / 2) (y / 2)
               , Angle 0
               , AngularMomentum 0.1
             )
             , txtr
             , s
-            , (Gravity $ V2 0 0
+            , (Gravity $ V2 0 0.02
             , NoBehavior) )
 
 newBullet :: Txtr -> SFXResources -> System World Entity
@@ -86,3 +86,9 @@ shootChains (Target at) (Position from) (Velocity v_init) (Charge c _) = conceIf
     return ()
   updateMotion _ = return ()
 
+squallBounce :: (Box, Velocity) -> (Box, Velocity, Projectile) -> (Velocity, Position)
+squallBounce (bp@(Box (bppos,_,_)), vp) (bs@(Box (bspos,_,_)), vs, Squall) =
+  if aabb bp bs 
+    then (Velocity (pure 0.9) * vp + (Velocity (pure 0.1) * vs), Position (bspos - normalize (bppos - bspos)))
+    else (vs, Position bspos)
+squallBounce _ (bs@(Box (bspos,_,_), v, _))  = (v,Position bspos)
