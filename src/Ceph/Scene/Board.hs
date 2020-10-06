@@ -59,6 +59,7 @@ updateBoard ::
   (Eq (f ()), Adjunction f g) => g b -> f () -> b -> g b
 updateBoard b s a = leftAdjunct (updateB b s a) ()
   where updateB board ixToChange update anyIx = if ixToChange == anyIx then update else rightAdjunct (const board) anyIx
+
 modifyBoard ::
   (Eq (f ()), Adjunction f g) => g b -> f () -> (() -> b -> b) -> g b
 modifyBoard b s m = leftAdjunct (updateB b s m) ()
@@ -72,7 +73,10 @@ getBRow S4 (SBoard _ _ _ a) = a
 
 fillBRow :: (a,a,a,a) -> SBoard a
 fillBRow a = SBoard a a a a
-  
+
+fillBAll :: a -> SBoard a
+fillBAll a = SBoard (a,a,a,a) (a,a,a,a) (a,a,a,a) (a,a,a,a)
+
 bdSing :: SCoord -> SCoord -> Bool
 bdSing s s' 
   | s ==  s'  = True

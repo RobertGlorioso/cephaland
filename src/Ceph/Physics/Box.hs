@@ -17,14 +17,14 @@ import Linear hiding (angle)
 import qualified Linear
 
 friction :: CDouble
-friction = 1.23
+friction = 1.2
 
 bounce :: (CDouble,CDouble) -> (Box, Velocity, Entity) -> (Box, Velocity, Entity) -> System World ()
-bounce (a,b) (bp@(Box (bppos,_,_)), vp, ep) (bs@(Box (bspos,_,_)), vs, eo) =
+bounce (a,b) (bp@(Box (bppos,w1,h1)), Velocity vp, ep) (bs@(Box (bspos,w2,h2)), Velocity vs, eo) =
   if aabb bp bs 
     then do 
-      ep `set` (Velocity (pure b) * vp + (Velocity (pure a) * vs), Position (bppos + normalize (bppos - bspos)))
-      eo `set` (Velocity (pure a) * vp + (Velocity (pure b) * vs), Position (bspos - normalize (bppos - bspos)))
+      ep `set` (Velocity $ (pure b) * vp + ((pure a) * vs), Position (bppos + normalize (bppos - bspos)))
+      eo `set` (Velocity $ (pure a) * vp + ((pure b) * vs), Position (bspos - normalize (bppos - bspos)))
     else return ()
 
 shove :: (Box, Entity) -> (Box, Entity) -> System World ()
@@ -145,7 +145,6 @@ wallBounce
           let chkPos i = rotate_box_cw b ((\(Velocity vel) (Box (p,x,y)) -> Box ((normalize vel / pure i) + p, x, y)) v a, n) -- the new player box that is obtained via rotating it by the wall's angle
           let em = edgeMeasures (chkPos 1) b -- the distances to the wall's edge
           if not $ any ((`aabb` b ). chkPos) [1.0] then wallBounce rest c else do
-            --eb `set` Sing
             case minni (abs <$> em) [RightEdge, LeftEdge, TopEdge, BottomEdge] of
               (d,g) -> e `set` reflect_vel g d n a (v, p)
         _ -> return ()
@@ -162,8 +161,7 @@ wallBounce
     let chkPos i = rotate_box_cw b ((\(Velocity vel) (Box (o,x,y)) -> Box ((normalize vel / pure i) + o, x, y)) v a, n) -- the new player box that is obtained via rotating it by the wall's angle
     let em = edgeMeasures (chkPos 1) b 
     if not $ any ((`aabb` b ). chkPos) [1.0] then wallBounce rest c else do
-      --eb `set` Sing
-      when (norm vel < 1) $ e `set` Plant
+      when (norm vel < 0.5) $ e `set` Plant
       case minni (abs <$> em) [RightEdge, LeftEdge, TopEdge, BottomEdge] of
         (d,TopEdge) -> e `set` reflect_vel TopEdge d n a ((Velocity $ V2 vx $ 0.5 * vy), p)
         (d,g) ->  e `set` reflect_vel g d n a (Velocity (pure 0.9) * v, p)
@@ -186,9 +184,7 @@ wallBounce
     let chkPos i = rotate_box_cw b ((\(Velocity vel) (Box (p,x,y)) -> Box ((normalize vel / pure i) + p, x, y)) v a, n) -- the new player box that is obtained via rotating it by the wall's angle
     let em = edgeMeasures (chkPos 1) b -- the distances to this box's edge
     if not $ any ((`aabb` b ). chkPos) [1.0] then wallBounce rest c else do
-      --eb `set` Sing
-      when (norm vel < 1) $ e `set` Plant
-      --shove (b,eb) (a,e)
+      when (norm vel < 0.1) $ e `set` Plant
       case minni (abs <$> em) [RightEdge, LeftEdge, TopEdge, BottomEdge] of
         (d,g) -> e `set` reflect_vel g d n a (v, p)
 -- wallBounce

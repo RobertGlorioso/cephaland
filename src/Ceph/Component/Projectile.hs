@@ -36,7 +36,7 @@ newSquall (Position pos) txtr@(Txtr _ (S.Rectangle _ (fmap (fromIntegral) -> V2 
             )
             , txtr
             , s
-            , (Gravity $ V2 0 0.02
+            , (Gravity $ V2 0 0.05
             , NoBehavior) )
 
 newBullet :: Txtr -> SFXResources -> System World Entity

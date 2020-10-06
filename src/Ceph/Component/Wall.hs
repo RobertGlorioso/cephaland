@@ -10,17 +10,30 @@ import qualified SDL as S
 import Apecs
 import Linear
 
+jellyWall :: Entity -> Txtr -> System World Entity
+jellyWall ent txtr@(Txtr _ (S.Rectangle _ (fmap (fromIntegral) -> S.V2 x y))) = do
+  newEntity ((Wall,Jelly)
+          , Position 0 
+          , Angle 0 
+          , Velocity 0
+          , NoBehavior
+          , End ent
+          , box (0) (x / 2) (y / 2)
+          , txtr 
+          )
+
 nonWall :: (CDouble,CDouble,CDouble,CDouble) -> SFXResources -> Txtr -> System World Entity
-nonWall (r,s,g,a) sfx txtr@(Txtr _ (S.Rectangle _ (fmap (fromIntegral) -> S.V2 x y))) = do
+nonWall (r,s,g,a) sfx@(SFXResources _ n _) txtr@(Txtr _ (S.Rectangle _ (fmap (fromIntegral) -> S.V2 x y))) = do
   newEntity (Wall
           , Position (V2 r s)
           , Angle ( if g > a then 2*pi - (g + a) else (g + a) )
           , Velocity 0
           , NoBehavior
           , box (V2 r s) (x / 2) (y / 2)
-          , sfx
-          , txtr 
-          )
+          , (sfx
+            , getInst n
+            , txtr 
+          ))
 
 floorWall :: (CDouble,CDouble) -> SFXResources -> Angle -> Txtr -> System World Entity
 floorWall (r,s) sfx n txtr@(Txtr _ (S.Rectangle _ (fmap (fromIntegral) -> S.V2 x y))) = do
@@ -71,11 +84,12 @@ hardWall w (r,s,g,a) sfx txtr@(Txtr _ (S.Rectangle _ (fmap (fromIntegral) -> S.V
 
 makeFloorWallBox :: Txtr -> V2 CDouble -> [SFXResources] -> System World ()
 makeFloorWallBox flrTexture (V2 x y) sfxs = do
-      flip mapM_ [-400,-100..400] $ \j -> do
-        floorWall (x + j, y - 500) (head $ sfxs) (Angle 0) flrTexture
-      flip mapM_ [-400,-100..400] $ \j -> do
-        floorWall (x + j, y + 300) (head $ sfxs) (Angle 0) flrTexture
-      flip mapM_ [-400,-100..400] $ \j -> do
-        floorWall (x - 500, y + j) (head $ sfxs) (Angle $ pi/2) flrTexture
-      flip mapM_ [-400,-100..400] $ \j -> do
-        floorWall (x + 500, y + j) (head $ sfxs) (Angle $ pi/2) flrTexture
+  let spots = [-1000,1000]
+  flip mapM_ spots $ \j -> do
+    floorWall (x + j, y - 500) (head $ sfxs) (Angle 0) flrTexture
+  flip mapM_ spots $ \j -> do
+    floorWall (x + j, y + 500) (head $ sfxs) (Angle 0) flrTexture
+  flip mapM_ spots $ \j -> do
+    floorWall (x - 500, y + j) (head $ sfxs) (Angle $ pi/2) flrTexture
+  flip mapM_ spots $ \j -> do
+    floorWall (x + 500, y + j) (head $ sfxs) (Angle $ pi/2) flrTexture

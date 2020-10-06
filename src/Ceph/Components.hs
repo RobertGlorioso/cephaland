@@ -27,6 +27,8 @@ import qualified SDL as S
 import Foreign.C.Types
 import GHC.Word
 
+data Coral = Node Position [Coral] | Last SpriteColor deriving (Eq,Show)
+
 data GameOpts = GameOpts { debugOn :: Bool }
 
 data SDLRenderer = SDLRenderer S.Renderer
@@ -43,33 +45,27 @@ data Orbiting = Orbiting Entity
 instance Component Orbiting where
   type Storage Orbiting = Map Orbiting
 
---a wall is a stationary box 
-data Wall = Wall1 | Wall2 | Wall3 | OneWayWall | Floor deriving (Eq, Show)
+data Wall = Wall1 | Wall2 | Wall3 | OneWayWall | Floor  deriving (Eq, Show)
 instance Component Wall where
   type Storage Wall = Map Wall
 
---the weapons: sword / lance will be a box that does cut / pierce | laser will reflect off boxes | harpoon will shoot tiny spears | chain will attach to boxes
 data Weapon = Sword | Lance | Laser | Harpoon | Chain | Net deriving (Eq, Show)
 instance Component Weapon where
   type Storage Weapon = Map Weapon
 
---the enemies
-data Enemy = Enemy1 deriving (Eq, Show)
+data Enemy = Enemy1 | Jelly deriving (Eq, Show)
 instance Component Enemy where
   type Storage Enemy = Map Enemy
 
---the players
 data Player = Player1 deriving (Eq, Show)
 instance Component Player where
   type Storage Player = Map Player
 
---the stuff getting shot 
 data Projectile = Bullet | Arrow | Squall deriving (Eq,Show)
 instance Component Projectile where
   type Storage Projectile = Map Projectile
 
---links between two entities and weighted links to add some variance
-data Linked = Linked Entity Entity | WLinked Entity Entity CDouble deriving (Eq, Show, Ord)
+data Linked = Linked Entity Entity | WLinked Entity Entity CDouble | End Entity deriving (Eq, Show, Ord)
 instance Component Linked where
   type Storage Linked = Map Linked
 
@@ -122,7 +118,7 @@ data SBoard a = SBoard
   (a, a, a, a)
   (a, a, a, a) deriving (Eq,Functor,Foldable,Traversable)
 
-data BoardControl = BoardControl {status :: BoardStatus, lock :: BoardLock, charge :: Int, playback :: [SRow]} deriving (Eq, Show)
+data BoardControl = BoardControl {duration :: Dur, status :: BoardStatus, lock :: BoardLock, charge :: Int, playback :: [SRow]} deriving (Eq, Show)
 instance Component BoardControl where
   type Storage BoardControl = Unique BoardControl
 
@@ -219,6 +215,7 @@ instance Representable SBoard where
       (desc (SCoordF S2 SI ()), desc (SCoordF S2 SII ()), desc (SCoordF S2 SIII ()), desc (SCoordF S2 SIV ()))
       (desc (SCoordF S3 SI ()), desc (SCoordF S3 SII ()), desc (SCoordF S3 SIII ()), desc (SCoordF S3 SIV ()))
       (desc (SCoordF S4 SI ()), desc (SCoordF S4 SII ()), desc (SCoordF S4 SIII ()), desc (SCoordF S4 SIV ()))
+      
 data MBoard a = MBoard { mboxes :: [(Box, a)], active :: Bool }
   deriving (Functor, Foldable, Traversable)
 
@@ -227,7 +224,7 @@ type Netitor = MBoard Entity
 instance Component Netitor where
   type Storage Netitor = Unique Netitor
 
-data MCoordF a = MCoordF { bx :: Box, sel :: a } --pt :: (S.Point V2 CDouble), sel :: a }
+data MCoordF a = MCoordF { bx :: Box, sel :: a } 
   deriving (Show, Eq, Functor)
 
 type MCoord = MCoordF Entity
@@ -313,7 +310,8 @@ type Phys = (Velocity, Position, Gravity, Angle)
 newtype AngularMomentum = AngularMomentum (CDouble)
 instance Component AngularMomentum where type Storage AngularMomentum = Map AngularMomentum
 
-newtype Grid = Grid (IntMap (IntMap [Sequencer])) deriving Show
+data Grid = Grid (IntMap (IntMap [Sequencer])) (Int,Int) deriving Show
+instance Monoid Grid where mempty = Grid mempty (1,0)
 instance Component Grid where type Storage Grid = Unique Grid
 
 newtype Position = Position (V2 CDouble) deriving (Num, Eq, Show)

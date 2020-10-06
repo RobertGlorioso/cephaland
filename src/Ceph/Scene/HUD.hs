@@ -15,6 +15,7 @@ import Ceph.Components
 import Ceph.Util
 import Ceph.Jams
 import Data.List
+import qualified Data.Map as M
 import GHC.Word
 import Control.Monad
 import Linear (V2(..))
@@ -124,14 +125,15 @@ fillMBoardBoxes r cam =
   cmapM_ $ \case
     (MBoard ns True :: Netitor) -> do
       flip mapM_ ns $ \(Box (p,w,h),e) -> do
-        (sfx,Position pos,scope) <- get e
+        (sfx,Position pos) <- get e
         let SFXResources _ sng (SpriteColor c) = sfx
         rendererDrawColor r $= c
-        let mBoardRect = fillRect r $ 
-                                Just $ Rectangle 
-                                  (P $ round <$> applyView cam (Position pos) (round <$> 2 * V2 w h))
-                                  (round <$> 2 * V2 w h)
-        when (scope == In) $ mBoardRect
+        let mBoardRect (gx,gy) = do
+              fillRect r $ Just $ Rectangle 
+                (P $ round <$> applyView cam (Position pos) (round <$> 2 * V2 w h))
+                (round <$> 2 * V2 w h)
+        --when (scope == In) $ do
+        cmapM_ $ \(Grid _ gxy) -> mBoardRect gxy
     (MBoard _ False) -> return ()
 
 makeNet :: Renderer -> Camera -> Beat -> SCoord -> System World ()
@@ -139,26 +141,28 @@ makeNet r cam (Beat bm bt) sc =
   cmapM_ $ \case
     ((MBoard ns True) :: Netitor, (Position p@(V2 px py))) -> do
       foldM_ (\(acc :: CDouble) (_,e) -> do
-        (beh :: Behavior, sfx, pos :: Position) <- get e
-        let SFXResources _ sng (SpriteColor c) = sfx
-        rendererDrawColor r $= ((\(V4 a b c _) -> V4 a b c 0) c)
-        cmapM_ $ \(Target _, Position t) -> do
-          let V2 dsx dsy = (acc / 7500 *) <$> (t-p)
-          let newP = 
-                case getInst sng of
-                  Percussion -> rotate_pos_cw (Position $ V2 (px + (dsx * sin acc)) (py + (dsy * cos acc))) (Box (p,0,0), Angle $ pi / 2 - v2ToRad (t-p))
-                  Oboe -> rotate_pos_cw (Position $ V2 (px + (dsx * sin acc)) (py + (dsy * cos acc))) (Box (p,0,0), Angle $ v2ToRad (t-p))
-                  _ -> rotate_pos_cw (Position $ V2 (px + (dsx * sin acc)) (py + (dsy * cos acc))) (Box (p,0,0), Angle $ pi / 2 + v2ToRad (t-p))
-          let netRect s = fillRect r $ 
-                            Just $ Rectangle 
-                              (P $ round <$> applyView cam newP (round <$> t-p))
-                              s
-          when (beh == Sing) $ do
-            rendererDrawColor r $= c
-            netRect $ pure 4
-            rendererDrawColor r $= ((\(V4 a b c _) -> V4 a b c 1) c)         
-          netRect $ pure 2
-        return $ acc + ((fromIntegral $ fromEnum sc) + (fromIntegral (bt) / fromIntegral (bm)))
+        insts <- flip cfoldM [] $ \a (_ :: Sequencer, i :: InstrumentName) -> return $ i:a
+        when (mod (round acc) 3 == 0) $ do
+          (beh :: Behavior, sfx, _ :: Position) <- get e
+          let SFXResources _ sng (SpriteColor c) = sfx
+          rendererDrawColor r $= ((\(V4 a b c _) -> V4 a b c 0) c)
+          cmapM_ $ \(Target _, Position t) -> do
+            let V2 dsx dsy = (acc / 5000 *) <$> (t-p)
+            let newP = 
+                  case findIndex (==getInst sng) insts of
+                    Just 0 -> rotate_pos_cw (Position $ V2 (px + (dsx * sin acc)) (py + (dsy * cos acc))) (Box (p,0,0), Angle $ pi / 2 - v2ToRad (t-p))
+                    Just 1 -> rotate_pos_cw (Position $ V2 (px + (dsx * sin acc)) (py + (dsy * cos acc))) (Box (p,0,0), Angle $ v2ToRad (t-p))
+                    _ -> rotate_pos_cw (Position $ V2 (px + (dsx * sin acc)) (py + (dsy * cos acc))) (Box (p,0,0), Angle $ pi / 2 + v2ToRad (t-p))
+            let netRect s = fillRect r $ 
+                              Just $ Rectangle 
+                                (P $ round <$> applyView cam newP (round <$> t-p))
+                                s
+            when (beh == Sing) $ do
+              rendererDrawColor r $= c
+              netRect $ pure 4
+              rendererDrawColor r $= ((\(V4 a b c _) -> V4 a b c 1) c)         
+            netRect $ pure 2
+        return $ acc + ((fromIntegral $ fromEnum sc) / 3 + (fromIntegral (bt) / fromIntegral (bm)))
         ) (400) ns
     (MBoard _ False, _) -> return ()
 
@@ -183,8 +187,8 @@ makeClock r sc = cmapM_
   
 renderHUD :: Renderer -> System World ()
 renderHUD r = do 
-  (sc, MCoordF (Box (mc,_,_)) selectedEnt :: MCoord, bdctrl, beat :: Beat) <- get global
-  global `modify` \bc@(BoardControl _ _ i _) -> if i <= 150 then bc { charge = i + 15 } else bc 
+  (sc, MCoordF (Box (mc,_,_)) selectedEnt :: MCoord, bdctrl, beat :: Beat, cam :: Camera) <- get global
+  global `modify` \bc@(BoardControl _ _ _ i _) -> if i <= 10500 then bc { charge = i + 1 } else bc 
   boardLight r bdctrl
   playingLight r
   makeSequencer r sc mc

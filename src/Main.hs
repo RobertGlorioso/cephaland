@@ -18,6 +18,7 @@ import Ceph.Component.Projectile
 import Ceph.Component.Levels
 import Ceph.Component.Weapon
 import Ceph.Jams
+import Ceph.Handler
 
 import Apecs
 import Data.List (isInfixOf,zip4,find)
@@ -26,12 +27,15 @@ import Data.Bool
 import Data.Time.Clock
 import Options.Applicative
 import Control.Monad
+import Control.Exception (catch, SomeException)
 import Control.Concurrent
+import Control.Concurrent.Async
 import System.Random
 import System.Directory
 import Linear (V2(..))
 import qualified SDL.Mixer as M 
 import qualified SDL as S
+import SDL.Input
 import Foreign.C.Types
 import Euterpea
 import Data.Monoid
@@ -67,10 +71,11 @@ initGame r = do
   let mkSFX ms col = do
         sfx <- liftIO $ mapM midiLoad ms
         return $ getZipList $ SFXResources <$> ZipList sfx <*> ZipList ms <*> ZipList (makeColorsMidi col)
-  
-  asmplSfxs <- liftIO $ mkSFX (makeMidiSamples Flute) (S.V4 50 0 50 0)
+  [i,j] <- liftIO $ replicateM 2 $ takeRandom [0..50]
+  asmplSfxs <- liftIO $ mkSFX (makeMidiSamples (toEnum i)) (S.V4 50 0 50 0)
   beatSfxs <- liftIO $ mkSFX (makeMidiSamples Percussion) (S.V4 0 50 50 0)
-  csmplSfxs <- liftIO $ mkSFX (makeMidiSamples Oboe) (S.V4 50 50 0 0)
+  csmplSfxs <- liftIO $ mkSFX (makeMidiSamples (toEnum j)) (S.V4 50 50 0 0)
+  --smplSfxs <- liftIO $ mapM_ (\i -> mkSFX (makeMidiSamples (toEnum $ fromIntegral i)) (S.V4 i 50 (50 - i) 0)) [0..50]
 
   let enemyFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/squid1.bmp" 
   --let chainFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/chain.bmp"
@@ -81,13 +86,17 @@ initGame r = do
   let octoFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/octo2.bmp"
   let bultFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/bullett.bmp"
   let netFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/starshell.bmp"
+  let jellyFile = "C:/Users/robertg/OneDrive/cephaland-master/resource/image/jelly.bmp"
   --chnTexture <- liftIO $ loadTxtr r chainFile
+  jlyTexture <- liftIO $ loadTxtr r jellyFile
   flrTexture <- liftIO $ loadTxtr r floorFile
   octoTexture <- liftIO $ loadTxtr r octoFile
   bultTexture <- liftIO $ loadTxtr r bultFile
   netTexture <- liftIO $ loadTxtr r netFile
+  wallTexture <- liftIO $ loadTxtr r wallFile
   wallTexture2 <- liftIO $ loadTxtr r wallFile2
-
+  
+  pl <- player1 octoTexture (last beatSfxs)
   
   --let squalls v = newSquall (Position v) bultTexture (beatSfxs !! 1)
   --sqx <- liftIO $ replicateM 10 $ randomRIO (-100,100) :: System World [CDouble]
@@ -95,39 +104,46 @@ initGame r = do
   --sqs <- mapM squalls $ zipWith (V2) sqx sqy
   newSquall (Position $ pure 30) netTexture (beatSfxs !! 1) -- >>= \e -> set e $ Netted sqs
   tg <- newEntity (Target $ pure 10, Box (0,0,0), Position 0)
-
-  let wallbxs r s = zip [(x-z,r+y,0,0) | (z,y) <- zip [0,12,24,36] [-350,-300..350], x <- [-200,-177..50]] s
-  let makeWalls wall wp = mapM (\(w,bx) -> nonWall w bx wallTexture2) $ concat (getZipList $ wp <$> ZipList [0,200,400] <*> ZipList [beatSfxs, asmplSfxs, csmplSfxs])
   
+  let wallbxs r s = zip [(x-z,r+y,0,0) | (z,y) <- zip [0,12..180] [-350,-325..350], x <- [200,225..480]] s
+  let makeWalls wall wp = do
+        mapM (\(w,bx) -> nonWall w bx wallTexture2) 
+          $ concat (getZipList $ wp <$> ZipList [-400,-200,0] <*> ZipList [beatSfxs, asmplSfxs, csmplSfxs])
   let circleOfFifths o = take 3 $ iterate (\j -> drop 3 j ++ take 3 j) $ fmap (\i -> find ((==i) . getPC . song) asmplSfxs) ((Note qn . (,o)) <$> [F,C,G,D,A,E,B,Fs,Cs,Af,Ef,Bf])
-  let tonnetzBxs r o = zip [(x-a,r+y,0,0) | (a,y) <- zip [0,12..100] [-250,-225..0], x <- [200,225..450]] (catMaybes . concat $ circleOfFifths o)
-  
+  let tonnetzBxs r o = zip [(x-a,r+y,0,0) | (a,y) <- zip [100,110..180] [-250,-230..0], x <- [700,720..920]] (catMaybes . concat $ circleOfFifths o)
   wallEs <- makeWalls Wall1 wallbxs
-  tonnetzWalls <- mapM (\(w,bx) -> nonWall w bx wallTexture2) $ concat [tonnetzBxs 200 3,tonnetzBxs 0 4]
+  tonnetzWalls <- mapM (\(w,bx) -> nonWall w bx wallTexture2) $ concat [tonnetzBxs (-200) 3,tonnetzBxs (-400) 4]
   
-  pl <- player1 octoTexture (last beatSfxs)
-  oneWayWall (-600, -40) (head $ asmplSfxs) flrTexture
-  oneWayWall (600, -110) (head $ asmplSfxs) flrTexture
+  let makeChains i = replicateM i (chain' (head beatSfxs)) >>= (\chns -> chains (pl:chns) tg)
+  mapM_ makeChains [10..20] 
   
   wallboxs <- mapM get $ wallEs ++ tonnetzWalls ++ [pl] :: System World [Box]      
-  let nr = MBoard ( zip wallboxs (wallEs ++ tonnetzWalls ++ [pl]) ) True :: Netitor
+  let nr = MBoard ( zip wallboxs $ wallEs ++ tonnetzWalls ++ [pl] ) True :: Netitor
   nt <- net netTexture nr
   wChains 0.5 (pl:nt:tg:[]) tg
   
-  mapM_ (newBullet bultTexture) beatSfxs
-              
-  enms1 <- mapM (enemy r enemyFile Enemy1) =<< liftIO (replicateM 1 $ takeRandom beatSfxs)
-  enms2 <- mapM (enemy r enemyFile Enemy1) =<< liftIO (replicateM 1 $ takeRandom asmplSfxs)
-  enms3 <- mapM (enemy r enemyFile Enemy1) =<< liftIO (replicateM 1 $ takeRandom csmplSfxs)
-
-  makeFloorWallBox flrTexture (pure 0) beatSfxs
-  --makeFloorWallBox flrTexture (V2 (-1200) 0) asmplSfxs
-  --makeFloorWallBox flrTexture (V2 0 1200) csmplSfxs
-
-  let makeChains i = replicateM i (chain' (head beatSfxs)) >>= (\chns -> chains (pl:chns) tg)
+  mapM_ (\e -> jellyWall e jlyTexture) $ tonnetzWalls ++ wallEs
   
-  mapM_ makeChains [10..20] 
+  oneWayWall (250, -225) (head $ asmplSfxs) wallTexture
+  oneWayWall (250, -425) (head $ asmplSfxs) wallTexture
+  oneWayWall (250, -625) (head $ asmplSfxs) wallTexture
+  oneWayWall (600, -325) (head $ asmplSfxs) wallTexture
+  oneWayWall (600, -525) (head $ asmplSfxs) wallTexture
+  
+  
+  
+  --mapM_ (newBullet bultTexture) beatSfxs
+              
+  --enms1 <- mapM (enemy r enemyFile Enemy1) =<< liftIO (replicateM 2 $ takeRandom beatSfxs)
+  --enms2 <- mapM (enemy r enemyFile Enemy1) =<< liftIO (replicateM 2 $ takeRandom asmplSfxs)
+  --enms3 <- mapM (enemy r enemyFile Enemy1) =<< liftIO (replicateM 2 $ takeRandom csmplSfxs)
 
+  makeFloorWallBox flrTexture (pure 500) beatSfxs
+  makeFloorWallBox flrTexture (pure (-500)) beatSfxs
+  makeFloorWallBox flrTexture (V2 (-500) 500) asmplSfxs
+  makeFloorWallBox flrTexture (V2 500 (-500)) csmplSfxs
+
+  
   let makeSequencer :: [SFXResources] -> System World ()
       makeSequencer sfxs = do
         rest <- return $ last sfxs
@@ -148,10 +164,10 @@ initGame r = do
               , mempty :: SCoord
               , mempty :: SongList
               , MCoordF (Box (0,1,1)) (Entity 10)
-              , BoardControl Play Unlocked 0 [S1,S2,S3,S4]
+              , BoardControl (qn) Play Unlocked 0 [S1,S2,S3,S4]
               )
-  _ <- newEntity ( Grid mempty )
-  randomizeGridCell 0 
+  _ <- newEntity ( Grid mempty (1,0) )
+  checkGridCell 0 
 
 mainLoop :: World -> S.Renderer -> IO ()
 mainLoop w renderer = do
@@ -160,9 +176,16 @@ mainLoop w renderer = do
   let quit = elem S.QuitEvent $ map S.eventPayload events
   S.clear renderer
   S.rendererDrawColor renderer S.$= S.V4 19 19 19 255
+  ks <- getKeyboardState
+  ms <- getMouseButtons
+  --catch (runWith w $ handle ks ms) (writeFile "err.txt" . show :: SomeException -> IO ())
   render w
   S.present renderer
+  runWith w $ do
+    get global >>= \b -> when (status b == Play) incrementBeat
+    handle ks ms
   physicsStep w
+
   t2 <- getCurrentTime
   let diffTime = round $ (100000) * (diffUTCTime t2 t1)
   when (diffTime < 16667) $ do

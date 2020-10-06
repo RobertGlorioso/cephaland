@@ -47,7 +47,7 @@ playerLoop (Player1, Dash dx, pb@(Box (p1,_,_),Velocity v,e), _, Charge cv chgin
     (ob, Squall) -> bounce (0.1,0.9) pb ob
     _ -> return ()
   cmap $ \(a::Netitor) -> Velocity v
-  randomizeGridCell (Position p1)
+  checkGridCell (Position p1)
   enemyLoop pb
   cmapM_ $ \case
     (blt,Bullet) -> cmap (hurtPlayer blt)
@@ -65,9 +65,9 @@ playerLoop (Player1, Dash dx, pb@(Box (p1,_,_),Velocity v,e), _, Charge cv chgin
 
 player1 :: Txtr -> SFXResources -> System World Entity
 player1 txtr s = 
-  newEntity ((Position (V2 (200) 250)
+  newEntity ((Position (V2 (0) (0))
               , 0 :: Velocity
-              , Gravity (V2 0 (0.05))
+              , Gravity (V2 0 (0.15))
               , txtr
               , Box (0, 1, 1))
             , (ProjCount 30, Health 99, Dash 0)
@@ -88,7 +88,7 @@ playerShootChain (c, x, v, Player1) = do
         return (Charge 1.0 False,Swinging)
 
 playerSpeedLimit :: CDouble
-playerSpeedLimit = 8
+playerSpeedLimit = 4.8
 
 playerSwinging :: System World ()
 playerSwinging = do

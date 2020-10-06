@@ -1,6 +1,7 @@
 module Ceph.Jams where
 
 import Ceph.Components
+import Ceph.Util
 
 import Apecs
 import qualified SDL.Mixer as M
@@ -9,6 +10,7 @@ import Data.List hiding (transpose)
 import Codec.Midi
 import System.Random
 import Control.Monad
+import Control.Concurrent.Async
 import Data.Char
 import Data.List
 import Linear
@@ -31,7 +33,8 @@ midiWrite fp ms = do
   mp <- return . toMidi . perform $ ms
   exportMidiFile fp mp
   midiLoad ms
-  
+  --ml <- async $ midiLoad ms
+  --wait ml
 
 midiLoad :: Music Pitch -> IO M.Chunk
 midiLoad ms = do
@@ -42,7 +45,7 @@ midiLoad ms = do
     (shell "timidity -c \"./soundfonts/GeneralUser GS v1.471.cfg.txt\" -Ow temp.mid -o temp.wav") 
     {std_in = UseHandle inF, std_out = UseHandle outF, std_err = UseHandle outF}
   _ <- waitForProcess process
-  sfx <- M.load "temp.wav"
+  sfx <-  M.load "temp.wav"
   return sfx
 
 makeColorsMidi :: V4 Word8 -> [SpriteColor]
@@ -104,7 +107,7 @@ srowCycle s = succ s
 
 incrementBeat :: System World ()
 incrementBeat = do
-  (Beat m i, BoardControl _ _ _ bp, s@(SCoordF sr sc ())) <- get global
+  (Beat m i, BoardControl _ _ _ _ bp, s@(SCoordF sr sc ())) <- get global
   -- plays sound effects on beat
   when (bp /= []) $
     if (m <= i) then
@@ -119,7 +122,7 @@ incrementBeat = do
       else global `set` Beat m (i+1) 
 soundPlay [] _ = return ()
 soundPlay ms@(m:mz) i 
-      | i > 127 = M.halt (59) >> M.playOn 127 M.Once m >> soundPlay mz 1
+      | i > 127 = M.halt (127) >> M.playOn 127 M.Once m >> soundPlay mz 1
       | otherwise = do
         chanAvailable <- not <$> M.playing i
         if chanAvailable then M.playOn i M.Once m >> soundPlay mz (i+1) else soundPlay ms (i+1)

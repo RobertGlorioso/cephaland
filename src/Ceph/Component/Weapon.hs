@@ -21,8 +21,7 @@ netLoop = do
       cmapM  $ \case
         (Enemy, eb, s :: SFXResources, e) -> 
           if (aabb eb nb) then do
-            --return $ reflect_vel TopEdge 0 0 nb e
-            bounce (0.7,0.3) e d
+            bounce (0.9,0.1) e d
             
             --global `modify` (\(SList ss) -> SList $ s:ss)
           else return ()
@@ -149,14 +148,17 @@ moveNets (Netted ns, Box (_,w,h)) = do
   let newP = (sum ps) / (fromIntegral $ length ps )
   return $ (Position newP, Box (newP, w, h))
 
-moveChains :: (Linked,Box) -> System World (Angle, Position, Box)
-moveChains (Linked e f,Box (_,w,h)) = do
+moveChains :: (Linked, Position, Box) -> System World (Angle, Position, Box)
+moveChains (Linked e f, _, Box (_,w,h)) = do
   (Position p1) <- get e
   (Position p0) <- get f
   let newP = (p0 + p1) / 2
   return $ (Angle $ v2ToRad (p0 - p1), Position newP, Box (newP,w,h)) 
-moveChains (WLinked e f m,Box (_,w,h)) = do
+moveChains (WLinked e f m, _, Box (_,w,h)) = do
   (Position p0) <- get e
   (Position p1) <- get f
   let newP = pure (1-m) * p0 + (pure m * p1)
   return $ (Angle $ v2ToRad (p0 - p1), Position newP, Box (newP,w,h)) 
+moveChains (End e, Position p0, Box (_,w,h)) = do
+  (Position p1) <- get e
+  return $ (Angle $ v2ToRad (p0 - p1), Position p1, Box (p1,w,h))

@@ -23,11 +23,15 @@ enemyLoop eb@(Box (p1,_,_),_,_) = do
   cmapM_ $ \case
     (Arrow, b) -> cmap (hurtEnemy b)
     (_,_) -> return ()
-  cmapIf (\(Enemy1, Charge c _) -> c <= 50000) (\(Enemy1, Charge c _, v, p) -> (Charge (c + 0.1) True, acc2player p1 p v))
-  cmapIf (\(Enemy1, Charge c _) -> c >= 50000) (\(Enemy1, Charge _ _, v :: Velocity) -> (Charge 0 True, Velocity (pure 0.01) * v))
+  cmapIf (\(Enemy1, Charge c _) -> c >= 10000) (\(Enemy1, Charge c _, v, p) -> (Charge 0 True, acc2player p1 p v))
+  cmapIf (\(Enemy1, Charge c _) -> c >= 9000) (\(Enemy1, Charge c _, v :: Velocity, Position p) -> (Charge (c + 1) True, Velocity $ (pure 0.5) * (normalize $ p1 - p )))
+  cmapIf (\(Enemy1, Charge c _) -> c <= 9000) (\(Enemy1, Charge c _, v :: Velocity, Position p) -> (Charge (c + 1) True))
   cmap $ \case
     (Enemy, Trapped, _) -> (Out, Position $ pure 2e10)
     (_,_,i) -> i
+
+enemySpeedLimit :: CDouble
+enemySpeedLimit = 10.8
 
 hurtEnemy :: (Box,Projectile) -> (Box, Health, Enemy) -> Health
 hurtEnemy ((Box painBox),Arrow) (Box enemyBox, h, _)  = if (aabb (Box painBox) (Box enemyBox)) then (h - 1) else h
@@ -36,12 +40,11 @@ hurtEnemy (_,_) (_, h, _)  = h
 acc2player :: V2 CDouble -> Position -> Velocity -> Velocity
 acc2player m (Position p) v@(Velocity vel) 
       | norm vel > enemySpeedLimit = v
-      | (norm (m - p) < 500) = ( v + Velocity (0.01 * ( normalize $ m - p )))
-      | (norm (m - p) < 1080) = ( v + Velocity (0.001 * ( normalize $ m - p )))
-      | (norm (m - p) < 4060) = ( v + Velocity (0.0008 * ( normalize $ m - p )))
-      | (norm (m - p) < 10068) = ( v + Velocity (0.0001 * ( normalize $ m - p )))
+      | (norm (m - p) < 500) = ( v + Velocity (0.1 * ( normalize $ m - p )))
+      | (norm (m - p) < 1080) = ( v + Velocity (0.2 * ( normalize $ m - p )))
+      | (norm (m - p) < 2060) = ( v + Velocity (1.5 * ( normalize $ m - p )))
+      | (norm (m - p) < 4068) = ( v + Velocity (2.6 * ( normalize $ m - p )))
       | True = v
-      where enemySpeedLimit = 10
 
 go2player :: V2 CDouble -> Position -> Velocity -> Velocity
 go2player m (Position p) v 
