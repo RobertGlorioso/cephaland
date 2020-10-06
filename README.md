@@ -22,6 +22,8 @@ you will have to use stack if you want to change the game
 -- Credits --
 
 Euterpea: https://github.com/Euterpea/Euterpea2
+
 Timidity: http://timidity.sourceforge.net/
+
 SDL: https://www.libsdl.org/
 
