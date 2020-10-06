@@ -1,13 +1,11 @@
 -- Its the Cephaland Game --
 
-use w/a/s/d keys to move the character
-use arrow keys to move the net
-
-=/- will change tempo up/down
-
-f key will toggle playback
-
-space key will toggle lock the sequencer
+w/a/s/d keys to move the guy
+f key to pause playback (n key to play the next note while paused)
+spacebar to toggle note overwrite or stack
+1-4 keys toggle row playback
+=/- key change tempo up/down
+point the mouse over the jellyfish to add a note (left for single/right for multi)
 
 -- Running the Game --
 
